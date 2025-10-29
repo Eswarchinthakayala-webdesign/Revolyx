@@ -35,7 +35,12 @@ export default function Header() {
     { name: "Charts", icon: ChartAreaIcon, path: "/charts" },
     { name: "UI Kits", icon: Sparkles, path: "/uikits" },
     { name: "Docs", icon: Book, path: "/docs" },
-  ];
+  ]; 
+
+    const isDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   const isActive = (path) =>
     location.pathname === path ? "text-black dark:text-white font-semibold" : "";
@@ -58,8 +63,15 @@ export default function Header() {
           <Link to="/" className="flex items-center gap-2">
             <motion.h1
               whileHover={{ scale: 1.05 }}
-              className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-black to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent select-none"
-            >
+              className="text-2xl gap-1 flex items-center flex-row font-extrabold tracking-tight bg-gradient-to-r from-black to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent select-none"
+            > 
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className={`h-8 sm:h-10 ${
+                isDark ? "invert brightness-150" : "brightness-200"
+              }`}
+            />
               Revolyx
             </motion.h1>
           </Link>

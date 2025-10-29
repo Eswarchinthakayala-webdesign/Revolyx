@@ -1,13 +1,13 @@
 // src/pages/RevolyxChartsPage.jsx
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
+  LineChart,Label, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
   Tooltip, Legend, ResponsiveContainer, CartesianGrid, ComposedChart,
   PieChart, Pie, Cell, RadialBarChart, RadialBar, ScatterChart, Scatter,
   ZAxis, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
   Treemap, FunnelChart, Funnel, LabelList, Brush, ReferenceLine
 } from "recharts";
-
+import { Skeleton } from "@/components/ui/skeleton";
 
 import {
   Sheet,
@@ -41,6 +41,7 @@ import { Badge } from "@/components/ui/badge";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTheme } from "../components/theme-provider";
+import CustomActiveShapePieChart from "../components/CustomActiveShapePieChart";
 
 
 /* Color themes provided by user */
@@ -85,6 +86,78 @@ const demoData2 = [
   { name: "May", uv: 1890, pv: 4800, amt: 2181, cnt: 48, score: 55 },
   { name: "Jun", uv: 2390, pv: 3800, amt: 2500, cnt: 38, score: 88 },
   { name: "Jul", uv: 3490, pv: 4300, amt: 2100, cnt: 43, score: 92 },
+];
+const data01 = [
+  { hour: '12a', index: 1, value: 170 },
+  { hour: '1a', index: 1, value: 180 },
+  { hour: '2a', index: 1, value: 150 },
+  { hour: '3a', index: 1, value: 120 },
+  { hour: '4a', index: 1, value: 200 },
+  { hour: '5a', index: 1, value: 300 },
+  { hour: '6a', index: 1, value: 400 },
+  { hour: '7a', index: 1, value: 200 },
+  { hour: '8a', index: 1, value: 100 },
+  { hour: '9a', index: 1, value: 150 },
+  { hour: '10a', index: 1, value: 160 },
+  { hour: '11a', index: 1, value: 170 },
+  { hour: '12a', index: 1, value: 180 },
+  { hour: '1p', index: 1, value: 144 },
+  { hour: '2p', index: 1, value: 166 },
+  { hour: '3p', index: 1, value: 145 },
+  { hour: '4p', index: 1, value: 150 },
+  { hour: '5p', index: 1, value: 170 },
+  { hour: '6p', index: 1, value: 180 },
+  { hour: '7p', index: 1, value: 165 },
+  { hour: '8p', index: 1, value: 130 },
+  { hour: '9p', index: 1, value: 140 },
+  { hour: '10p', index: 1, value: 170 },
+  { hour: '11p', index: 1, value: 180 },
+];
+const data001 = [
+  { name: 'Group A', value: 400 },
+  { name: 'Group B', value: 300 },
+  { name: 'Group C', value: 300 },
+  { name: 'Group D', value: 200 },
+];
+const data002 = [
+  { name: 'A1', value: 100 },
+  { name: 'A2', value: 300 },
+  { name: 'B1', value: 100 },
+  { name: 'B2', value: 80 },
+  { name: 'B3', value: 40 },
+  { name: 'B4', value: 30 },
+  { name: 'B5', value: 50 },
+  { name: 'C1', value: 100 },
+  { name: 'C2', value: 200 },
+  { name: 'D1', value: 150 },
+  { name: 'D2', value: 50 },
+];
+ const isAnimationActive=true
+const data02 = [
+  { hour: '12a', index: 1, value: 160 },
+  { hour: '1a', index: 1, value: 180 },
+  { hour: '2a', index: 1, value: 150 },
+  { hour: '3a', index: 1, value: 120 },
+  { hour: '4a', index: 1, value: 200 },
+  { hour: '5a', index: 1, value: 300 },
+  { hour: '6a', index: 1, value: 100 },
+  { hour: '7a', index: 1, value: 200 },
+  { hour: '8a', index: 1, value: 100 },
+  { hour: '9a', index: 1, value: 150 },
+  { hour: '10a', index: 1, value: 160 },
+  { hour: '11a', index: 1, value: 160 },
+  { hour: '12a', index: 1, value: 180 },
+  { hour: '1p', index: 1, value: 144 },
+  { hour: '2p', index: 1, value: 166 },
+  { hour: '3p', index: 1, value: 145 },
+  { hour: '4p', index: 1, value: 150 },
+  { hour: '5p', index: 1, value: 160 },
+  { hour: '6p', index: 1, value: 180 },
+  { hour: '7p', index: 1, value: 165 },
+  { hour: '8p', index: 1, value: 130 },
+  { hour: '9p', index: 1, value: 140 },
+  { hour: '10p', index: 1, value: 160 },
+  { hour: '11p', index: 1, value: 180 },
 ];
 
 const ALL_CHARTS = [
@@ -151,6 +224,49 @@ const ALL_CHARTS = [
   title: "Joint Line Scatter Chart",
   tags: ["scatter", "line", "comparison", "connected"],
 },
+{
+  key: "bubbleChart",
+  title: "Bubble Chart (Hourly by Day)",
+  tags: ["scatter", "bubble", "time-series", "responsive"]
+},
+{
+  key: "scatterChartWithCells",
+  title: "Scatter Chart (Colored Cells)",
+  tags: ["scatter", "cells", "custom-colors"]
+},
+{ key: "twoLevelPieChart", title: "Two-Level Pie Chart", tags: ["pie", "nested", "responsive"] },
+{
+  key: "straightAnglePieChart",
+  title: "Straight Angle Pie Chart (Semi Circle)",
+  tags: ["pie", "half", "angle", "donut"]
+},
+{
+  key: "customActiveShapePieChart",
+  title: "Custom Active Shape Pie Chart",
+  tags: ["pie", "custom-shape", "interactive", "sector", "animation"],
+},
+{
+  key: "pieChartWithNeedle",
+  title: "Pie Chart with Needle Gauge",
+  tags: ["pie", "gauge", "needle", "indicator"]
+},
+{
+  key: "pieChartInFlexbox",
+  title: "Pie Chart in Flexbox Layout",
+  tags: ["pie", "responsive", "layout", "flexbox"]
+},
+
+{
+  key: "specifiedDomainRadarChart",
+  title: "Radar Chart (Specified Domain)",
+  tags: ["radar", "polar", "domain", "responsive"]
+},
+
+{
+  key: "simpleRadialBarChart",
+  title: "Radial Bar Chart (Simple)",
+  tags: ["radial", "bar", "circular", "legend"]
+},
 
 
 
@@ -186,6 +302,747 @@ function generateChartSource(key, paletteName) {
     <Line type="monotone" dataKey="pv" stroke="${palette[1]}" strokeWidth={2} dot={{ r: 3 }} />
   </LineChart>
 </ResponsiveContainer>`;
+case "simpleRadialBarChart":
+      return `// Radial Bar Chart (Simple)
+import { RadialBarChart, RadialBar, Legend } from 'recharts';
+
+// #region Sample data
+const data = [
+  {
+    name: '18-24',
+    uv: 31.47,
+    pv: 2400,
+    fill: '#8884d8',
+  },
+  {
+    name: '25-29',
+    uv: 26.69,
+    pv: 4567,
+    fill: '#83a6ed',
+  },
+  {
+    name: '30-34',
+    uv: 15.69,
+    pv: 1398,
+    fill: '#8dd1e1',
+  },
+  {
+    name: '35-39',
+    uv: 8.22,
+    pv: 9800,
+    fill: '#82ca9d',
+  },
+  {
+    name: '40-49',
+    uv: 8.63,
+    pv: 3908,
+    fill: '#a4de6c',
+  },
+  {
+    name: '50+',
+    uv: 2.63,
+    pv: 4800,
+    fill: '#d0ed57',
+  },
+  {
+    name: 'unknown',
+    uv: 6.67,
+    pv: 4800,
+    fill: '#ffc658',
+  },
+];
+
+// #endregion
+const style = {
+  top: '50%',
+  right: 0,
+  transform: 'translate(0, -50%)',
+  lineHeight: '24px',
+};
+
+const SimpleRadialBarChart = () => {
+  return (
+    <RadialBarChart
+      style={{ width: '100%', maxWidth: '700px', maxHeight: '80vh', aspectRatio: 1.618 }}
+      responsive
+      cx="30%"
+      barSize={14}
+      data={data}
+    >
+      <RadialBar label={{ position: 'insideStart', fill: '#fff' }} background dataKey="uv" />
+      <Legend iconSize={10} layout="vertical" verticalAlign="middle" wrapperStyle={style} />
+    </RadialBarChart>
+  );
+};
+
+export default SimpleRadialBarChart;
+`;
+case "specifiedDomainRadarChart":
+      return `// Radar Chart (Specified Domain)
+import { Radar, RadarChart, PolarGrid, Legend, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+
+// #region Sample data
+const data = [
+  {
+    subject: 'Math',
+    A: 120,
+    B: 110,
+    fullMark: 150,
+  },
+  {
+    subject: 'Chinese',
+    A: 98,
+    B: 130,
+    fullMark: 150,
+  },
+  {
+    subject: 'English',
+    A: 86,
+    B: 130,
+    fullMark: 150,
+  },
+  {
+    subject: 'Geography',
+    A: 99,
+    B: 100,
+    fullMark: 150,
+  },
+  {
+    subject: 'Physics',
+    A: 85,
+    B: 90,
+    fullMark: 150,
+  },
+  {
+    subject: 'History',
+    A: 65,
+    B: 85,
+    fullMark: 150,
+  },
+];
+
+// #endregion
+const SpecifiedDomainRadarChart = () => {
+  return (
+    <RadarChart
+      style={{ width: '100%', maxWidth: '500px', maxHeight: '80vh', aspectRatio: 1 }}
+      responsive
+      outerRadius="80%"
+      data={data}
+    >
+      <PolarGrid />
+      <PolarAngleAxis dataKey="subject" />
+      <PolarRadiusAxis angle={30} domain={[0, 150]} />
+      <Radar name="Mike" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+      <Radar name="Lily" dataKey="B" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} />
+      <Legend />
+    </RadarChart>
+  );
+};
+
+export default SpecifiedDomainRadarChart;
+`;
+case "pieChartWithNeedle":
+      return `// Pie Chart with Needle Gauge
+
+import { Pie, PieChart } from 'recharts';
+
+const RADIAN = Math.PI / 180;
+// #region Sample data
+const chartData = [
+  { name: 'A', value: 80, fill: '#ff0000' },
+  { name: 'B', value: 45, fill: '#00ff00' },
+  { name: 'C', value: 25, fill: '#0000ff' },
+];
+
+// #endregion
+type Needle = {
+  value: number;
+  data: { name: string; value: number; fill: string }[];
+  cx: number;
+  cy: number;
+  iR: number;
+  oR: number;
+  color: string;
+};
+
+const needle = ({ value, data, cx, cy, iR, oR, color }: Needle) => {
+  const total = data.reduce((sum, entry) => sum + entry.value, 0);
+  const ang = 180.0 * (1 - value / total);
+  const length = (iR + 2 * oR) / 3;
+  const sin = Math.sin(-RADIAN * ang);
+  const cos = Math.cos(-RADIAN * ang);
+  const r = 5;
+  const x0 = cx + 5;
+  const y0 = cy + 5;
+  const xba = x0 + r * sin;
+  const yba = y0 - r * cos;
+  const xbb = x0 - r * sin;
+  const ybb = y0 + r * cos;
+  const xp = x0 + length * cos;
+  const yp = y0 + length * sin;
+
+  return [
+    <circle key="needle-circle" cx={x0} cy={y0} r={r} fill={color} stroke="none" />,
+    <path
+      key="needle-path"
+      d={M{xba} {yba}L{xbb} {ybb} L{xp} {yp} L{xba} {yba}}
+      stroke="#none"
+      fill={color}
+    />,
+  ];
+};
+
+export default function PieChartWithNeedle({ isAnimationActive = true }: { isAnimationActive?: boolean }) {
+  const cx = 100;
+  const cy = 100;
+  const iR = 50;
+  const oR = 100;
+  const value = 50;
+
+  return (
+    <PieChart width={210} height={120} style={{ margin: '0 auto' }}>
+      <Pie
+        dataKey="value"
+        startAngle={180}
+        endAngle={0}
+        data={chartData}
+        cx={cx}
+        cy={cy}
+        innerRadius={iR}
+        outerRadius={oR}
+        fill="#8884d8"
+        stroke="none"
+        isAnimationActive={isAnimationActive}
+      />
+      {needle({ value, data: chartData, cx, cy, iR, oR, color: '#d0d000' })}
+    </PieChart>
+  );
+}
+`;
+case "pieChartWithPaddingAngle":
+      return `// Pie Chart with Padding & Rounded Corners
+
+import { Pie, PieChart } from 'recharts';
+
+// #region Sample data
+const data = [
+  { name: 'Group A', value: 400, fill: '#0088FE' },
+  { name: 'Group B', value: 300, fill: '#00C49F' },
+  { name: 'Group C', value: 300, fill: '#FFBB28' },
+  { name: 'Group D', value: 200, fill: '#FF8042' },
+];
+
+// #endregion
+export default function PieChartWithPaddingAngle({ isAnimationActive = true }: { isAnimationActive?: boolean }) {
+  return (
+    <PieChart style={{ width: '100%', maxWidth: '500px', maxHeight: '80vh', aspectRatio: 1 }} responsive>
+      <Pie
+        data={data}
+        innerRadius="80%"
+        outerRadius="100%"
+        // Corner radius is the rounded edge of each pie slice
+        cornerRadius="50%"
+        fill="#8884d8"
+        // padding angle is the gap between each pie slice
+        paddingAngle={5}
+        dataKey="value"
+        isAnimationActive={isAnimationActive}
+      />
+    </PieChart>
+  );
+}
+`;
+
+case "scatterChartWithCells":
+      return `// Scatter Chart (Colored Cells)
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
+
+// #region Sample data
+const data = [
+  { x: 100, y: 200, z: 200 },
+  { x: 120, y: 100, z: 260 },
+  { x: 170, y: 300, z: 400 },
+  { x: 140, y: 250, z: 280 },
+  { x: 150, y: 400, z: 500 },
+  { x: 110, y: 280, z: 200 },
+];
+// #endregion
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', 'red', 'pink'];
+
+export default function ScatterChartWithCells() {
+  return (
+    <ScatterChart
+      style={{ width: '100%', maxWidth: '300px', maxHeight: '70vh', aspectRatio: 1.618 }}
+      responsive
+      margin={{
+        top: 20,
+        right: 0,
+        bottom: 0,
+        left: 0,
+      }}
+    >
+      <CartesianGrid />
+      <XAxis type="number" dataKey="x" name="stature" unit="cm" />
+      <YAxis type="number" dataKey="y" name="weight" unit="kg" width="auto" />
+      <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+      <Scatter name="A school" data={data} fill="#8884d8">
+        {data.map((_entry, index) => (
+          <Cell key={cell-{index}} fill={COLORS[index % COLORS.length]} />
+        ))}
+      </Scatter>
+    </ScatterChart>
+  );
+}
+`;
+case "customActiveShapePieChart":
+      return `// Custom Active Shape Pie Chart
+import { Pie, PieChart, Sector, SectorProps, Tooltip } from 'recharts';
+import { TooltipIndex } from 'recharts/types/state/tooltipSlice';
+
+type Coordinate = {
+  x: number;
+  y: number;
+};
+
+type PieSectorData = {
+  percent?: number;
+  name?: string | number;
+  midAngle?: number;
+  middleRadius?: number;
+  tooltipPosition?: Coordinate;
+  value?: number;
+  paddingAngle?: number;
+  dataKey?: string;
+  payload?: any;
+};
+
+type PieSectorDataItem = React.SVGProps<SVGPathElement> & Partial<SectorProps> & PieSectorData;
+
+// #region Sample data
+const data = [
+  { name: 'Group A', value: 400 },
+  { name: 'Group B', value: 300 },
+  { name: 'Group C', value: 300 },
+  { name: 'Group D', value: 200 },
+];
+
+// #endregion
+const renderActiveShape = ({
+  cx,
+  cy,
+  midAngle,
+  innerRadius,
+  outerRadius,
+  startAngle,
+  endAngle,
+  fill,
+  payload,
+  percent,
+  value,
+}: PieSectorDataItem) => {
+  const RADIAN = Math.PI / 180;
+  const sin = Math.sin(-RADIAN * (midAngle ?? 1));
+  const cos = Math.cos(-RADIAN * (midAngle ?? 1));
+  const sx = (cx ?? 0) + ((outerRadius ?? 0) + 10) * cos;
+  const sy = (cy ?? 0) + ((outerRadius ?? 0) + 10) * sin;
+  const mx = (cx ?? 0) + ((outerRadius ?? 0) + 30) * cos;
+  const my = (cy ?? 0) + ((outerRadius ?? 0) + 30) * sin;
+  const ex = mx + (cos >= 0 ? 1 : -1) * 22;
+  const ey = my;
+  const textAnchor = cos >= 0 ? 'start' : 'end';
+
+  return (
+    <g>
+      <text x={cx} y={cy} dy={8} textAnchor="middle" fill={fill}>
+        {payload.name}
+      </text>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+      <Sector
+        cx={cx}
+        cy={cy}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        innerRadius={(outerRadius ?? 0) + 6}
+        outerRadius={(outerRadius ?? 0) + 10}
+        fill={fill}
+      />
+      <path d={M{sx},{sy}L{mx},{my}L{ex},{ey}} stroke={fill} fill="none" />
+      <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
+      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#333">{PV {value}}</text>
+      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#999">
+        {(Rate {((percent ?? 1) * 100).toFixed(2)}%)}
+      </text>
+    </g>
+  );
+};
+
+export default function CustomActiveShapePieChart({
+  isAnimationActive = true,
+  defaultIndex = undefined,
+}: {
+  isAnimationActive?: boolean;
+  defaultIndex?: TooltipIndex;
+}) {
+  return (
+    <PieChart
+      style={{ width: '100%', maxWidth: '500px', maxHeight: '80vh', aspectRatio: 1 }}
+      responsive
+      margin={{
+        top: 50,
+        right: 120,
+        bottom: 0,
+        left: 120,
+      }}
+    >
+      <Pie
+        // @ts-expect-error the parameter type doesn't match
+        activeShape={renderActiveShape}
+        data={data}
+        cx="50%"
+        cy="50%"
+        innerRadius="60%"
+        outerRadius="80%"
+        fill="#8884d8"
+        dataKey="value"
+        isAnimationActive={isAnimationActive}
+      />
+      <Tooltip content={() => null} defaultIndex={defaultIndex} />
+    </PieChart>
+  );
+}
+`;
+case "twoLevelPieChart":
+  return `
+import { PieChart, Pie, Tooltip, Legend } from "recharts";
+
+// #region Sample data
+const data01 = [
+  { name: "Group A", value: 400 },
+  { name: "Group B", value: 300 },
+  { name: "Group C", value: 300 },
+  { name: "Group D", value: 200 },
+];
+
+const data02 = [
+  { name: "A1", value: 100 },
+  { name: "A2", value: 300 },
+  { name: "B1", value: 100 },
+  { name: "B2", value: 80 },
+  { name: "C1", value: 150 },
+  { name: "C2", value: 120 },
+  { name: "D1", value: 50 },
+  { name: "D2", value: 50 },
+];
+// #endregion
+
+export default function TwoLevelPieChart({ isAnimationActive = true }) {
+  return (
+    <PieChart
+      style={{
+        width: "100%",
+        height: "100%",
+        maxWidth: "500px",
+        maxHeight: "80vh",
+        aspectRatio: 1,
+      }}
+      responsive
+    >
+      <Tooltip />
+      <Legend />
+      <Pie
+        data={data01}
+        dataKey="value"
+        cx="50%"
+        cy="50%"
+        outerRadius="50%"
+        fill="#8884d8"
+        label
+        isAnimationActive={isAnimationActive}
+      />
+      <Pie
+        data={data02}
+        dataKey="value"
+        cx="50%"
+        cy="50%"
+        innerRadius="60%"
+        outerRadius="80%"
+        fill="#82ca9d"
+        label
+        isAnimationActive={isAnimationActive}
+      />
+    </PieChart>
+  );
+}
+`;
+
+case "bubbleChart":
+      return `// Bubble Chart (Hourly by Day)
+import { Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis, TooltipContentProps } from 'recharts';
+import { ReactNode } from 'react';
+
+// #region Sample data
+const data01 = [
+  { hour: '12a', index: 1, value: 170 },
+  { hour: '1a', index: 1, value: 180 },
+  { hour: '2a', index: 1, value: 150 },
+  { hour: '3a', index: 1, value: 120 },
+  { hour: '4a', index: 1, value: 200 },
+  { hour: '5a', index: 1, value: 300 },
+  { hour: '6a', index: 1, value: 400 },
+  { hour: '7a', index: 1, value: 200 },
+  { hour: '8a', index: 1, value: 100 },
+  { hour: '9a', index: 1, value: 150 },
+  { hour: '10a', index: 1, value: 160 },
+  { hour: '11a', index: 1, value: 170 },
+  { hour: '12a', index: 1, value: 180 },
+  { hour: '1p', index: 1, value: 144 },
+  { hour: '2p', index: 1, value: 166 },
+  { hour: '3p', index: 1, value: 145 },
+  { hour: '4p', index: 1, value: 150 },
+  { hour: '5p', index: 1, value: 170 },
+  { hour: '6p', index: 1, value: 180 },
+  { hour: '7p', index: 1, value: 165 },
+  { hour: '8p', index: 1, value: 130 },
+  { hour: '9p', index: 1, value: 140 },
+  { hour: '10p', index: 1, value: 170 },
+  { hour: '11p', index: 1, value: 180 },
+];
+
+const data02 = [
+  { hour: '12a', index: 1, value: 160 },
+  { hour: '1a', index: 1, value: 180 },
+  { hour: '2a', index: 1, value: 150 },
+  { hour: '3a', index: 1, value: 120 },
+  { hour: '4a', index: 1, value: 200 },
+  { hour: '5a', index: 1, value: 300 },
+  { hour: '6a', index: 1, value: 100 },
+  { hour: '7a', index: 1, value: 200 },
+  { hour: '8a', index: 1, value: 100 },
+  { hour: '9a', index: 1, value: 150 },
+  { hour: '10a', index: 1, value: 160 },
+  { hour: '11a', index: 1, value: 160 },
+  { hour: '12a', index: 1, value: 180 },
+  { hour: '1p', index: 1, value: 144 },
+  { hour: '2p', index: 1, value: 166 },
+  { hour: '3p', index: 1, value: 145 },
+  { hour: '4p', index: 1, value: 150 },
+  { hour: '5p', index: 1, value: 160 },
+  { hour: '6p', index: 1, value: 180 },
+  { hour: '7p', index: 1, value: 165 },
+  { hour: '8p', index: 1, value: 130 },
+  { hour: '9p', index: 1, value: 140 },
+  { hour: '10p', index: 1, value: 160 },
+  { hour: '11p', index: 1, value: 180 },
+];
+
+// #endregion
+const parseDomain = () => [
+  0,
+  Math.max(
+    Math.max.apply(
+      null,
+      data01.map(entry => entry.value),
+    ),
+    Math.max.apply(
+      null,
+      data02.map(entry => entry.value),
+    ),
+  ),
+];
+
+const domain = parseDomain();
+const range = [16, 225] as const;
+const margin = { top: 10, right: 0, bottom: 0, left: 0 };
+
+const renderTooltip = (props: TooltipContentProps<string | number, string>) => {
+  const { active, payload } = props;
+
+  if (active && payload && payload.length) {
+    const data = payload[0] && payload[0].payload;
+
+    return (
+      <div
+        style={{
+          backgroundColor: '#fff',
+          border: '1px solid #999',
+          margin: 0,
+          padding: 10,
+        }}
+      >
+        <p>{data.hour}</p>
+        <p>
+          <span>value: </span>
+          {data.value}
+        </p>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+const BubbleAxes = ({ day, showXTicks = false }: { day: string; showXTicks?: boolean }) => (
+  <>
+    <XAxis
+      type="category"
+      dataKey="hour"
+      name="hour"
+      interval={0}
+      tick={showXTicks || { fontSize: 0 }}
+      tickLine={{ transform: 'translate(0, -6)' }}
+    />
+    <YAxis
+      type="number"
+      dataKey="index"
+      name="sunday"
+      height={10}
+      width={80}
+      tick={false}
+      tickLine={false}
+      axisLine={false}
+      label={{ value: day, position: 'insideRight' }}
+    />
+    <ZAxis type="number" dataKey="value" domain={domain} range={range} />
+  </>
+);
+
+const MyTooltip = () => (
+  <Tooltip cursor={{ strokeDasharray: '3 3' }} wrapperStyle={{ zIndex: 100 }} content={renderTooltip} />
+);
+
+const Bubbles = ({ data }: { data: Array<unknown> }) => <Scatter data={data} fill="#8884d8" />;
+
+const DayChart = ({ children }: { children: ReactNode }) => (
+  <ScatterChart
+    margin={margin}
+    style={{ width: '100%', minWidth: '700px', maxWidth: '900px', height: '60px' }}
+    responsive
+  >
+    {children}
+  </ScatterChart>
+);
+
+const BubbleChart = () => {
+  return (
+    <div style={{ width: '100%', maxWidth: '900px' }}>
+      <DayChart>
+        <BubbleAxes day="Sunday" />
+        <Bubbles data={data01} />
+        <MyTooltip />
+      </DayChart>
+
+      <DayChart>
+        <BubbleAxes day="Monday" />
+        <Bubbles data={data02} />
+        <MyTooltip />
+      </DayChart>
+
+      <DayChart>
+        <BubbleAxes day="Tuesday" />
+        <Bubbles data={data01} />
+        <MyTooltip />
+      </DayChart>
+
+      <DayChart>
+        <BubbleAxes day="Wednesday" />
+        <Bubbles data={data02} />
+        <MyTooltip />
+      </DayChart>
+
+      <DayChart>
+        <BubbleAxes day="Thursday" />
+        <Bubbles data={data01} />
+        <MyTooltip />
+      </DayChart>
+
+      <DayChart>
+        <BubbleAxes day="Friday" />
+        <Bubbles data={data02} />
+        <MyTooltip />
+      </DayChart>
+
+      <DayChart>
+        <BubbleAxes day="Saturday" showXTicks />
+        <Bubbles data={data01} />
+        <MyTooltip />
+      </DayChart>
+    </div>
+  );
+};
+
+export default BubbleChart;
+`;
+case "pieChartInFlexbox":
+      return `// Pie Chart in Flexbox Layout
+
+import { PieChart, Pie, Label } from 'recharts';
+
+// #region Sample data
+const data = [
+  { name: 'Group A', value: 400, fill: '#0088FE' },
+  { name: 'Group B', value: 300, fill: '#00C49F' },
+  { name: 'Group C', value: 300, fill: '#FFBB28' },
+  { name: 'Group D', value: 200, fill: '#FF8042' },
+];
+
+// #endregion
+const MyPie = () => (
+  <Pie data={data} dataKey="value" nameKey="name" outerRadius="80%" innerRadius="60%" isAnimationActive={false} />
+);
+
+/**
+ * This example shows how to use the responsive prop on charts inside a flexbox container.
+ * The responsive prop makes the chart automatically resize to fit its parent container.
+ * By combining it with flexbox properties and CSS like maxWidth or aspectRatio,
+ * you can create complex and responsive chart layouts.
+ */
+export default function PieChartInFlexbox() {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        width: '100%',
+        minHeight: '300px',
+        border: '1px solid #ccc',
+        padding: '10px',
+        justifyContent: 'space-around',
+        alignItems: 'stretch',
+      }}
+    >
+      <PieChart responsive style={{ height: 'calc(100% - 20px)', width: '33%', flex: '1 1 200px', aspectRatio: 1 }}>
+        <MyPie />
+        <Label position="center" fill="#666">
+          Flex: 1 1 200px
+        </Label>
+      </PieChart>
+
+      <PieChart responsive style={{ height: 'calc(100% - 20px)', width: '33%', maxWidth: '300px', aspectRatio: 1 }}>
+        <MyPie />
+        <Label position="center" fill="#666">
+          maxWidth: &#39;300px&#39;
+        </Label>
+      </PieChart>
+
+      <PieChart responsive style={{ height: 'calc(100% - 20px)', maxHeight: '20vh', width: '33%', aspectRatio: 1 }}>
+        <MyPie />
+        <Label position="center" fill="#666">
+          maxHeight: &#39;20vh&#39;
+        </Label>
+      </PieChart>
+    </div>
+  );
+}
+`;
 case "verticalComposedChart":
       return `// Vertical Composed Chart
 import { ComposedChart, Line, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
@@ -505,7 +1362,41 @@ case "customShapeBar":
         );
         }
 
-    `
+    `;
+    case "straightAnglePieChart":
+      return `// Straight Angle Pie Chart (Semi Circle)
+import { Pie, PieChart } from 'recharts';
+
+// #region Sample data
+const data = [
+  { name: 'Group A', value: 400 },
+  { name: 'Group B', value: 300 },
+  { name: 'Group C', value: 300 },
+  { name: 'Group D', value: 200 },
+  { name: 'Group E', value: 278 },
+  { name: 'Group F', value: 189 },
+];
+
+// #endregion
+export default function StraightAnglePieChart({ isAnimationActive = true }: { isAnimationActive?: boolean }) {
+  return (
+    <PieChart style={{ width: '100%', maxWidth: '500px', maxHeight: '80vh', aspectRatio: 2 }} responsive>
+      <Pie
+        dataKey="value"
+        startAngle={180}
+        endAngle={0}
+        data={data}
+        cx="50%"
+        cy="100%"
+        outerRadius="120%"
+        fill="#8884d8"
+        label
+        isAnimationActive={isAnimationActive}
+      />
+    </PieChart>
+  );
+}
+`;
 case "areaFillByValue":
   return `// Area Chart (Fill by Value)
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -2333,6 +3224,101 @@ case "scatterAndLineOfBestFit":
             </LineChart>
             </ResponsiveContainer>
         );
+        case "pieChartWithPaddingAngle":
+  return (
+     <ResponsiveContainer width="100%" height={260}>
+    <PieChart
+     
+      responsive
+    >
+      <Pie
+        data={[
+          { name: "Group A", value: 400, fill: palette[1] },
+          { name: "Group B", value: 300, fill: palette[2] },
+          { name: "Group C", value: 300, fill: palette[3] },
+          { name: "Group D", value: 200, fill: palette[4] },
+        ]}
+        innerRadius="80%"
+        outerRadius="100%"
+        cornerRadius="50%"
+        paddingAngle={5}
+        dataKey="value"
+        isAnimationActive
+      />
+       <Tooltip 
+               contentStyle={{
+                backgroundColor: "rgba(24,24,27,0.9)", // dark zinc overlay
+                border: "1px solid rgba(113,113,122,0.4)", // subtle zinc border
+                borderRadius: "0.75rem",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                color: palette[0],
+                fontSize: "0.875rem",
+                padding: "0.5rem 0.75rem",
+            }} 
+            itemStyle={{
+                color: palette[3], // text color
+                textTransform: "capitalize",
+            }}
+            labelStyle={{
+                color: palette[2],
+                fontWeight: "500",
+                marginBottom: "0.25rem",
+            }}
+            cursor={{ fill: "rgba(113,113,122,0.2)" }}
+             />
+    </PieChart>
+    </ResponsiveContainer>
+  );
+  case "specifiedDomainRadarChart":
+  const radarData = [
+    { subject: "Math", A: 120, B: 110, fullMark: 150 },
+    { subject: "Chinese", A: 98, B: 130, fullMark: 150 },
+    { subject: "English", A: 86, B: 130, fullMark: 150 },
+    { subject: "Geography", A: 99, B: 100, fullMark: 150 },
+    { subject: "Physics", A: 85, B: 90, fullMark: 150 },
+    { subject: "History", A: 65, B: 85, fullMark: 150 },
+  ];
+
+  return (
+    <RadarChart
+      responsive
+      outerRadius="80%"
+      data={radarData}
+      style={{ width: "100%", maxWidth: "500px", maxHeight: "80vh", aspectRatio: 1 }}
+    >
+      <PolarGrid />
+      <PolarAngleAxis dataKey="subject" />
+      <PolarRadiusAxis angle={30} domain={[0, 150]} />
+      <Radar name="Mike" dataKey="A" stroke={palette[1]} fill={palette[1]} fillOpacity={0.6} />
+      <Radar name="Lily" dataKey="B" stroke={palette[2]} fill={palette[2]} fillOpacity={0.6} />
+      <Legend />
+       <Tooltip 
+               contentStyle={{
+                backgroundColor: "rgba(24,24,27,0.9)", // dark zinc overlay
+                border: "1px solid rgba(113,113,122,0.4)", // subtle zinc border
+                borderRadius: "0.75rem",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                color: palette[0],
+                fontSize: "0.875rem",
+                padding: "0.5rem 0.75rem",
+            }} 
+            itemStyle={{
+                color: palette[3], // text color
+                textTransform: "capitalize",
+            }}
+            labelStyle={{
+                color: palette[2],
+                fontWeight: "500",
+                marginBottom: "0.25rem",
+            }}
+            cursor={{ fill: "rgba(113,113,122,0.2)" }}
+             />
+    </RadarChart>
+  );
+
+
 
         case "brushBar":
   return (
@@ -2595,10 +3581,69 @@ case "scatterAndLineOfBestFit":
     </ResponsiveContainer>
   );
 }
+// In your chart render switch
+case "customActiveShapePieChart":
+  return <CustomActiveShapePieChart palette={palette} />;
+
+case "twoLevelPieChart":
+  return (<PieChart
+      style={{
+        width: "100%",
+        
+        aspectRatio: 1,
+      }}
+      height={260}
+      responsive
+    >
+       <Tooltip 
+               contentStyle={{
+                backgroundColor: "rgba(24,24,27,0.9)", // dark zinc overlay
+                border: "1px solid rgba(113,113,122,0.4)", // subtle zinc border
+                borderRadius: "0.75rem",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                color: palette[0],
+                fontSize: "0.875rem",
+                padding: "0.5rem 0.75rem",
+            }} 
+            itemStyle={{
+                color: palette[3], // text color
+                textTransform: "capitalize",
+            }}
+            labelStyle={{
+                color: palette[2],
+                fontWeight: "500",
+                marginBottom: "0.25rem",
+            }}
+            cursor={{ fill: "rgba(113,113,122,0.2)" }}
+             />
+      <Legend />
+      <Pie
+        data={data001}
+        dataKey="value"
+        cx="50%"
+        cy="50%"
+        outerRadius="50%"
+        fill={palette[4]}
+        label
+        isAnimationActive={isAnimationActive}
+      />
+      <Pie
+        data={data002}
+        dataKey="value"
+        cx="50%"
+        cy="50%"
+        innerRadius="60%"
+        outerRadius="80%"
+        fill={palette[1]}
+        label
+        isAnimationActive={isAnimationActive}
+      />
+    </PieChart>)
 
       case "composed":
         return (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={260}>
             <ComposedChart {...commonProps}>
               <CartesianGrid strokeDasharray="3 3"  />
               <XAxis dataKey="name"  />
@@ -2622,6 +3667,64 @@ case "scatterAndLineOfBestFit":
             </ComposedChart>
           </ResponsiveContainer>
         );
+        case "scatterChartWithCells":
+  return (
+    <ResponsiveContainer width="100%" height={260}>
+    <ScatterChart
+     
+      responsive
+      margin={{
+        top: 20,
+        right: 0,
+        bottom: 0,
+        left: 0,
+      }}
+    >
+      <CartesianGrid />
+      <XAxis type="number" dataKey="x" name="stature" unit="cm" />
+      <YAxis type="number" dataKey="y" name="weight" unit="kg" width="auto" />
+      <Tooltip 
+               contentStyle={{
+                backgroundColor: "rgba(24,24,27,0.9)", // dark zinc overlay
+                border: "1px solid rgba(113,113,122,0.4)", // subtle zinc border
+                borderRadius: "0.75rem",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                color: palette[0],
+                fontSize: "0.875rem",
+                padding: "0.5rem 0.75rem",
+            }} 
+            itemStyle={{
+                color: palette[3], // text color
+                textTransform: "capitalize",
+            }}
+            labelStyle={{
+                color: palette[2],
+                fontWeight: "500",
+                marginBottom: "0.25rem",
+            }}
+            cursor={{ fill: "rgba(113,113,122,0.2)" }}
+             />
+      <Scatter
+        name="A school"
+        data={[
+          { x: 100, y: 200, z: 200 },
+          { x: 120, y: 100, z: 260 },
+          { x: 170, y: 300, z: 400 },
+          { x: 140, y: 250, z: 280 },
+          { x: 150, y: 400, z: 500 },
+          { x: 110, y: 280, z: 200 },
+        ]}
+        fill={palette[4]}
+      >
+        {palette.map((color, index) => (
+          <Cell key={`cell-${index}`} fill={color} />
+        ))}
+      </Scatter>
+    </ScatterChart>
+    </ResponsiveContainer>
+  );
+
       case "pie":
         return (
           <ResponsiveContainer width="100%" height={260}>
@@ -2685,6 +3788,118 @@ case "scatterAndLineOfBestFit":
             </RadialBarChart>
           </ResponsiveContainer>
         );
+        case "straightAnglePieChart":
+  return (
+    <ResponsiveContainer width="100%" height={260}>
+    <PieChart
+      
+    >
+      <Pie
+        dataKey="value"
+        startAngle={180}
+        endAngle={0}
+        data={[
+          { name: "Group A", value: 400 },
+          { name: "Group B", value: 300 },
+          { name: "Group C", value: 300 },
+          { name: "Group D", value: 200 },
+          { name: "Group E", value: 278 },
+          { name: "Group F", value: 189 },
+        ]}
+        cx="50%"
+        cy="100%"
+        outerRadius="120%"
+        fill={palette[1]}
+        label
+        isAnimationActive
+      />
+       <Tooltip 
+               contentStyle={{
+                backgroundColor: "rgba(24,24,27,0.9)", // dark zinc overlay
+                border: "1px solid rgba(113,113,122,0.4)", // subtle zinc border
+                borderRadius: "0.75rem",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                color: palette[0],
+                fontSize: "0.875rem",
+                padding: "0.5rem 0.75rem",
+            }} 
+            itemStyle={{
+                color: palette[3], // text color
+                textTransform: "capitalize",
+            }}
+            labelStyle={{
+                color: palette[2],
+                fontWeight: "500",
+                marginBottom: "0.25rem",
+            }}
+            cursor={{ fill: "rgba(113,113,122,0.2)" }}
+             />
+    </PieChart>
+    </ResponsiveContainer>
+  );
+case "simpleRadialBarChart":
+  const radialData = [
+    { name: "18-24", uv: 31.47, pv: 2400, fill: palette[0] },
+    { name: "25-29", uv: 26.69, pv: 4567, fill: palette[1] },
+    { name: "30-34", uv: 15.69, pv: 1398, fill:palette[2] },
+    { name: "35-39", uv: 8.22, pv: 9800, fill: palette[0] },
+    { name: "40-49", uv: 8.63, pv: 3908, fill: palette[3] },
+    { name: "50+", uv: 2.63, pv: 4800, fill: palette[4] },
+    { name: "unknown", uv: 6.67, pv: 4800, fill: palette[2] },
+  ];
+
+  const legendStyle = {
+    top: "50%",
+    right: 0,
+    transform: "translate(0, -50%)",
+    lineHeight: "24px",
+  };
+
+  return (
+    <RadialBarChart
+      responsive
+      cx="30%"
+      barSize={14}
+      data={radialData}
+      style={{ width: "100%", maxWidth: "700px", maxHeight: "80vh", aspectRatio: 1.618 }}
+    >
+      <RadialBar
+        label={{ position: "insideStart", fill: "#000" }}
+        background
+        dataKey="uv"
+      />
+       <Tooltip 
+               contentStyle={{
+                backgroundColor: "rgba(24,24,27,0.9)", // dark zinc overlay
+                border: "1px solid rgba(113,113,122,0.4)", // subtle zinc border
+                borderRadius: "0.75rem",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                color: palette[0],
+                fontSize: "0.875rem",
+                padding: "0.5rem 0.75rem",
+            }} 
+            itemStyle={{
+                color: palette[3], // text color
+                textTransform: "capitalize",
+            }}
+            labelStyle={{
+                color: palette[2],
+                fontWeight: "500",
+                marginBottom: "0.25rem",
+            }}
+            cursor={{ fill: "rgba(113,113,122,0.2)" }}
+             />
+      <Legend
+        iconSize={10}
+        layout="vertical"
+        verticalAlign="middle"
+        wrapperStyle={legendStyle}
+      />
+    </RadialBarChart>
+  );
+
         case "cardinalArea":
             return(
                 <ResponsiveContainer width="100%" height={260}>
@@ -2850,6 +4065,90 @@ case "scatterAndLineOfBestFit":
             
           </ResponsiveContainer>
         );
+        case "bubbleChart":
+  return (
+    <div style={{ width: "100%", margin: "0 auto" }}>
+        
+      {[
+        { day: "Sunday", data: data01 },
+        { day: "Monday", data: data02 },
+        { day: "Tuesday", data: data01 },
+        { day: "Wednesday", data: data02 },
+        { day: "Thursday", data: data01 },
+        { day: "Friday", data: data02 },
+        { day: "Saturday", data: data01, showXTicks: true },
+      ].map(({ day, data, showXTicks }) => (
+        <ScatterChart
+          key={day}
+          style={{
+            width: "100%",
+            maxWidth: "900px",
+          
+            aspectRatio: 2,
+          }}
+          height={50}
+          margin={{ top: 10, right: 0, bottom: 0, left: 0 }}
+          responsive
+        >
+          <XAxis
+            type="category"
+            dataKey="hour"
+            name="hour"
+            interval={0}
+            tick={showXTicks || { fontSize: 0 }}
+            tickLine={{ transform: "translate(0, -6)" }}
+          />
+          <YAxis
+            type="number"
+            dataKey="index"
+            name={day.toLowerCase()}
+            height={10}
+            width={80}
+            tick={false}
+            tickLine={false}
+            axisLine={false}
+            label={{ value: day, position: "insideRight" }}
+          />
+          <ZAxis
+            type="number"
+            dataKey="value"
+            domain={[
+              0,
+              Math.max(
+                ...data01.map((e) => e.value),
+                ...data02.map((e) => e.value)
+              ),
+            ]}
+            range={[16, 225]}
+          />
+          <Tooltip 
+               contentStyle={{
+                backgroundColor: "rgba(24,24,27)", // dark zinc overlay
+                border: "1px solid rgba(113,113,122,0.4)", // subtle zinc border
+                borderRadius: "0.75rem",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                color: palette[0],
+                fontSize: "0.875rem",
+                padding: "0.5rem 0.75rem",
+            }} 
+            itemStyle={{
+                color: palette[3], // text color
+                textTransform: "capitalize",
+            }}
+            labelStyle={{
+                color: palette[2],
+                fontWeight: "500",
+                marginBottom: "0.25rem",
+            }}
+            cursor={{ fill: "rgba(113,113,122,0.2)" }}
+             />
+          <Scatter data={data} fill={palette[0]} />
+        </ScatterChart>
+      ))}
+    </div>
+  );
+
         case "jointLineScatterChart":
   return (
      <ResponsiveContainer width="100%" height={260}>
@@ -3107,6 +4406,136 @@ case "scatterAndLineOfBestFit":
       <Bar dataKey="uv" fill={palette[4]} />
     </BarChart>
   );
+  case "pieChartInFlexbox":
+  const flexData = [
+    { name: "Group A", value: 400, fill: palette[0] },
+    { name: "Group B", value: 300, fill: palette[1] },
+    { name: "Group C", value: 300, fill: palette[2] },
+    { name: "Group D", value: 200, fill: palette[3] },
+  ];
+
+  const FlexPie = () => (
+    <Pie
+      data={flexData}
+      dataKey="value"
+      nameKey="name"
+      outerRadius="80%"
+      innerRadius="60%"
+      isAnimationActive={false}
+    />
+  );
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        width: "100%",
+        minHeight: "300px",
+      
+        padding: "10px",
+        justifyContent: "space-around",
+        alignItems: "stretch",
+      }}
+    >
+      <PieChart
+        responsive
+        style={{ height: "calc(100% - 20px)", width: "33%", flex: "1 1 200px", aspectRatio: 1 }}
+      >
+         <Tooltip 
+               contentStyle={{
+                backgroundColor: "rgba(24,24,27,0.9)", // dark zinc overlay
+                border: "1px solid rgba(113,113,122,0.4)", // subtle zinc border
+                borderRadius: "0.75rem",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                color: palette[0],
+                fontSize: "0.875rem",
+                padding: "0.5rem 0.75rem",
+            }} 
+            itemStyle={{
+                color: palette[3], // text color
+                textTransform: "capitalize",
+            }}
+            labelStyle={{
+                color: palette[2],
+                fontWeight: "500",
+                marginBottom: "0.25rem",
+            }}
+            cursor={{ fill: "rgba(113,113,122,0.2)" }}
+             />
+        <FlexPie />
+        <Label position="center" fill={palette[1]}>
+          Flex: 1 1 200px
+        </Label>
+      </PieChart>
+
+      <PieChart
+        responsive
+        style={{ height: "calc(100% - 20px)", width: "33%", maxWidth: "300px", aspectRatio: 1 }}
+      >
+         <Tooltip 
+               contentStyle={{
+                backgroundColor: "rgba(24,24,27,0.9)", // dark zinc overlay
+                border: "1px solid rgba(113,113,122,0.4)", // subtle zinc border
+                borderRadius: "0.75rem",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                color: palette[0],
+                fontSize: "0.875rem",
+                padding: "0.5rem 0.75rem",
+            }} 
+            itemStyle={{
+                color: palette[3], // text color
+                textTransform: "capitalize",
+            }}
+            labelStyle={{
+                color: palette[2],
+                fontWeight: "500",
+                marginBottom: "0.25rem",
+            }}
+            cursor={{ fill: "rgba(113,113,122,0.2)" }}
+             />
+        <FlexPie />
+        <Label position="center" fill={palette[2]}>
+          maxWidth: '300px'
+        </Label>
+      </PieChart>
+
+      <PieChart
+        responsive
+        style={{ height: "calc(100% - 20px)", maxHeight: "20vh", width: "33%", aspectRatio: 1 }}
+      >
+         <Tooltip 
+               contentStyle={{
+                backgroundColor: "rgba(24,24,27,0.9)", // dark zinc overlay
+                border: "1px solid rgba(113,113,122,0.4)", // subtle zinc border
+                borderRadius: "0.75rem",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                color: palette[0],
+                fontSize: "0.875rem",
+                padding: "0.5rem 0.75rem",
+            }} 
+            itemStyle={{
+                color: palette[3], // text color
+                textTransform: "capitalize",
+            }}
+            labelStyle={{
+                color: palette[2],
+                fontWeight: "500",
+                marginBottom: "0.25rem",
+            }}
+            cursor={{ fill: "rgba(113,113,122,0.2)" }}
+             />
+        <FlexPie />
+        <Label position="center" fill={palette[4]}>
+          maxHeight: '20vh'
+        </Label>
+      </PieChart>
+    </div>
+  );
+
   case "sameDataComposedChart":
   return (
     
@@ -3188,6 +4617,83 @@ case "scatterAndLineOfBestFit":
         <Line type="monotone" dataKey="uv" stroke={palette[0]} strokeWidth={2} />
       </LineChart>
     </ResponsiveContainer>
+  );
+case "pieChartWithNeedle":
+  const gaugeData = [
+    { name: "A", value: 80, fill: palette[0] },
+    { name: "B", value: 45, fill: palette[1] },
+    { name: "C", value: 25, fill: palette[2] },
+  ];
+  const cx = 100;
+  const cy = 100;
+  const iR = 50;
+  const oR = 100;
+  const value = 50;
+  const RADIAN = Math.PI / 180;
+
+  const drawNeedle = (value, data, cx, cy, iR, oR, color) => {
+    const total = data.reduce((sum, entry) => sum + entry.value, 0);
+    const ang = 180.0 * (1 - value / total);
+    const length = (iR + 2 * oR) / 3;
+    const sin = Math.sin(-RADIAN * ang);
+    const cos = Math.cos(-RADIAN * ang);
+    const r = 5;
+    const x0 = cx + 5;
+    const y0 = cy + 5;
+    const xba = x0 + r * sin;
+    const yba = y0 - r * cos;
+    const xbb = x0 - r * sin;
+    const ybb = y0 + r * cos;
+    const xp = x0 + length * cos;
+    const yp = y0 + length * sin;
+
+    return (
+      <>
+        <circle cx={x0} cy={y0} r={r} fill={color} stroke="none" />
+        <path d={`M${xba} ${yba}L${xbb} ${ybb} L${xp} ${yp} Z`} fill={color} />
+      </>
+    );
+  };
+
+  return (
+    <PieChart width={210} height={120} style={{ margin: "0 auto" }}>
+      <Pie
+        dataKey="value"
+        startAngle={180}
+        endAngle={0}
+        data={gaugeData}
+        cx={cx}
+        cy={cy}
+        innerRadius={iR}
+        outerRadius={oR}
+        fill={palette[2]}
+        stroke="none"
+        isAnimationActive
+      />
+      {drawNeedle(value, gaugeData, cx, cy, iR, oR, palette[4])}
+       <Tooltip 
+               contentStyle={{
+                backgroundColor: "rgba(24,24,27,0.9)", // dark zinc overlay
+                border: "1px solid rgba(113,113,122,0.4)", // subtle zinc border
+                borderRadius: "0.75rem",
+                backdropFilter: "blur(8px)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                color: palette[0],
+                fontSize: "0.875rem",
+                padding: "0.5rem 0.75rem",
+            }} 
+            itemStyle={{
+                color: palette[3], // text color
+                textTransform: "capitalize",
+            }}
+            labelStyle={{
+                color: palette[2],
+                fontWeight: "500",
+                marginBottom: "0.25rem",
+            }}
+            cursor={{ fill: "rgba(113,113,122,0.2)" }}
+             />
+    </PieChart>
   );
 
     case "customizedDotted":
