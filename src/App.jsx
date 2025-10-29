@@ -5,6 +5,7 @@ import {createBrowserRouter,RouterProvider} from 'react-router-dom'
 import AppLayout from './layout/app-layout'
 import Landing from './pages/Landing'
 import ColorsPage from './pages/colorsPage'
+import ChartsPage from './pages/chartPage'
 const router=createBrowserRouter([
   {
 
@@ -17,6 +18,10 @@ const router=createBrowserRouter([
       {
         path:"/colors",
         element:<ColorsPage/>
+      },
+      {
+        path:"/charts",
+        element:<ChartsPage/>
       }
     ]
   }

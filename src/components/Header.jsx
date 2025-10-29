@@ -10,6 +10,7 @@ import {
   Menu,
   X,
   Sparkles,
+  ChartAreaIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
@@ -31,7 +32,7 @@ export default function Header() {
   const navItems = [
     { name: "Home", icon: Home, path: "/" },
     { name: "Colors", icon: Palette, path: "/colors" },
-    { name: "Tools", icon: Layers, path: "/tools" },
+    { name: "Charts", icon: ChartAreaIcon, path: "/charts" },
     { name: "UI Kits", icon: Sparkles, path: "/uikits" },
     { name: "Docs", icon: Book, path: "/docs" },
   ];
