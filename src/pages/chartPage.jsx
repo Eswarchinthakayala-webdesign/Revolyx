@@ -20,6 +20,9 @@ import {
   SortAsc,
   SortDesc,
   BarChart2,
+  Copy,
+  Code2,
+  EyeOff,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
@@ -42,6 +45,9 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTheme } from "../components/theme-provider";
 import CustomActiveShapePieChart from "../components/CustomActiveShapePieChart";
+import CopySourceButton from "../components/CopySourceButton";
+import ToggleSourceButton from "../components/ToggleSourceButton";
+import { Link } from "react-router-dom";
 
 
 /* Color themes provided by user */
@@ -2813,6 +2819,10 @@ export default function RevolyxChartsPage() {
 
 
 const {theme}=useTheme()
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   const filteredCharts = useMemo(()=>{
     const base = ALL_CHARTS.filter(c => c.title.toLowerCase().includes(searchTerm.toLowerCase()) || c.key.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -2821,8 +2831,30 @@ const {theme}=useTheme()
 
   function handleChartClick(key) {
     setSelectedChartKey(key);
+    window.scrollTo({ top: 0, behavior: "smooth" });
     toast("Chart loaded", { description: `Loaded ${key} preview` });
   }
+
+  const handleToggleSource = () => {
+    const isExpanded = expandedSource[selectedChartKey];
+    setExpandedSource(prev => ({
+      ...prev,
+      [selectedChartKey]: !isExpanded,
+    }));
+
+    toast(isExpanded ? "Source hidden" : "Source shown", {
+      description: isExpanded
+        ? "Chart source code is now hidden."
+        : "Chart source code is now visible.",
+    });
+  };
+
+  const handleCopySource = () => {
+    copyToClipboard(generateChartSource(selectedChartKey, paletteName));
+    toast.success("Copied!", {
+      description: "Chart source code copied to clipboard successfully.",
+    });
+  };
 
   function renderPreview(key) {
     const palette = COLOR_THEMES[paletteName] || COLOR_THEMES.blue;
@@ -2960,6 +2992,7 @@ case "areaFillByValue": {
     if (dataMin >= 0) return 1;
     return dataMax / (dataMax - dataMin);
   };
+  
 
   const off = gradientOffset();
 
@@ -4840,7 +4873,18 @@ case "pieChartWithNeedle":
       
               Revolyx Charts
             </h1> 
-            <p className="text-sm opacity-80 mt-1">A  chart gallery with Recharts </p>
+            <p className="text-sm opacity-80 mt-1">A  chart gallery with <span>
+              
+              <a className="px-3 py-1 rounded-full text-xs font-medium text-blue-500 darK:text-blue-200 bg-blue-500/30 backdrop-blur-md 
+  border border-blue-400/40 
+  shadow-[0_0_10px_rgba(59,130,246,0.4)] 
+  hover:shadow-[0_0_15px_rgba(59,130,246,0.7)] 
+  transition-all duration-300" target="_blank" href="https://recharts.github.io/en-US/">
+                Recharts
+              </a>
+              
+              </span>  </p>
+
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -5066,10 +5110,17 @@ case "pieChartWithNeedle":
                 <CardTitle className="flex items-center justify-between">
                   <span className="text-lg">{ALL_CHARTS.find(c=>c.key===selectedChartKey)?.title}</span>
                   <div className="flex items-center gap-2">
-                    <Button className="cursor-pointer" size="sm" onClick={()=> setExpandedSource(prev => ({ ...prev, [selectedChartKey]: !prev[selectedChartKey] }))}>
-                      {expandedSource[selectedChartKey] ? "Hide source" : "Show source"}
-                    </Button>
-                    <Button size="sm" className='cursor-pointer' onClick={() => copyToClipboard(generateChartSource(selectedChartKey, paletteName))}>Copy source</Button>
+                <ToggleSourceButton
+                  expanded={expandedSource[selectedChartKey]}
+                  onToggle={() =>
+                    setExpandedSource(prev => ({
+                      ...prev,
+                      [selectedChartKey]: !prev[selectedChartKey],
+                    }))
+                  }
+                />
+            <CopySourceButton onCopy={() => copyToClipboard(generateChartSource(selectedChartKey, paletteName))} />
+
                   </div>
                 </CardTitle>
               </CardHeader>
@@ -5098,8 +5149,7 @@ case "pieChartWithNeedle":
                       <CardContent>
                        <SyntaxHighlighter
                         language="jsx"
-                        style={theme==="dark"
-                            ?oneDark:oneLight}
+                        style={isDark?oneDark:oneLight}
                         customStyle={{
                             fontSize: "0.75rem",
                             borderRadius: "0.5rem",
@@ -5137,9 +5187,7 @@ case "pieChartWithNeedle":
           </section>
         </main>
 
-        <footer className="mt-8 text-center text-sm opacity-80">
-          Built with <span className="font-semibold">Recharts</span>, <span className="font-semibold">shadcn UI</span>, and <span className="font-semibold">Sonner</span>.
-        </footer>
+       
       </div>
     </div>
   );
