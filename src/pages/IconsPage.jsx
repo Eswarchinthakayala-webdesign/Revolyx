@@ -329,7 +329,7 @@ export default function IconsPage() {
         />
 
             {/* Remaining icons grid (current page only) */}
-            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-10 gap-3">
+            <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-3">
               {paginatedIcons.map((name) => (
                 <Card key={name} className="group cursor-pointer rounded-2xl border transition-all duration-300 hover:shadow-lg hover:scale-[1.03]
                 bg-white/80 backdrop-blur-sm border-zinc-200

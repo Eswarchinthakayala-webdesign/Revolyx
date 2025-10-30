@@ -139,7 +139,7 @@ export default function Header() {
         transition={{ delay: 0.1 }}
         className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-300 dark:border-white/10 backdrop-blur-lg bg-white/80 dark:bg-black/80 flex justify-around items-center py-3 md:hidden"
       >
-        {navItems.slice(0, 4).map(({ name, icon: Icon, path }) => (
+        {navItems.slice(0, 5).map(({ name, icon: Icon, path }) => (
           <Link
             key={name}
             to={path}
