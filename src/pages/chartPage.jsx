@@ -49,6 +49,7 @@ import CustomActiveShapePieChart from "../components/CustomActiveShapePieChart";
 import CopySourceButton from "../components/CopySourceButton";
 import ToggleSourceButton from "../components/ToggleSourceButton";
 import { Link, useNavigate } from "react-router-dom";
+import ChartSidebar from "../components/ChartSidebar";
 
 
 /* Color themes provided by user */
@@ -4886,24 +4887,14 @@ case "pieChartWithNeedle":
   return (
     <div >
       <Toaster richColors />
-      <div className=" overflow-hidden px-4 sm:px-6 md:px-8 mx-auto">
+      <div className=" overflow-hidden px-4 py-8 sm:px-6 md:px-8 mx-auto">
         <header className="flex flex-col  sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-3">
       
               Revolyx Charts
             </h1> 
-            <p className="text-sm opacity-80 mt-1">A  chart gallery with <span>
-              
-              <a className="px-3 py-1 rounded-full text-xs font-medium text-blue-500 darK:text-blue-200 bg-blue-500/30 backdrop-blur-md 
-  border border-blue-400/40 
-  shadow-[0_0_10px_rgba(59,130,246,0.4)] 
-  hover:shadow-[0_0_15px_rgba(59,130,246,0.7)] 
-  transition-all duration-300" target="_blank" href="https://recharts.github.io/en-US/">
-                Recharts
-              </a>
-              
-              </span>  </p>
+            <p className="text-sm opacity-80 mt-1">A  chart gallery with  Recharts</p>
 
           </div>
 
@@ -4931,186 +4922,12 @@ case "pieChartWithNeedle":
         <main className="grid grid-cols-1 lg:grid-cols-10 gap-6">
           {/* Left: Search & Catalog */}
           <aside className="lg:col-span-3">
-<Card className="w-full relative  backdrop-blur-xl  bg-white/80 dark:bg-black/70 shadow-2xl border border-zinc-200/70 dark:border-zinc-500/30 transition-colors duration-300">
-  <CardHeader>
-    <CardTitle className="flex items-center  sticky top-0 z-50 bg-white/80 dark:bg-black/70 backdrop-blur-xl border-b pb-2 border-zinc-300/40 dark:border-zinc-700/40 justify-between">
-      <span className="text-xl font-semibold flex items-center gap-2">
-        <BarChart2 className="h-5 w-5 text-primary" />
-        Charts Catalog
-      </span>
-
-      <div className="flex items-center gap-2">
-        {/* Count Badge */}
-        <Badge
-          variant="secondary"
-          className="text-xs px-3 py-1 rounded-full bg-zinc-800/10 dark:bg-white/10 text-zinc-800 dark:text-zinc-200 border border-zinc-300/40 dark:border-zinc-700/40 backdrop-blur-sm"
-        >
-          {ALL_CHARTS.length}
-        </Badge>
-
-        {/* Sort Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-1 cursor-pointer border-zinc-300/50 dark:border-zinc-700/50 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40"
-            >
-              Sort
-              <SortAsc className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="backdrop-blur-lg bg-white/70 dark:bg-zinc-900/80 border border-zinc-300/40 dark:border-zinc-700/40"
-          >
-            <DropdownMenuItem className="cursor-pointer" onClick={() => setSortMode("none")}>Default</DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" onClick={() => setSortMode("asc")}>A → Z</DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" onClick={() => setSortMode("desc")}>Z → A</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Mobile Sidebar */}
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="lg:hidden cursor-pointer border-zinc-300/50 dark:border-zinc-700/50">
-              <Menu className="h-5 w-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-4 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-r border-zinc-200/30 dark:border-zinc-800/50">
-            <h2 className="text-lg font-semibold mb-3 dark:text-white text-zinc-800">Charts Menu</h2>
-            <ScrollArea className="h-[80vh]">
-              <div className="grid gap-2">
-                {filteredCharts.map((c) => (
-                  <Button
-                    key={c.key}
-                    variant={selectedChartKey === c.key ? "secondary" : "ghost"}
-                    className="justify-between text-left dark:text-white cursor-pointer"
-                    onClick={() => handleChartClick(c.key)}
-                  >
-                    {c.title}
-                  </Button>
-                ))}
-              </div>
-            </ScrollArea>
-          </SheetContent>
-        </Sheet>
-      </div>
-    </CardTitle>
-  </CardHeader>
-  
-
-  <CardContent>
-    {/* Search (hidden on mobile) */}
-    <div className="relative mb-3 hidden lg:block">
-      <Search className="absolute left-3 top-2.5 h-4 w-4 opacity-50" />
-      <Input
-        ref={inputRef}
-        placeholder="Search charts (click to show suggestions)"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        onFocus={() => setShowSuggestions(true)}
-        onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            setSearchTerm("");
-            inputRef.current?.blur();
-          }
-        }}
-        className="pl-9 bg-white/70 dark:bg-zinc-900/60 border border-zinc-300/50 dark:border-zinc-700/50"
+       <ChartSidebar
+        ALL_CHARTS={ALL_CHARTS}
+        filteredCharts={filteredCharts}
+        selectedChartKey={selectedChartKey}
+        handleChartClick={handleChartClick}
       />
-    </div>
-
-    {/* Suggestions */}
-    <AnimatePresence>
-      {showSuggestions && (
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.25 }}
-        >
-          <ScrollArea className=" mb-3 border rounded-md p-2 backdrop-blur-md bg-white/60 dark:bg-zinc-900/40 border-zinc-300/40 dark:border-zinc-700/40 shadow-inner">
-            <div className="grid gap-2">
-              {ALL_CHARTS.filter(
-                (c) =>
-                  c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  searchTerm === ""
-              )
-                .slice(0, 8)
-                .map((chart) => (
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    key={chart.key}
-                    onClick={() => handleChartClick(chart.key)}
-                    className={clsx(
-                      "text-left p-2 rounded-md w-full cursor-pointer border-zinc-300/40 dark:border-zinc-700/40 border transition-all duration-200",
-                      selectedChartKey === chart.key
-                        ? "bg-zinc-800/60 dark:bg-zinc-700/60 text-white"
-                        : "hover:bg-zinc-100/60 dark:hover:bg-zinc-800/40"
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium text-sm">{chart.title}</div>
-                        <div className="flex gap-1 flex-wrap mt-1">
-                          {chart.tags.slice(0,2).map((tag) => (
-                            <Badge
-                              key={tag}
-                              variant="outline"
-                              className="text-[10px] px-2 py-0.5 rounded-full border  bg-gray-100/50 border-gray-400/20 dark:bg-zinc-950/50 text-zinc-800 dark:border-zinc-100/20 dark:text-zinc-100 shadow-sm backdrop-blur-md"
-                            >
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="text-xs opacity-60">{chart.key}</div>
-                    </div>
-                  </motion.button>
-                ))}
-              {ALL_CHARTS.filter(
-                (c) =>
-                  c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  searchTerm === ""
-              ).length === 0 && (
-                <div className="text-sm opacity-60 p-2">No charts match.</div>
-              )}
-            </div>
-          </ScrollArea>
-        </motion.div>
-      )}
-    </AnimatePresence>
-
-    <Separator className="hidden sm:flex my-3 border-zinc-300/50 dark:border-zinc-700/50" />
-
-    {/* Chart List */}
-    <ScrollArea className="mt-2 hidden max-h-screen overflow-auto p-2  sm:grid gap-2">
-      <AnimatePresence>
-        {filteredCharts.map((c) => (
-          <motion.button
-            key={c.key}
-            onClick={() => handleChartClick(c.key)}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className={clsx(
-              "flex items-center w-full justify-between p-3 border-none cursor-pointer  rounded-lg transition-all backdrop-blur-md border dark:border-zinc-700/70 border-gray-200",
-              selectedChartKey === c.key
-                ? "dark:bg-zinc-700/50 bg-zinc-100 border-zinc-300/40 dark:border-zinc-700/40"
-                : "dark:hover:bg-zinc-800/50 hover:bg-zinc-200/50"
-            )}
-          >
-            <div className="flex flex-col items-start">
-              <div className="font-semibold text-sm truncate">{c.title}</div>
-             
-            </div>
-            
-          </motion.button>
-        ))}
-      </AnimatePresence>
-    </ScrollArea>
-  </CardContent>
-</Card>
 
           </aside>
 
@@ -5240,7 +5057,7 @@ case "pieChartWithNeedle":
     </Card>
 
             {/* More charts grid (preview thumbnails) */}
-            <div className="grid sm:grid-cols-2  gap-4">
+            <div className="grid sm:grid-cols-3  gap-4">
               {filteredCharts.map(chart => (
                 <Card key={chart.key} className={clsx("cursor-pointer bg-white dark:bg-black/40 dark:border-zinc-600/70  hover:scale-[1.01] transition-transform")} onClick={()=>handleChartClick(chart.key)}>
                   <CardContent>

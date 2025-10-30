@@ -176,7 +176,7 @@ export default function SpinnerSidebar({
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-80 max-h-screen sticky top-0">
+      <aside className="hidden lg:block  max-h-screen sticky top-0">
         {SidebarContent}
       </aside>
 

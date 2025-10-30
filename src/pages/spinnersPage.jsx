@@ -30,7 +30,43 @@ import {
   SyncLoader,
 // some libs alias, but keep best-effort - if unavailable remove
 } from "react-spinners";
-
+import {
+  Audio,
+  BallTriangle,
+  Bars,
+  Blocks,
+  CirclesWithBar,
+  Circles,
+  CircularProgress,
+  ColorRing,
+  Comment,
+  Discuss,
+  DNA,
+  FallingLines,
+  FidgetSpinner,
+  Grid,
+  Hearts,
+  Hourglass,
+  InfinitySpin,
+  LineWave,
+  MagnifyingGlass,
+  MutatingDots,
+  Oval,
+  ProgressBar,
+  Puff,
+  Radio,
+  RevolvingDot,
+  Rings,
+  RotatingLines,
+  RotatingSquare,
+  RotatingTriangles,
+  TailSpin,
+  ThreeCircles,
+  ThreeDots,
+  Triangle,
+  Vortex,
+  Watch,
+} from "react-loader-spinner";
 /* shadcn/ui components — adjust import paths to your project */
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -105,8 +141,45 @@ const ALL_SPINNERS = [
   /* CSS custom spinner (no external lib) */
   { key: "css-ring", title: "CSS Ring (custom)", comp: null },
   { key: "css-dots", title: "CSS Dots (custom)", comp: null },
+
+  { key: "audio", title: "Audio", comp: Audio },
+  { key: "balltriangle", title: "Ball Triangle", comp: BallTriangle },
+  { key: "bars", title: "Bars", comp: Bars },
+  { key: "blocks", title: "Blocks", comp: Blocks },
+  { key: "circleswithbar", title: "Circles With Bar", comp: CirclesWithBar },
+  { key: "circles", title: "Circles", comp: Circles },
+  { key: "circularprogress", title: "Circular Progress", comp: CircularProgress },
+  { key: "colorring", title: "Color Ring", comp: ColorRing },
+  { key: "comment", title: "Comment", comp: Comment },
+  { key: "discuss", title: "Discuss", comp: Discuss },
+  { key: "dna", title: "DNA", comp: DNA },
+  { key: "fallinglines", title: "Falling Lines", comp: FallingLines },
+  { key: "fidgetspinner", title: "Fidget Spinner", comp: FidgetSpinner },
+  { key: "loadgrid", title: "Grid", comp: Grid },
+  { key: "hearts", title: "Hearts", comp: Hearts },
+  { key: "hourglass", title: "Hourglass", comp: Hourglass },
+  { key: "infinityspin", title: "Infinity Spin", comp: InfinitySpin },
+  { key: "linewave", title: "Line Wave", comp: LineWave },
+  { key: "magnifyingglass", title: "Magnifying Glass", comp: MagnifyingGlass },
+  { key: "mutatingdots", title: "Mutating Dots", comp: MutatingDots },
+  { key: "oval", title: "Oval", comp: Oval },
+  { key: "progressbar", title: "Progress Bar", comp: ProgressBar },
+  { key: "loadpuff", title: "Puff", comp: Puff },
+  { key: "radio", title: "Radio", comp: Radio },
+  { key: "revolvingdot", title: "Revolving Dot", comp: RevolvingDot },
+  { key: "rings", title: "Rings", comp: Rings },
+  { key: "rotatinglines", title: "Rotating Lines", comp: RotatingLines },
+  { key: "rotatingsquare", title: "Rotating Square", comp: RotatingSquare },
+  { key: "rotatingtriangles", title: "Rotating Triangles", comp: RotatingTriangles },
+  { key: "tailspin", title: "Tail Spin", comp: TailSpin },
+  { key: "threecircles", title: "Three Circles", comp: ThreeCircles },
+  { key: "threedots", title: "Three Dots", comp: ThreeDots },
+  { key: "triangle", title: "Triangle", comp: Triangle },
+  { key: "vortex", title: "Vortex", comp: Vortex },
+  { key: "watch", title: "Watch", comp: Watch },
 ];
 
+/* --- helper: returns category map (alphabetical) --- */
 /* --- helper: returns category map (alphabetical) --- */
 function categorizeAlphabetically(list) {
   const map = {};
@@ -118,64 +191,149 @@ function categorizeAlphabetically(list) {
   return map;
 }
 
+/* --- helper: detect which library spinner belongs to --- */
+function detectLibrary(spinnerKey) {
+  const reactSpinnersKeys = [
+    "beat", "bounce", "bar", "circle", "climbing", "clip", "dot", "fade",
+    "grid", "hash", "moon", "pacman", "propagate", "pulse", "puff",
+    "ring", "rise", "rotate", "scale", "skew", "square", "sync",
+  ];
+const reactLoaderSpinnerKeys = [
+  "audio",
+  "balltriangle",
+  "bars",
+  "blocks",
+  "circleswithbar",
+  "circles",
+  "circularprogress",
+  "colorring",
+  "comment",
+  "discuss",
+  "dna",
+  "fallinglines",
+  "fidgetspinner",
+  "grid",
+  "hearts",
+  "hourglass",
+  "infinityspin",
+  "linewave",
+  "magnifyingglass",
+  "mutatingdots",
+  "oval",
+  "progressbar",
+  "puff",
+  "radio",
+  "revolvingdot",
+  "rings",
+  "rotatinglines",
+  "rotatingsquare",
+  "rotatingtriangles",
+  "tailspin",
+  "threecircles",
+  "threedots",
+  "triangle",
+  "vortex",
+  "watch",
+];
+
+  if (reactSpinnersKeys.includes(spinnerKey)) return "react-spinners";
+  if (reactLoaderSpinnerKeys.includes(spinnerKey)) return "react-loader-spinner";
+  return "custom";
+}
+
 /* --- source generator for each spinner (JSX string) --- */
 function generateSpinnerSource(spinnerKey, color, size, speed) {
   const c = color || "#3b82f6";
   const s = size || 40;
   const spd = speed || 1;
+
+  const spinner = ALL_SPINNERS.find((x) => x.key === spinnerKey);
+  const lib = detectLibrary(spinnerKey);
+
+  if (!spinner) return "/* Invalid spinner key */";
+
+  /* ---- 1️⃣ Custom CSS Spinners ---- */
   if (spinnerKey === "css-ring") {
-    return `/* CSS Ring - simple loader */
+    return `/* CSS Ring Loader */
 <div className="css-ring" style={{ width: ${s}px, height: ${s}px }}>
   <div />
 </div>
 
-/* CSS (add to your stylesheet)
-.css-ring { display:inline-block; border-radius:50%; border:4px solid rgba(0,0,0,0.12); border-top-color: ${c}; animation: ringSpin ${spd}s linear infinite; }
+/* CSS:
+.css-ring {
+  display: inline-block;
+  border-radius: 50%;
+  border: 4px solid rgba(0,0,0,0.12);
+  border-top-color: ${c};
+  animation: ringSpin ${spd}s linear infinite;
+}
 @keyframes ringSpin { to { transform: rotate(360deg); } }
 */`;
   }
+
   if (spinnerKey === "css-dots") {
-    return `/* CSS Dots - 3 bouncing dots */
+    return `/* CSS Dots Loader */
 <div className="css-dots">
   <div /><div /><div />
 </div>
 
-/* CSS
+/* CSS:
 .css-dots { display:flex; gap:6px; align-items:center; }
-.css-dots div { width:${Math.round(s/4)}px;height:${Math.round(s/4)}px;border-radius:50%;background:${c};animation: bounce ${spd}s infinite ease-in-out; }
-.css-dots div:nth-child(2) { animation-delay: ${spd/6}s }
-.css-dots div:nth-child(3) { animation-delay: ${spd/3}s }
-@keyframes bounce { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-8px);} }
+.css-dots div {
+  width:${Math.round(s/4)}px;
+  height:${Math.round(s/4)}px;
+  border-radius:50%;
+  background:${c};
+  animation: bounce ${spd}s infinite ease-in-out;
+}
+.css-dots div:nth-child(2) { animation-delay: ${spd/6}s; }
+.css-dots div:nth-child(3) { animation-delay: ${spd/3}s; }
+@keyframes bounce { 0%,100% { transform:translateY(0);} 50% { transform:translateY(-8px);} }
 */`;
   }
 
-  // react-spinners components general usage
-  return `import { ${ALL_SPINNERS.find(s=>s.key===spinnerKey)?.title || "Spinner"} } from "react-spinners";
+  /* ---- 2️⃣ React-Spinners ---- */
+  if (lib === "react-spinners") {
+    return `import { ${spinner.title} } from "react-spinners";
 
 function Demo() {
   return (
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-      <${ALL_SPINNERS.find(s=>s.key===spinnerKey)?.title} color="${c}" size={${s}} speedMultiplier={${spd}} />
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+      <${spinner.title} color="${c}" size={${s}} speedMultiplier={${spd}} />
     </div>
   );
 }
 
 export default Demo;`;
+  }
+
+  /* ---- 3️⃣ React-Loader-Spinner ---- */
+  if (lib === "react-loader-spinner") {
+    return `import { ${spinner.title} } from "react-loader-spinner";
+
+function Demo() {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+      <${spinner.title}
+        height={${s}}
+        width={${s}}
+        color="${c}"
+        ariaLabel="${spinner.title.toLowerCase()}-loading"
+        visible={true}
+      />
+    </div>
+  );
 }
 
-/* --- CSS-in-JS for the two custom CSS spinners we included --- */
-const customCssStyles = {
-  ".css-ring": {
-    display: "inline-block",
-    borderRadius: "50%",
-    border: "4px solid rgba(255,255,255,0.08)",
-    borderTopColor: "var(--accent)",
-    animation: "rev-ring-spin 0.9s linear infinite",
-  },
-  "@keyframes rev-ring-spin": {
-    to: { transform: "rotate(360deg)" },
-  },
-};
+export default Demo;`;
+  }
+
+  /* ---- 4️⃣ Default fallback ---- */
+  return `/* Spinner: ${spinner.title} */\n/* No source code available. */`;
+}
+
+
+
 
 /* --- MAIN COMPONENT --- */
 export default function RevolyxSpinnersPage() {
@@ -219,60 +377,179 @@ export default function RevolyxSpinnersPage() {
     (theme === "system" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
 
-  function renderSpinnerPreview(key) {
-    const sizePx = size;
-    const color = accent;
-    const speedMultiplier = speed;
+function renderSpinnerPreview(key) {
+  const sizePx = size;
+  const color = accent;
+  const speedMultiplier = speed;
 
-    const spinner = ALL_SPINNERS.find((s) => s.key === key);
-    if (!spinner) return <div className="p-6">No spinner</div>;
+  const spinner = ALL_SPINNERS.find((s) => s.key === key);
+  if (!spinner) return <div className="p-6">No spinner</div>;
 
-    // Custom CSS spinners
-    if (key === "css-ring") {
-      return (
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 24 }}>
-          <div
-            style={{
-              width: sizePx,
-              height: sizePx,
-              borderRadius: "50%",
-              border: `${Math.max(3, Math.round(sizePx * 0.08))}px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
-              borderTopColor: color,
-              animation: `rotRev ${1 / Math.max(0.1, speedMultiplier)}s linear infinite`,
-            }}
-          />
-          <style>{`@keyframes rotRev { to { transform: rotate(360deg); } }`}</style>
-        </div>
-      );
-    }
-    if (key === "css-dots") {
-      const dotSize = Math.max(6, Math.round(sizePx / 5));
-      return (
-        <div style={{ display: "flex", gap: 8, justifyContent: "center", padding: 18 }}>
-          <style>{`
-            .rev-dot { width: ${dotSize}px; height: ${dotSize}px; border-radius: 50%; background: ${color}; animation: rev-bounce ${0.6 / Math.max(0.2,speed)}s infinite ease-in-out; }
-            .rev-dot:nth-child(2){ animation-delay: ${0.08 / Math.max(0.1,speed)}s; }
-            .rev-dot:nth-child(3){ animation-delay: ${0.16 / Math.max(0.1,speed)}s; }
-            @keyframes rev-bounce { 0%,100%{ transform: translateY(0);} 50%{ transform: translateY(-8px);} }
-          `}</style>
-          <div className="rev-dot" />
-          <div className="rev-dot" />
-          <div className="rev-dot" />
-        </div>
-      );
-    }
+  // --- Detect library type ---
+  const reactSpinnersKeys = [
+    "beat", "bounce", "bar", "circle", "climbing", "clip", "dot", "fade",
+    "grid", "hash", "moon", "pacman", "propagate", "pulse", "puff",
+    "ring", "rise", "rotate", "scale", "skew", "square", "sync",
+  ];
+ const reactLoaderSpinnerKeys = [
+  "audio",
+  "balltriangle",
+  "bars",
+  "blocks",
+  "circleswithbar",
+  "circles",
+  "circularprogress",
+  "colorring",
+  "comment",
+  "discuss",
+  "dna",
+  "fallinglines",
+  "fidgetspinner",
+  "grid",
+  "hearts",
+  "hourglass",
+  "infinityspin",
+  "linewave",
+  "magnifyingglass",
+  "mutatingdots",
+  "oval",
+  "progressbar",
+  "puff",
+  "radio",
+  "revolvingdot",
+  "rings",
+  "rotatinglines",
+  "rotatingsquare",
+  "rotatingtriangles",
+  "tailspin",
+  "threecircles",
+  "threedots",
+  "triangle",
+  "vortex",
+  "watch",
+];
 
-    // For react-spinners components — render dynamically
+
+  const lib = reactSpinnersKeys.includes(key)
+    ? "react-spinners"
+    : reactLoaderSpinnerKeys.includes(key)
+    ? "react-loader-spinner"
+    : "custom";
+
+  // --- 1️⃣ Custom CSS Spinners ---
+  if (key === "css-ring") {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 24,
+        }}
+      >
+        <div
+          style={{
+            width: sizePx,
+            height: sizePx,
+            borderRadius: "50%",
+            border: `${Math.max(
+              3,
+              Math.round(sizePx * 0.08)
+            )}px solid ${
+              isDark
+                ? "rgba(255,255,255,0.08)"
+                : "rgba(0,0,0,0.08)"
+            }`,
+            borderTopColor: color,
+            animation: `rotRev ${1 / Math.max(0.1, speedMultiplier)}s linear infinite`,
+          }}
+        />
+        <style>{`@keyframes rotRev { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (key === "css-dots") {
+    const dotSize = Math.max(6, Math.round(sizePx / 5));
+    return (
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          justifyContent: "center",
+          padding: 18,
+        }}
+      >
+        <style>{`
+          .rev-dot {
+            width: ${dotSize}px;
+            height: ${dotSize}px;
+            border-radius: 50%;
+            background: ${color};
+            animation: rev-bounce ${0.6 / Math.max(0.2, speed)}s infinite ease-in-out;
+          }
+          .rev-dot:nth-child(2){ animation-delay: ${0.08 / Math.max(0.1, speed)}s; }
+          .rev-dot:nth-child(3){ animation-delay: ${0.16 / Math.max(0.1, speed)}s; }
+          @keyframes rev-bounce {
+            0%,100%{ transform: translateY(0);}
+            50%{ transform: translateY(-8px);}
+          }
+        `}</style>
+        <div className="rev-dot" />
+        <div className="rev-dot" />
+        <div className="rev-dot" />
+      </div>
+    );
+  }
+
+  // --- 2️⃣ React-Spinners Components ---
+  if (lib === "react-spinners") {
     const Comp = spinner.comp;
     if (!Comp) return <div className="p-6">Preview unavailable</div>;
 
-    // Different react-spinners accept slightly different props; we'll pass common ones and let component ignore unknowns
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 24 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 24,
+        }}
+      >
         <Comp color={color} size={sizePx} speedMultiplier={speedMultiplier} />
       </div>
     );
   }
+
+  // --- 3️⃣ React-Loader-Spinner Components ---
+  if (lib === "react-loader-spinner") {
+    const Comp = spinner.comp;
+    if (!Comp) return <div className="p-6">Preview unavailable</div>;
+
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 24,
+        }}
+      >
+        <Comp
+          height={sizePx}
+          width={sizePx}
+          color={color}
+          visible={true}
+          ariaLabel={`${spinner.title.toLowerCase()}-loading`}
+        />
+      </div>
+    );
+  }
+
+  // --- 4️⃣ Fallback ---
+  return <div className="p-6">Preview unavailable</div>;
+}
+
   
   
   function renderSpinnerPreview2(key) {
@@ -390,7 +667,7 @@ export default function RevolyxSpinnersPage() {
          
         </header>
 
-        <main className="grid grid-cols-1 lg:grid-cols-4 ">
+        <main className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left sheet: spinner list */}
           <aside className="lg:col-span-1 max-h-screen">
             <SpinnerSidebar
