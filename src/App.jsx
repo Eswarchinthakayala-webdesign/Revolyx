@@ -7,6 +7,7 @@ import Landing from './pages/Landing'
 import ColorsPage from './pages/colorsPage'
 import ChartsPage from './pages/chartPage'
 import SpinnersPage from './pages/spinnersPage'
+import IconsPage from './pages/IconsPage'
 const router=createBrowserRouter([
   {
 
@@ -35,6 +36,10 @@ const router=createBrowserRouter([
       {
         path:"/spinners/:id",
         element:<SpinnersPage/>
+      },
+      {
+        path:"/icons",
+        element:<IconsPage/>
       }
     ]
   }

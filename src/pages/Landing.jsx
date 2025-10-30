@@ -76,6 +76,7 @@ export default function LandingPage() {
   return (
     <div
     >
+      
       {/* === Hero Section === */}
       <section className="flex flex-col items-center justify-center text-center px-6 py-28">
         <motion.h1

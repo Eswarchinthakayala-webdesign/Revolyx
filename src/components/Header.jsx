@@ -12,6 +12,7 @@ import {
   Sparkles,
   ChartAreaIcon,
   Chromium,
+  Wand,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
@@ -35,6 +36,7 @@ export default function Header() {
     { name: "Colors", icon: Palette, path: "/colors" },
     { name: "Charts", icon: ChartAreaIcon, path: "/charts" },
     { name: "Spinners", icon: Chromium, path: "/spinners" },
+    {name:"icons",icon:Wand,path:"/icons"},
     { name: "Docs", icon: Book, path: "/docs" },
   ]; 
 

@@ -638,6 +638,7 @@ function renderSpinnerPreview(key) {
 
   return (
     <div className="min-h-screen  overflow-hidden max-w-8xl mx-auto py-8 px-4 md:px-8">
+        
       <Toaster richColors />
       <div className="">
         <header className="flex flex-row flex-wrap justify-between items-center gap-4 mb-6">
