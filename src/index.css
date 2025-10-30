@@ -119,28 +119,54 @@
   }
 }
 
+/* === Custom Scrollbar === */
 ::-webkit-scrollbar {
-  width: 12px;      /* width of vertical scrollbar */
-  height: 12px;     /* height of horizontal scrollbar */
+  width: 8px;
+  height: 8px;
 }
 
+/* Track (background) */
 ::-webkit-scrollbar-track {
-  background: #0c0c0c; /* Dark background track */
-  border-radius: 12px;
+  background: transparent;
 }
 
+/* Handle (thumb) */
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #090909, #101010); /* Orange gradient thumb */
-  border-radius: 12px;
-  border: 3px solid #1f1f1f; /* adds space around thumb for glow effect */
+  background: rgba(100, 100, 100, 0.3);
+  border-radius: 9999px;
+  backdrop-filter: blur(4px);
+  transition: background 0.3s ease;
+  overflow:hidden;
 }
 
+/* On hover */
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #0f0f0e, #040404); /* lighter orange on hover */
+  background: rgba(100, 100, 100, 0.5);
 }
 
-/* Firefox scrollbar */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #6c6b6a #090909; /* thumb color | track color */
+/* Dark mode overrides */
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(180, 180, 180, 0.2);
+  overflow: hidden;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(180, 180, 180, 0.4);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Optional - add smooth fade-in for scroll thumb visibility */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+/* Custom scrollbar for glassy cards or chart lists */
+.glassy-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(59,130,246,0.3), rgba(147,197,253,0.3));
+}
+
+.dark .glassy-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(96,165,250,0.25), rgba(147,197,253,0.25));
 }

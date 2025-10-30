@@ -11,6 +11,7 @@ import {
   X,
   Sparkles,
   ChartAreaIcon,
+  Chromium,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
@@ -33,7 +34,7 @@ export default function Header() {
     { name: "Home", icon: Home, path: "/" },
     { name: "Colors", icon: Palette, path: "/colors" },
     { name: "Charts", icon: ChartAreaIcon, path: "/charts" },
-    { name: "UI Kits", icon: Sparkles, path: "/uikits" },
+    { name: "Spinners", icon: Chromium, path: "/spinners" },
     { name: "Docs", icon: Book, path: "/docs" },
   ]; 
 
@@ -58,7 +59,7 @@ export default function Header() {
             : ""
         }`}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
+        <div className="max-w-8xl mx-auto flex items-center justify-between px-6 py-3">
           {/* === Logo === */}
           <Link to="/" className="flex items-center gap-2">
             <motion.h1
@@ -110,7 +111,7 @@ export default function Header() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="md:hidden bg-white/80 dark:bg-black/90 backdrop-blur-xl border-t border-gray-200 dark:border-white/10 p-5 flex flex-col gap-4"
+            className="md:hidden  bg-white/80 dark:bg-black/90 backdrop-blur-xl border-t border-gray-200 dark:border-white/10 p-5 flex flex-col gap-4"
           >
             {navItems.map(({ name, icon: Icon, path }) => (
               <Link

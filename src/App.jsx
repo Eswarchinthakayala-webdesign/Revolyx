@@ -6,6 +6,7 @@ import AppLayout from './layout/app-layout'
 import Landing from './pages/Landing'
 import ColorsPage from './pages/colorsPage'
 import ChartsPage from './pages/chartPage'
+import SpinnersPage from './pages/spinnersPage'
 const router=createBrowserRouter([
   {
 
@@ -22,6 +23,18 @@ const router=createBrowserRouter([
       {
         path:"/charts",
         element:<ChartsPage/>
+      },
+      {
+        path:"/charts/:id",
+        element:<ChartsPage/>
+      },
+      {
+        path:"/spinners",
+        element:<SpinnersPage/>
+      },
+      {
+        path:"/spinners/:id",
+        element:<SpinnersPage/>
       }
     ]
   }

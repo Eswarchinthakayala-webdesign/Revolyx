@@ -23,6 +23,7 @@ import {
   Copy,
   Code2,
   EyeOff,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
@@ -47,7 +48,7 @@ import { useTheme } from "../components/theme-provider";
 import CustomActiveShapePieChart from "../components/CustomActiveShapePieChart";
 import CopySourceButton from "../components/CopySourceButton";
 import ToggleSourceButton from "../components/ToggleSourceButton";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 
 /* Color themes provided by user */
@@ -2816,8 +2817,25 @@ export default function RevolyxChartsPage() {
   const [selectedChartKey, setSelectedChartKey] = useState(ALL_CHARTS[0].key);
   const [expandedSource, setExpandedSource] = useState({});
   const inputRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(false);
+  useEffect(() => {
+    if (!selectedChartKey) return;
 
-
+    // ✅ ensures loader paints before chart heavy render
+    setIsLoading(true);
+    requestAnimationFrame(() => {
+      const timeout = setTimeout(() => setIsLoading(false), 700); // feel smooth, not abrupt
+      return () => clearTimeout(timeout);
+    });
+  }, [selectedChartKey]);
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const chartFromUrl = params.get("charts");
+  if (chartFromUrl && ALL_CHARTS.some(c => c.key === chartFromUrl)) {
+    setSelectedChartKey(chartFromUrl);
+  }
+}, []);
+const navigate=useNavigate()
 const {theme}=useTheme()
   const isDark =
     theme === "dark" ||
@@ -2831,6 +2849,8 @@ const {theme}=useTheme()
 
   function handleChartClick(key) {
     setSelectedChartKey(key);
+    const newUrl = `${window.location.origin}${window.location.pathname}?chart=${key}`;
+     window.history.pushState({ key }, "", newUrl);
     window.scrollTo({ top: 0, behavior: "smooth" });
     toast("Chart loaded", { description: `Loaded ${key} preview` });
   }
@@ -4866,8 +4886,8 @@ case "pieChartWithNeedle":
   return (
     <div >
       <Toaster richColors />
-      <div className="max-w-7xl overflow-hidden px-4 sm:px-6 md:px-8 mx-auto">
-        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className=" overflow-hidden px-4 sm:px-6 md:px-8 mx-auto">
+        <header className="flex flex-col  sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-3">
       
@@ -4911,9 +4931,9 @@ case "pieChartWithNeedle":
         <main className="grid grid-cols-1 lg:grid-cols-10 gap-6">
           {/* Left: Search & Catalog */}
           <aside className="lg:col-span-3">
-<Card className="w-full backdrop-blur-xl bg-white/80 dark:bg-black/70 shadow-2xl border border-zinc-200/70 dark:border-zinc-500/60 transition-colors duration-300">
+<Card className="w-full relative  backdrop-blur-xl  bg-white/80 dark:bg-black/70 shadow-2xl border border-zinc-200/70 dark:border-zinc-500/30 transition-colors duration-300">
   <CardHeader>
-    <CardTitle className="flex items-center justify-between">
+    <CardTitle className="flex items-center  sticky top-0 z-50 bg-white/80 dark:bg-black/70 backdrop-blur-xl border-b pb-2 border-zinc-300/40 dark:border-zinc-700/40 justify-between">
       <span className="text-xl font-semibold flex items-center gap-2">
         <BarChart2 className="h-5 w-5 text-primary" />
         Charts Catalog
@@ -4978,6 +4998,7 @@ case "pieChartWithNeedle":
       </div>
     </CardTitle>
   </CardHeader>
+  
 
   <CardContent>
     {/* Search (hidden on mobile) */}
@@ -5033,7 +5054,7 @@ case "pieChartWithNeedle":
                       <div>
                         <div className="font-medium text-sm">{chart.title}</div>
                         <div className="flex gap-1 flex-wrap mt-1">
-                          {chart.tags.map((tag) => (
+                          {chart.tags.slice(0,2).map((tag) => (
                             <Badge
                               key={tag}
                               variant="outline"
@@ -5064,7 +5085,7 @@ case "pieChartWithNeedle":
     <Separator className="hidden sm:flex my-3 border-zinc-300/50 dark:border-zinc-700/50" />
 
     {/* Chart List */}
-    <div className="mt-2 hidden sm:grid gap-2">
+    <ScrollArea className="mt-2 hidden max-h-screen overflow-auto p-2  sm:grid gap-2">
       <AnimatePresence>
         {filteredCharts.map((c) => (
           <motion.button
@@ -5073,31 +5094,21 @@ case "pieChartWithNeedle":
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className={clsx(
-              "flex items-center justify-between p-3 cursor-pointer  rounded-lg transition-all backdrop-blur-md border dark:border-zinc-700/70 border-gray-200",
+              "flex items-center w-full justify-between p-3 border-none cursor-pointer  rounded-lg transition-all backdrop-blur-md border dark:border-zinc-700/70 border-gray-200",
               selectedChartKey === c.key
                 ? "dark:bg-zinc-700/50 bg-zinc-100 border-zinc-300/40 dark:border-zinc-700/40"
                 : "dark:hover:bg-zinc-800/50 hover:bg-zinc-200/50"
             )}
           >
             <div className="flex flex-col items-start">
-              <div className="font-semibold text-sm">{c.title}</div>
-              <div className="flex gap-1 flex-wrap mt-1">
-                {c.tags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="outline"
-                    className="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-br from-zinc-100/70 to-white/50 dark:from-zinc-800/50 dark:to-zinc-900/60 border-zinc-300/40 dark:border-zinc-700/40 text-zinc-800 dark:text-zinc-100 shadow-sm"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
+              <div className="font-semibold text-sm truncate">{c.title}</div>
+             
             </div>
-            <div className="text-xs opacity-60">{c.key}</div>
+            
           </motion.button>
         ))}
       </AnimatePresence>
-    </div>
+    </ScrollArea>
   </CardContent>
 </Card>
 
@@ -5105,68 +5116,128 @@ case "pieChartWithNeedle":
 
           {/* Middle: Preview */}
           <section className="lg:col-span-7 space-y-4">
-            <Card className="bg-white dark:bg-black/40 dark:border-zinc-600/70">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="text-lg">{ALL_CHARTS.find(c=>c.key===selectedChartKey)?.title}</span>
-                  <div className="flex items-center gap-2">
-                <ToggleSourceButton
-                  expanded={expandedSource[selectedChartKey]}
-                  onToggle={() =>
-                    setExpandedSource(prev => ({
-                      ...prev,
-                      [selectedChartKey]: !prev[selectedChartKey],
-                    }))
-                  }
-                />
-            <CopySourceButton onCopy={() => copyToClipboard(generateChartSource(selectedChartKey, paletteName))} />
+ <Card className="bg-white/70 dark:bg-black/40 border border-zinc-300/50 dark:border-zinc-600/70 backdrop-blur-lg shadow-xl transition-all duration-500">
+      <CardHeader>
+        <CardTitle className="flex flex-wrap items-center gap-2 justify-between">
+          <span className="text-lg font-semibold tracking-tight">
+            {ALL_CHARTS.find((c) => c.key === selectedChartKey)?.title || "Select a chart"}
+          </span>
 
-                  </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="w-full rounded-md p-3 border" >
-                  {renderPreview(selectedChartKey)}
+          <div className="flex items-center gap-2">
+            <ToggleSourceButton
+              expanded={expandedSource[selectedChartKey]}
+              onToggle={() =>
+                setExpandedSource((prev) => ({
+                  ...prev,
+                  [selectedChartKey]: !prev[selectedChartKey],
+                }))
+              }
+            />
+            <CopySourceButton
+              onCopy={() =>
+                copyToClipboard(generateChartSource(selectedChartKey, paletteName))
+              }
+            />
+          </div>
+        </CardTitle>
+      </CardHeader>
+
+      <CardContent>
+        {/* Chart Area */}
+        <div
+          className={clsx(
+            "relative w-full rounded-md p-3 border transition-all duration-300 overflow-hidden min-h-[240px]",
+            "bg-white/60 dark:bg-zinc-900/40 border-zinc-200/50 dark:border-zinc-700/50"
+          )}
+        >
+          <AnimatePresence mode="wait">
+            {isLoading ? (
+              <motion.div
+                key="loader"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 flex items-center justify-center"
+              >
+                {/* shimmer background */}
+                <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-zinc-200/50 via-zinc-100/30 to-zinc-200/50 dark:from-zinc-800/60 dark:via-zinc-700/40 dark:to-zinc-800/60" />
+                {/* spinner */}
+                <div className="relative z-10 flex flex-col items-center gap-2 text-zinc-600 dark:text-zinc-300">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                  <span className="text-xs opacity-70">Loading chart preview...</span>
                 </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="chart"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              >
+                {renderPreview(selectedChartKey)}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-                {/* Quick controls */}
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <div className="text-sm">Palette:</div>
-                  <div className="flex gap-2 flex-wrap items-center">
-                    {Object.keys(COLOR_THEMES).slice(0,).map(k=>(
-                      <Button key={k} onClick={()=>setPaletteName(k)} title={k} className="w-8 h-6 cursor-pointer rounded-sm ring-1 ring-black/20" style={{ background: `linear-gradient(90deg, ${COLOR_THEMES[k].join(",")})` }} />
-                    ))}
-                    <div className="text-xs opacity-70 ml-2">Selected: <strong>{paletteName}</strong></div>
-                  </div>
-
-                  
-                </div>
-
-                {/* Source code */}
-                {expandedSource[selectedChartKey] && (
-                  <div className="mt-4">
-                    <Card className="overflow-auto max-h-150">
-                      <CardContent>
-                       <SyntaxHighlighter
-                        language="jsx"
-                        style={isDark?oneDark:oneLight}
-                        customStyle={{
-                            fontSize: "0.75rem",
-                            borderRadius: "0.5rem",
-                            padding: "1rem",
-                            
-                            whiteSpace: "pre-wrap",
-                        }}
-                        wrapLines
-                        >
-                        {generateChartSource(selectedChartKey, paletteName)}
-                        </SyntaxHighlighter>
-                                            </CardContent>
-                    </Card>
-                  </div>
+        {/* Palette Selector */}
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Palette:</div>
+          <div className="flex gap-2 flex-wrap items-center">
+            {Object.keys(COLOR_THEMES).map((k) => (
+              <Button
+                key={k}
+                onClick={() => setPaletteName(k)}
+                title={k}
+                className={clsx(
+                  "w-8 h-6 rounded-md cursor-pointer transition-all duration-200 ring-1 ring-zinc-400/40 dark:ring-zinc-600/40",
+                  paletteName === k && "scale-110 ring-2 ring-blue-500"
                 )}
-              </CardContent>
-            </Card>
+                style={{
+                  background: `linear-gradient(90deg, ${COLOR_THEMES[k].join(",")})`,
+                }}
+              />
+            ))}
+            <div className="text-xs opacity-70 ml-2">
+              Selected: <strong>{paletteName}</strong>
+            </div>
+          </div>
+        </div>
+
+        {/* Source code */}
+        <AnimatePresence>
+          {expandedSource[selectedChartKey] && (
+            <motion.div
+              key="source"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3 }}
+              className="mt-4"
+            >
+              <Card className="overflow-auto max-h-[600px] border-zinc-300/40 dark:border-zinc-700/40 backdrop-blur-md bg-white/70 dark:bg-zinc-900/60">
+                <CardContent>
+                  <SyntaxHighlighter
+                    language="jsx"
+                    style={isDark ? oneDark : oneLight}
+                    customStyle={{
+                      fontSize: "0.75rem",
+                      borderRadius: "0.5rem",
+                      padding: "1rem",
+                      whiteSpace: "pre-wrap",
+                    }}
+                    wrapLines
+                  >
+                    {generateChartSource(selectedChartKey, paletteName)}
+                  </SyntaxHighlighter>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </CardContent>
+    </Card>
 
             {/* More charts grid (preview thumbnails) */}
             <div className="grid sm:grid-cols-2  gap-4">
