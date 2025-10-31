@@ -170,3 +170,12 @@
 .dark .glassy-scroll::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, rgba(96,165,250,0.25), rgba(147,197,253,0.25));
 }
+/* Hide scrollbar but keep scroll functionality */
+.no-scrollbar::-webkit-scrollbar {
+  background: transparent;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;  /* for Internet Explorer, Edge */
+  scrollbar-width: none;     /* for Firefox */
+}

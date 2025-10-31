@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { FuturisticMenuButton } from "./FuturisticMenuButton";
+import { motion } from "framer-motion";
 
 /**
  * Props expected:
@@ -48,7 +49,7 @@ export default function FlowchartSidebar({
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="p-3">
+      <CardContent className="p-3 overflow-y-auto no-scrollbar">
         {/* ===== Search Input ===== */}
         <div className="relative mb-3">
           <Search className="absolute left-2 top-2.5 w-4 h-4 text-zinc-500 dark:text-zinc-400" />
@@ -91,10 +92,12 @@ export default function FlowchartSidebar({
 
         {/* ===== Suggestions (fixed behavior same as SpinnerSidebar) ===== */}
         {showSuggestions && (
-          <div className="mb-3">
+          <ScrollArea className="mb-3 max-h-screen no-scrollbar overflow-y-auto ">
             <Label className="text-xs text-zinc-600 dark:text-zinc-400">Suggestions</Label>
-            <div className="mt-2 grid gap-2 max-h-screen overflow-y-auto">
-              {filtered.slice(0,8).map((item) => (
+            <motion.div className="p-2"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}>
+              {filtered.map((item) => (
                 <button
                       key={item.id}
                       onClick={() => selectChart(item.id)}
@@ -115,15 +118,15 @@ export default function FlowchartSidebar({
               {filtered.length === 0 && (
                 <div className="text-sm opacity-60 p-2">No matches.</div>
               )}
-            </div>
-          </div>
+            </motion.div>
+          </ScrollArea>
         )}
 
         <Separator className="my-3 dark:bg-zinc-800" />
 
         {/* ===== Grouped Flowcharts ===== */}
         <Label className="text-xs text-zinc-600 dark:text-zinc-400">Grouped</Label>
-        <ScrollArea className="max-h-screen overflow-y-auto mt-3 pr-1">
+        <ScrollArea className="max-h-screen overflow-y-auto no-scrollbar  mt-3 pr-1">
           <div className="space-y-3">
             {Object.entries(grouped).map(([letter, list]) => (
               <div key={letter}>
@@ -161,19 +164,19 @@ export default function FlowchartSidebar({
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:block max-h-screen sticky top-0 w-80">
+      <aside className="hidden lg:block max-h-screen sticky top-0 ">
         {SidebarContent}
       </aside>
 
       {/* Mobile Sidebar (Sheet) */}
       <div className="lg:hidden fixed top-16 left-1 z-50">
-        <Sheet open={open} onOpenChange={setOpen}>
+        <Sheet className="pb-10" open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <FuturisticMenuButton open={open} onClick={() => setOpen(!open)} />
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="p-0 w-80  bg-white dark:bg-[#0a0a0a] border-r border-zinc-300 dark:border-zinc-800"
+            className="p-0 pb-10 mb-10  bg-white dark:bg-[#0a0a0a] border-r border-zinc-300 dark:border-zinc-700 "
           >
             {SidebarContent}
           </SheetContent>

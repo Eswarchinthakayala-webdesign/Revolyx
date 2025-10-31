@@ -38,9 +38,8 @@ export default function Header() {
     { name: "Colors", icon: Palette, path: "/colors" },
     { name: "Charts", icon: ChartAreaIcon, path: "/charts" },
     { name: "Spinners", icon: Chromium, path: "/spinners" },
-    {name:"icons",icon:Wand,path:"/icons"},
-    { name: "Design", icon: Grid3X3, path: "/designs" },
-    {name:"FLow Chart",icon:FolderDown,path:"/flow-chart"}
+    {name:"Icons",icon:Wand,path:"/icons"},
+    {name:"Flow Chart",icon:FolderDown,path:"/flow-chart"}
   ]; 
 
     const isDark =
@@ -142,7 +141,7 @@ export default function Header() {
         transition={{ delay: 0.1 }}
         className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-300 dark:border-white/10 backdrop-blur-lg bg-white/80 dark:bg-black/80 flex justify-around items-center py-3 md:hidden"
       >
-        {navItems.slice(0, 5).map(({ name, icon: Icon, path }) => (
+        {navItems.slice(0, 6).map(({ name, icon: Icon, path }) => (
           <Link
             key={name}
             to={path}

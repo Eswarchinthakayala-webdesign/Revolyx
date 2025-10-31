@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import clsx from "clsx";
 import { Canvg } from "canvg";
-import * as htmlToImage from "html-to-image";
+import { toPng } from "html-to-image";
 
 export function FlowchartShowcase({
   selected = {},
@@ -65,6 +65,33 @@ export function FlowchartShowcase({
     link.click();
     toast.success("SVG downloaded!");
   };
+
+  
+const snapshotPNG = async () => {
+    const node = document.querySelector(".snapshot");
+    if (!node) {
+      toast.error("Snapshot target not found");
+      return;
+    }
+
+    try {
+      const dataUrl = await toPng(node, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: isDark?"#000":"#fff",
+        quality: 1,
+      });
+      const link = document.createElement("a");
+      link.download = `Revolyx-${selected.name}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success("Snapshot saved!");
+    } catch (error) {
+      console.error("Snapshot failed:", error);
+      toast.error("Failed to capture snapshot");
+    }
+ 
+}
 
   // ✅ Download as PNG (text preserved, high-quality)
 const downloadPng = async () => {
@@ -150,12 +177,15 @@ const downloadPng = async () => {
           <div className="flex items-center gap-2">
            
 
-            <Button size="sm" variant="outline" onClick={handleCopy}>
+            <Button  className="cursor-pointer" size="sm" variant="outline" onClick={handleCopy}>
               {copied ? "Copied!" : <><Copy className="w-4 h-4 mr-1" /> Copy</>}
             </Button>
 
-            <Button size="sm" variant="outline" onClick={downloadSvg}>
+            <Button  className="cursor-pointer" size="sm" variant="outline" onClick={downloadSvg}>
               <Download className="w-4 h-4 mr-1" /> SVG
+            </Button>
+            <Button  className="cursor-pointer" size="sm" variant="outline" onClick={snapshotPNG}>
+              <Download className="w-4 h-4 mr-1" /> PNG
             </Button>
 
            
@@ -164,14 +194,15 @@ const downloadPng = async () => {
               size="sm"
               variant="secondary"
               onClick={() => setExpanded(!expanded)}
+              className="cursor-pointer"
             >
               {expanded ? (
                 <>
-                  <Minimize2 className="w-4 h-4 mr-1" /> Collapse
+                  <Minimize2 className="w-4 h-4 " /> <span className="sm:flex hidden"> Collapse</span>
                 </>
               ) : (
                 <>
-                  <Maximize2 className="w-4 h-4 mr-1" /> Expand
+                  <Maximize2 className="w-4 h-4"/> <span className="sm:flex hidden"> Expand</span>
                 </>
               )}
             </Button>
@@ -184,16 +215,17 @@ const downloadPng = async () => {
         {/* Chart Display */}
         <div
           className={clsx(
-            "transition-all duration-500 overflow-auto flex justify-center items-center border rounded-lg",
+            "transition-all snapshot duration-500 overflow-hidden w-full max-h-screen flex justify-center items-center border rounded-lg",
             expanded
-              ? "h-[80vh] bg-white dark:bg-zinc-900"
+              ? "sm:h-[100vh] h-[90vh] bg-white dark:bg-zinc-900"
               : "h-[360px] bg-white/10 dark:bg-zinc-900/30"
           )}
         >
+        
           {loading ? (
             <Loader2 className="animate-spin w-10 h-10 text-zinc-400" />
           ) : (
-            <div ref={chartRef} className="p-4 w-full h-full overflow-auto" />
+            <div ref={chartRef} className="p-4 w-full h-full flex items-center justify-center " />
           )}
         </div>
 
@@ -241,33 +273,13 @@ const downloadPng = async () => {
 
         {/* Theme Selector */}
         <Separator />
-        <div>
-          <Label className="text-xs">Mermaid Theme</Label>
-          <div className="mt-2 flex gap-2 items-center">
-            <Select value={themes} onValueChange={setThemes}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Mermaid theme" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">default</SelectItem>
-                <SelectItem value="dark">dark</SelectItem>
-                <SelectItem value="forest">forest</SelectItem>
-                <SelectItem value="neutral">neutral</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={() => setThemes("default")}>
-              Reset
-            </Button>
-          </div>
-        </div>
-
         {/* Source Code */}
         <Separator />
         <div className="flex items-center justify-between">
           <Label className="text-xs">Source Code</Label>
           <button
             onClick={() => setShowSource((s) => !s)}
-            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-white/5"
+            className="inline-flex  cursor-pointer items-center gap-1 text-xs px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-white/5"
           >
             <span>{showSource ? "Hide Code" : "Show Code"}</span>
             {showSource ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
