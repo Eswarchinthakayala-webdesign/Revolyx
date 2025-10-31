@@ -69,14 +69,13 @@ const COLOR_THEMES = {
    Each entry includes name, category, description and mermaid code.
    (All use 'flowchart TD' format.)
 */
-const BUILT_IN_FLOWCHARTS = [
+ const BUILT_IN_FLOWCHARTS = [
   {
     id: "f-login",
     name: "Login Flow",
     category: "Auth",
     description: "User submits credentials, validate and route.",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Start([Start]) --> Input[Enter credentials]
 Input --> Validate{Valid?}
 Validate -->|Yes| Success[Go to Dashboard]
@@ -89,8 +88,7 @@ Success --> End([End])`,
     name: "Registration",
     category: "Auth",
     description: "Sign up flow with email verification.",
-    code:
-`flowchart TD
+    code: `flowchart TD
 A[Start] --> B[User enters details]
 B --> C[Create account]
 C --> D[Send verification email]
@@ -104,8 +102,7 @@ F --> H[End]`,
     name: "E-commerce Checkout",
     category: "Commerce",
     description: "Cart -> shipping -> payment -> confirmation.",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Cart[Cart] --> Shipping[Shipping details]
 Shipping --> Payment[Payment details]
 Payment --> Review[Review order]
@@ -120,8 +117,7 @@ Confirmation --> End`,
     name: "Payment Processing",
     category: "Commerce",
     description: "Validate cards, process payment, notify.",
-    code:
-`flowchart TD
+    code: `flowchart TD
 A[Start] --> B[Collect card info]
 B --> C{Card valid?}
 C -->|No| D[Show error]
@@ -135,8 +131,7 @@ F -->|No| H[Failed page]`,
     name: "API Request Cycle",
     category: "System",
     description: "Client -> API -> backend -> DB -> response",
-    code:
-`flowchart TD
+    code: `flowchart TD
 U[User action] --> FE[Frontend sends request]
 FE --> API[API Gateway]
 API --> Service[Service logic]
@@ -150,8 +145,7 @@ API --> FE[Return response]`,
     name: "CRUD Operation",
     category: "System",
     description: "Create, Read, Update, Delete decision flow",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Start --> Choose{Operation?}
 Choose -->|Create| Create[Insert record]
 Choose -->|Read| Read[Fetch record]
@@ -167,8 +161,7 @@ Delete --> Done`,
     name: "Cache Lookup",
     category: "System",
     description: "Check cache, fallback to DB, set cache.",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Request --> Cache[Check cache]
 Cache -->|Hit| Return[Return cached]
 Cache -->|Miss| DB[Query DB]
@@ -180,8 +173,7 @@ DB --> CacheSet[Set cache]`,
     name: "Data Pipeline",
     category: "Data",
     description: "Ingest -> Process -> Store -> Serve",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Ingest --> Transform[Transform data]
 Transform --> Validate{Valid?}
 Validate -->|Yes| Store[Store]
@@ -193,8 +185,7 @@ Store --> Serve[Serve to consumers]`,
     name: "ETL Job",
     category: "Data",
     description: "Extract, transform, load batch job",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Start --> Extract[Extract data]
 Extract --> Transform[Transform]
 Transform --> Load[Load into warehouse]
@@ -206,8 +197,7 @@ Verify --> End`,
     name: "CI Pipeline",
     category: "DevOps",
     description: "Commit -> Build -> Test -> Deploy",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Commit --> Build[Build artifacts]
 Build --> Test[Run tests]
 Test -->|Pass| Deploy[Deploy to staging]
@@ -219,8 +209,7 @@ Deploy --> Monitor`,
     name: "CD Pipeline",
     category: "DevOps",
     description: "Deploy promotion pipeline",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Staging --> Smoke[Smoke tests]
 Smoke -->|Pass| Prod[Promote to prod]
 Smoke -->|Fail| Rollback[Rollback]`,
@@ -230,8 +219,7 @@ Smoke -->|Fail| Rollback[Rollback]`,
     name: "Queue Worker",
     category: "System",
     description: "Consume -> process -> ack/requeue",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Producer --> Queue
 Worker --> Consume[Consume message]
 Consume --> Process[Process]
@@ -243,8 +231,7 @@ Process -->|Fail| Requeue[Requeue or dead-letter]`,
     name: "Authorization",
     category: "Security",
     description: "Check tokens & permissions",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Request --> CheckAuth[Check token]
 CheckAuth -->|Invalid| Deny[403]
 CheckAuth -->|Valid| CheckPerms{Has perms?}
@@ -256,8 +243,7 @@ CheckPerms -->|No| Deny`,
     name: "2FA Flow",
     category: "Security",
     description: "OTP verification flow",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Login --> OTP[Send OTP]
 OTP --> Verify{Correct?}
 Verify -->|Yes| Grant[Grant access]
@@ -268,8 +254,7 @@ Verify -->|No| Retry[Retry or block]`,
     name: "Bug Triage",
     category: "Process",
     description: "Report -> Triage -> Fix -> Release",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Report --> Triage[Assess severity]
 Triage -->|High| Hotfix[Hotfix]
 Triage -->|Low| Backlog[Backlog]
@@ -281,8 +266,7 @@ Backlog --> Plan`,
     name: "Support Ticket",
     category: "Process",
     description: "Create -> assign -> resolve",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Customer --> Create[Create ticket]
 Create --> Assign[Assign team]
 Assign --> Work[Work on ticket]
@@ -293,8 +277,7 @@ Work --> Resolve[Resolved]`,
     name: "Email Send",
     category: "Integration",
     description: "Compose -> send -> bounce handling",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Compose --> Send[Send email]
 Send -->|Delivered| Done
 Send -->|Bounced| Bounce[Handle bounce]`,
@@ -304,8 +287,7 @@ Send -->|Bounced| Bounce[Handle bounce]`,
     name: "Webhook Delivery",
     category: "Integration",
     description: "Deliver -> retry -> dead-letter",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Event --> Deliver[POST to endpoint]
 Deliver -->|200| Done
 Deliver -->|non-200| Retry[Retry with backoff]
@@ -316,8 +298,7 @@ Retry --> Dead[Dead-letter if exhausted]`,
     name: "Rate Limiting",
     category: "System",
     description: "Allow/deny requests based on quota",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Request --> CheckQuota{Within quota?}
 CheckQuota -->|Yes| Forward
 CheckQuota -->|No| Throttle[Return 429]`,
@@ -327,8 +308,7 @@ CheckQuota -->|No| Throttle[Return 429]`,
     name: "Deployment Rollback",
     category: "DevOps",
     description: "Failure detection and rollback steps",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Deploy --> Monitor[Monitor metrics]
 Monitor -->|Alert| Investigate
 Investigate -->|Severe| Rollback
@@ -339,8 +319,7 @@ Rollback --> Notify`,
     name: "State Machine",
     category: "System",
     description: "Basic state transitions",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Idle --> Start --> Running --> Pause --> Running
 Running --> Stop --> Idle`,
   },
@@ -349,8 +328,7 @@ Running --> Stop --> Idle`,
     name: "Search Flow",
     category: "UX",
     description: "Query parsing, autocomplete, results",
-    code:
-`flowchart TD
+    code: `flowchart TD
 User --> Query[Type query]
 Query --> Autocomplete{Suggest?}
 Autocomplete -->|Yes| ShowSuggestions
@@ -362,8 +340,7 @@ SearchBackend --> Results[Show results]`,
     name: "Feedback Loop",
     category: "UX",
     description: "Collect feedback and action",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Prompt --> Submit[User submits]
 Submit --> Analyze[Analyze sentiment]
 Analyze --> Action[Improve product]`,
@@ -373,8 +350,7 @@ Analyze --> Action[Improve product]`,
     name: "ML Training",
     category: "Data",
     description: "Data prepare -> train -> eval -> deploy",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Collect --> Prepare[Prepare dataset]
 Prepare --> Train[Train model]
 Train --> Eval[Evaluate]
@@ -386,8 +362,7 @@ Eval -->|Not OK| Tune`,
     name: "Warm Cache",
     category: "Data",
     description: "Precompute frequently used entries",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Start --> Identify[Identify hot keys]
 Identify --> Precompute
 Precompute --> LoadCache`,
@@ -397,8 +372,7 @@ Precompute --> LoadCache`,
     name: "SSO Flow",
     category: "Auth",
     description: "Redirect to provider and callback",
-    code:
-`flowchart TD
+    code: `flowchart TD
 App --> Redirect[Redirect to SSO]
 Redirect --> Provider
 Provider --> Callback[Return to app]
@@ -409,8 +383,7 @@ Callback --> Session[Create session]`,
     name: "Page Load",
     category: "UX",
     description: "Initial assets & hydrate client",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Browser --> Request
 Request --> Server[Send HTML]
 Server --> Browser[Browser receives]
@@ -421,8 +394,7 @@ Browser --> Hydrate`,
     name: "Retry Backoff",
     category: "System",
     description: "Retries with exponential backoff",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Try --> Fail{Failed?}
 Fail -->|Yes| Backoff[Wait & retry]
 Backoff --> Try
@@ -433,8 +405,7 @@ Try -->|Success| Done`,
     name: "Logout Flow",
     category: "Auth",
     description: "Clear session and redirect",
-    code:
-`flowchart TD
+    code: `flowchart TD
 ClickLogout --> Clear[Clear session]
 Clear --> Redirect[Go to homepage]`,
   },
@@ -443,8 +414,7 @@ Clear --> Redirect[Go to homepage]`,
     name: "Batch Job",
     category: "Data",
     description: "Batch schedule/run/notify",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Schedule --> StartBatch[Start job]
 StartBatch --> Process
 Process --> Report
@@ -452,16 +422,250 @@ Report --> Notify`,
   },
   {
     id: "f-webperf",
-    name: "Perf Optim",
+    name: "Perf Optimization",
     category: "Ops",
     description: "Detect & optimize hotspots",
-    code:
-`flowchart TD
+    code: `flowchart TD
 Detect --> Profile[Profile]
 Profile --> Optimize
 Optimize --> Deploy`,
   },
+
+  // --- New 20 flowcharts below ---
+  {
+    id: "f-incident",
+    name: "Incident Response",
+    category: "Ops",
+    description: "Detect incident -> mitigate -> resolve -> postmortem.",
+    code: `flowchart TD
+Alert --> Triage{Severity?}
+Triage -->|High| Escalate[Escalate to team]
+Triage -->|Low| Monitor
+Escalate --> Mitigate[Apply fix]
+Mitigate --> Resolve[Close incident]
+Resolve --> Postmortem[Document learnings]`,
+  },
+  {
+    id: "f-abtest",
+    name: "A/B Testing",
+    category: "UX",
+    description: "Split users -> track -> analyze results.",
+    code: `flowchart TD
+Users --> Split{Group?}
+Split -->|A| VariantA
+Split -->|B| VariantB
+VariantA --> CollectA[Collect metrics A]
+VariantB --> CollectB[Collect metrics B]
+CollectA --> Compare
+CollectB --> Compare
+Compare --> Decision[Select best variant]`,
+  },
+  {
+    id: "f-pushnotif",
+    name: "Push Notification",
+    category: "Integration",
+    description: "Prepare, send, track, and retry notifications.",
+    code: `flowchart TD
+Compose --> Validate
+Validate -->|OK| Send[Send push]
+Send --> Track[Track delivery]
+Track --> Retry{Failed?}
+Retry -->|Yes| Resend
+Retry -->|No| Done`,
+  },
+  {
+    id: "f-backup",
+    name: "Backup Process",
+    category: "System",
+    description: "Schedule, backup, verify and store securely.",
+    code: `flowchart TD
+Schedule --> Snapshot[Take backup]
+Snapshot --> Verify[Verify integrity]
+Verify -->|OK| Store[Upload to S3]
+Verify -->|Fail| Alert[Notify admin]`,
+  },
+  {
+    id: "f-restore",
+    name: "Restore Workflow",
+    category: "System",
+    description: "Retrieve backup and restore system.",
+    code: `flowchart TD
+RequestRestore --> Fetch[Fetch backup]
+Fetch --> Validate[Validate files]
+Validate -->|Pass| Restore[Restore DB]
+Validate -->|Fail| Retry[Try another snapshot]
+Restore --> Notify[Send success email]`,
+  },
+  {
+    id: "f-websocket",
+    name: "WebSocket Connection",
+    category: "Integration",
+    description: "Open -> message -> close -> retry",
+    code: `flowchart TD
+Client --> Connect[Open socket]
+Connect --> Connected{Connected?}
+Connected -->|Yes| Listen[Receive messages]
+Connected -->|No| Retry[Reconnect]
+Listen --> Close[Close socket]`,
+  },
+  {
+    id: "f-error-log",
+    name: "Error Logging",
+    category: "System",
+    description: "Capture errors and store logs.",
+    code: `flowchart TD
+App --> Catch[Catch error]
+Catch --> Transform[Format log]
+Transform --> Store[Send to Log DB]
+Store --> Alert[Trigger alert if critical]`,
+  },
+  {
+    id: "f-report",
+    name: "Report Generation",
+    category: "Data",
+    description: "Fetch data -> transform -> export report",
+    code: `flowchart TD
+Start --> Fetch[Fetch data]
+Fetch --> Transform[Clean/format]
+Transform --> Generate[Generate PDF]
+Generate --> Send[Email report]`,
+  },
+  {
+    id: "f-monitor",
+    name: "Monitoring Alerts",
+    category: "Ops",
+    description: "Detect anomalies and send alerts.",
+    code: `flowchart TD
+CollectMetrics --> Analyze[Analyze data]
+Analyze --> Alert{Threshold exceeded?}
+Alert -->|Yes| Notify[Send alert]
+Alert -->|No| Continue`,
+  },
+  {
+    id: "f-notify",
+    name: "Notification Center",
+    category: "UX",
+    description: "Aggregate, prioritize, display notifications.",
+    code: `flowchart TD
+Events --> Aggregate
+Aggregate --> Prioritize{Important?}
+Prioritize -->|Yes| Push[Show top banner]
+Prioritize -->|No| Tray[Send to inbox]`,
+  },
+  {
+    id: "f-chat",
+    name: "Chat Message Flow",
+    category: "Integration",
+    description: "Send -> deliver -> store -> notify.",
+    code: `flowchart TD
+User --> Send[Send message]
+Send --> Server[API Gateway]
+Server --> DB[Store message]
+Server --> Notify[Send push]
+Notify --> Client[Display chat]`,
+  },
+  {
+    id: "f-gateway",
+    name: "API Gateway Routing",
+    category: "System",
+    description: "Dispatch requests to correct microservice.",
+    code: `flowchart TD
+Request --> Auth[Authenticate]
+Auth --> Route[Determine route]
+Route -->|User| UserService
+Route -->|Order| OrderService
+Route -->|Inventory| InventoryService`,
+  },
+  {
+    id: "f-webhook-sub",
+    name: "Webhook Subscription",
+    category: "Integration",
+    description: "Register and verify webhooks.",
+    code: `flowchart TD
+Client --> Register[POST /subscribe]
+Register --> Verify[Send challenge]
+Verify --> Confirm{Challenge passed?}
+Confirm -->|Yes| Active
+Confirm -->|No| Failed`,
+  },
+  {
+    id: "f-feedback",
+    name: "User Feedback Handling",
+    category: "Process",
+    description: "Collect, classify, and take action.",
+    code: `flowchart TD
+User --> Submit
+Submit --> Classify{Type?}
+Classify -->|Bug| Ticket
+Classify -->|Feature| Roadmap
+Classify -->|Praise| Share[Share internally]`,
+  },
+  {
+    id: "f-cdn",
+    name: "CDN Caching",
+    category: "System",
+    description: "Request flow through CDN and origin.",
+    code: `flowchart TD
+Client --> CDN[Edge cache]
+CDN -->|Hit| Serve
+CDN -->|Miss| Origin[Fetch from origin]
+Origin --> CDN
+CDN --> Serve`,
+  },
+  {
+    id: "f-build",
+    name: "Frontend Build",
+    category: "DevOps",
+    description: "Lint -> compile -> bundle -> deploy",
+    code: `flowchart TD
+Lint --> Compile
+Compile --> Bundle
+Bundle --> Deploy`,
+  },
+  {
+    id: "f-ai",
+    name: "AI Inference Flow",
+    category: "Data",
+    description: "Input -> preprocess -> predict -> postprocess",
+    code: `flowchart TD
+Input --> Preprocess
+Preprocess --> Model[Run inference]
+Model --> Postprocess
+Postprocess --> Output`,
+  },
+  {
+    id: "f-analytics",
+    name: "Analytics Pipeline",
+    category: "Data",
+    description: "Events -> Stream -> Warehouse -> Dashboard",
+    code: `flowchart TD
+Event --> Stream
+Stream --> Warehouse
+Warehouse --> Dashboard`,
+  },
+  {
+    id: "f-content",
+    name: "Content Publishing",
+    category: "Process",
+    description: "Draft -> review -> approve -> publish",
+    code: `flowchart TD
+Draft --> Review
+Review -->|Approved| Publish
+Review -->|Rejected| Edit[Make changes]
+Publish --> Done`,
+  },
+  {
+    id: "f-feature-flag",
+    name: "Feature Flag Evaluation",
+    category: "System",
+    description: "Determine feature rollout conditions.",
+    code: `flowchart TD
+Request --> Evaluate[Check flag]
+Evaluate -->|Enabled| Execute[Run feature]
+Evaluate -->|Disabled| Skip`,
+  },
 ];
+
 
 /* -------------------- Mermaid Initialization -------------------- */
 mermaid.initialize({
