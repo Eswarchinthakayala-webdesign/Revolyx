@@ -13,6 +13,8 @@ import {
   ChartAreaIcon,
   Chromium,
   Wand,
+  Grid3X3,
+  FolderDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
@@ -37,7 +39,8 @@ export default function Header() {
     { name: "Charts", icon: ChartAreaIcon, path: "/charts" },
     { name: "Spinners", icon: Chromium, path: "/spinners" },
     {name:"icons",icon:Wand,path:"/icons"},
-    { name: "Docs", icon: Book, path: "/docs" },
+    { name: "Design", icon: Grid3X3, path: "/designs" },
+    {name:"FLow Chart",icon:FolderDown,path:"/flow-chart"}
   ]; 
 
     const isDark =

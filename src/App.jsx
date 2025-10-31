@@ -8,6 +8,8 @@ import ColorsPage from './pages/colorsPage'
 import ChartsPage from './pages/chartPage'
 import SpinnersPage from './pages/spinnersPage'
 import IconsPage from './pages/IconsPage'
+import BackgroundPage from './pages/BackgroundDesignPage'
+import FlowchartPage from './pages/FlowchartPage'
 const router=createBrowserRouter([
   {
 
@@ -40,6 +42,14 @@ const router=createBrowserRouter([
       {
         path:"/icons",
         element:<IconsPage/>
+      },
+       {
+        path:"/designs",
+        element:<BackgroundPage/>
+      },
+       {
+        path:"/flow-chart",
+        element:<FlowchartPage/>
       }
     ]
   }
