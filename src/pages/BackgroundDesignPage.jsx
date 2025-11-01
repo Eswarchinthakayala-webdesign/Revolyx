@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Layers,
@@ -11,7 +11,6 @@ import {
   Palette,
   Copy,
 } from "lucide-react";
-
 import {
   Card,
   CardHeader,
@@ -24,14 +23,20 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Toaster, toast } from "sonner";
 
+// Animation Imports
 import PixelBlast from "../components/animations/pixelblast/pixelplase";
 import LightRays from "../components/animations/lightrays/LightRays";
 import LiquidEther from "../components/animations/LiquidEther/LiquidEther";
 import DarkVeil from "../components/DarkVeil/DarkVeil";
 import Prism from "../components/animations/Prism/Prism";
+import Aurora from "../components/animations/Arora/Arora";
+import Plasma from "../components/animations/palsma/palsma";
+import Particles from "../components/animations/Particles/particles";
+import GradientBlinds from "../components/animations/GradienBlind";
+import Lightning from "../components/animations/Lighting";
 
-// Detect mobile for performance tuning
-const isMobile = typeof window !== "undefined" && /Mobi|Android/i.test(navigator.userAgent);
+const isMobile =
+  typeof window !== "undefined" && /Mobi|Android/i.test(navigator.userAgent);
 
 export default function BackgroundDesignPage() {
   const [selected, setSelected] = useState(null);
@@ -41,36 +46,35 @@ export default function BackgroundDesignPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const topRef = useRef(null);
 
-  // Define animations (PixelBlast included with re-render key)
+  // ✅ Use factory functions (not mounted until selected)
   const ANIMATIONS = useMemo(
     () => [
       {
-        id: "pixelblast",
-        name: "Pixel Blast",
-        description: "Ripple-based pixel explosion effect.",
-        component: (
-          <PixelBlast
-            key={`pixelblast-${refreshKey}`}
-            variant="circle"
-            pixelSize={isMobile ? 10 : 6}
-            color="#B19EEF"
-            patternScale={2.5}
-            patternDensity={1.1}
-            enableRipples={!isMobile}
-            rippleSpeed={0.4}
-            rippleIntensityScale={1.5}
-            liquid
-            liquidStrength={0.1}
-            liquidRadius={1.2}
-          />
+        id: "arora",
+        name: "Arora",
+        description: "Arora",
+        render: (key) => (
+        <Aurora
+      colorStops={["#16a34a", "#4338ca", "#ec4899"]}
+      blend={0.5}
+      amplitude={1.0}
+      speed={0.5}
+    />
         ),
-        code: `<PixelBlast variant="circle" pixelSize={6} color="#B19EEF" enableRipples liquid />`,
+        code: `import Aurora from './Aurora';
+  
+<Aurora
+  colorStops={["#3A29FF", "#FF94B4", "#FF3232"]}
+  blend={0.5}
+  amplitude={1.0}
+  speed={0.5}
+/>`,
       },
       {
         id: "lightrays",
         name: "Light Rays",
         description: "Dynamic light beams following mouse.",
-        component: (
+        render: () => (
           <LightRays
             raysOrigin="top-center"
             raysColor="#00ffff"
@@ -82,10 +86,143 @@ export default function BackgroundDesignPage() {
         code: `<LightRays raysOrigin="top-center" raysColor="#00ffff" followMouse />`,
       },
       {
+        id: "palsma",
+        name: "Palsma",
+        description: "Palsma.",
+        render: () => (
+
+  <Plasma 
+    color="#ff6b35"
+    speed={0.6}
+    direction="forward"
+    scale={1.1}
+    opacity={1}
+    mouseInteractive={true}
+  />
+
+
+        ),
+        code: `import Plasma from './Plasma';
+
+<div style={{ width: '100%', height: '600px', position: 'relative' }}>
+  <Plasma 
+    color="#ff6b35"
+    speed={0.6}
+    direction="forward"
+    scale={1.1}
+    opacity={0.8}
+    mouseInteractive={true}
+  />
+</div>`,
+      },
+      {
+        id: "particles",
+        name: "Particels",
+        description: "Particels",
+        render: () => (
+          <Particles
+    particleColors={['#ffffff', '#ffffff']}
+    particleCount={200}
+    particleSpread={10}
+    speed={0.1}
+    particleBaseSize={100}
+    moveParticlesOnHover={true}
+    alphaParticles={false}
+    disableRotation={false}
+  />
+
+        ),
+        code: `import Particles from './Particles';
+
+<div style={{ width: '100%', height: '600px', position: 'relative' }}>
+  <Particles
+    particleColors={['#ffffff', '#ffffff']}
+    particleCount={200}
+    particleSpread={10}
+    speed={0.1}
+    particleBaseSize={100}
+    moveParticlesOnHover={true}
+    alphaParticles={false}
+    disableRotation={false}
+  />
+</div>`,
+      },
+      {
+        id: "lightning",
+        name: "Lightning",
+        description: "Lightning",
+        render: () => (
+          <div style={{ width: '100%', height: '600px', position: 'relative' }}>
+  <Lightning
+    hue={220}
+    xOffset={0}
+    speed={1}
+    intensity={1}
+    size={1}
+  />
+</div>
+
+        ),
+        code: `import Lightning from './Lightning';
+
+<div style={{ width: '100%', height: '600px', position: 'relative' }}>
+  <Lightning
+    hue={220}
+    xOffset={0}
+    speed={1}
+    intensity={1}
+    size={1}
+  />
+</div>`,
+      },
+      {
+        id: "gradientBlinds",
+        name: "GradientBlinds",
+        description: "GradientBlinds",
+        render: () => (
+          <div style={{ width: '100%', height: '600px', position: 'relative' }}>
+  <GradientBlinds
+    gradientColors={['#FF9FFC', '#5227FF']}
+    angle={0}
+    noise={0.3}
+    blindCount={12}
+    blindMinWidth={50}
+    spotlightRadius={0.5}
+    spotlightSoftness={1}
+    spotlightOpacity={1}
+    mouseDampening={0.15}
+    distortAmount={0}
+    shineDirection="left"
+    mixBlendMode="lighten"
+  />
+</div>
+
+        ),
+        code: `import GradientBlinds from './GradientBlinds';
+
+<div style={{ width: '100%', height: '600px', position: 'relative' }}>
+  <GradientBlinds
+    gradientColors={['#FF9FFC', '#5227FF']}
+    angle={0}
+    noise={0.3}
+    blindCount={12}
+    blindMinWidth={50}
+    spotlightRadius={0.5}
+    spotlightSoftness={1}
+    spotlightOpacity={1}
+    mouseDampening={0.15}
+    distortAmount={0}
+    shineDirection="left"
+    mixBlendMode="lighten"
+  />
+</div>`,
+      },
+
+      {
         id: "liquidether",
         name: "Liquid Ether",
         description: "Ethereal flowing fluid animation.",
-        component: (
+        render: () => (
           <LiquidEther
             colors={["#5227FF", "#FF9FFC", "#B19EEF"]}
             autoDemo
@@ -99,7 +236,7 @@ export default function BackgroundDesignPage() {
         id: "prism",
         name: "Prism Rotation",
         description: "3D rotating prism with glow effect.",
-        component: (
+        render: () => (
           <Prism
             animationType="rotate"
             height={3.5}
@@ -114,21 +251,21 @@ export default function BackgroundDesignPage() {
         id: "darkveil",
         name: "Dark Veil",
         description: "Subtle dark distortion overlay.",
-        component: <DarkVeil />,
+        render: () => <DarkVeil />,
         code: `<DarkVeil />`,
       },
     ],
     [refreshKey]
   );
 
-  // Select default
+  // Select default animation
   useEffect(() => {
     if (!selected) setSelected(ANIMATIONS[0]);
   }, [ANIMATIONS, selected]);
 
-  // Filter + Sort
+  // Filter + Sort logic
   const filtered = useMemo(() => {
-    let list = ANIMATIONS.filter((a) =>
+    const list = ANIMATIONS.filter((a) =>
       a.name.toLowerCase().includes(search.toLowerCase())
     );
     return sortAsc
@@ -137,16 +274,16 @@ export default function BackgroundDesignPage() {
   }, [search, sortAsc, ANIMATIONS]);
 
   const handleSelect = (animation) => {
-    if (animation.id === "pixelblast") {
-      setRefreshKey((k) => k + 1); // ✅ Force re-render only for PixelBlast
-    }
     setSelected(animation);
+    setRefreshKey((k) => k + 1); // forces rerender
+    setShowCode(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const suggestions = filtered.slice(0, 5);
-
   if (!selected) return null;
+
+  // ✅ Only render selected animation
+  const ActiveAnimation = selected.render(refreshKey);
 
   return (
     <div
@@ -180,7 +317,7 @@ export default function BackgroundDesignPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowCode((prev) => !prev)}
+            onClick={() => setShowCode((p) => !p)}
           >
             <Code className="w-4 h-4 mr-1" />{" "}
             {showCode ? "Hide Code" : "Show Code"}
@@ -192,49 +329,26 @@ export default function BackgroundDesignPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar */}
         <aside className="lg:col-span-1 space-y-3 border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-950/60 backdrop-blur-md rounded-xl p-4">
-          <div className="relative">
-            <div className="flex items-center gap-2 mb-3">
-              <Search className="w-4 h-4 text-zinc-400" />
-              <Input
-                type="text"
-                placeholder="Search designs..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="flex-1"
-              />
-            </div>
-            {search && (
-              <div className="absolute z-10 bg-zinc-950/90 text-zinc-100 rounded-md shadow-lg p-2 w-full">
-                {suggestions.length > 0 ? (
-                  suggestions.map((s) => (
-                    <div
-                      key={s.id}
-                      onClick={() => handleSelect(s)}
-                      className="cursor-pointer hover:bg-zinc-800/50 px-2 py-1 rounded-md"
-                    >
-                      {s.name}
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-zinc-400 text-sm px-2 py-1">
-                    No results
-                  </div>
-                )}
-              </div>
-            )}
+          <div className="flex items-center gap-2 mb-3">
+            <Search className="w-4 h-4 text-zinc-400" />
+            <Input
+              type="text"
+              placeholder="Search designs..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="flex-1"
+            />
           </div>
 
-          <div className="flex items-center justify-between gap-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setSortAsc(!sortAsc)}
-              className="flex items-center gap-1"
-            >
-              {sortAsc ? <ArrowDownAZ /> : <ArrowUpAZ />}{" "}
-              {sortAsc ? "A–Z" : "Z–A"}
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setSortAsc(!sortAsc)}
+            className="flex items-center gap-1 w-full"
+          >
+            {sortAsc ? <ArrowDownAZ /> : <ArrowUpAZ />}{" "}
+            {sortAsc ? "A–Z" : "Z–A"}
+          </Button>
 
           <Separator className="my-3" />
 
@@ -254,7 +368,7 @@ export default function BackgroundDesignPage() {
           </ScrollArea>
         </aside>
 
-        {/* Main Preview */}
+        {/* Active Animation Section */}
         <section className="lg:col-span-3 space-y-6">
           <Card className="overflow-hidden backdrop-blur-md border-zinc-700/40 bg-white/80 dark:bg-zinc-950/70">
             <CardHeader>
@@ -262,7 +376,7 @@ export default function BackgroundDesignPage() {
                 {selected.name}
               </CardTitle>
             </CardHeader>
-            <CardContent className="relative h-[400px] rounded-xl overflow-hidden">
+            <CardContent className="relative h-[400px] sm:h-[100vh] rounded-xl overflow-hidden">
               <motion.div
                 key={`${selected.id}-${refreshKey}`}
                 initial={{ opacity: 0, scale: 0.98 }}
@@ -270,11 +384,12 @@ export default function BackgroundDesignPage() {
                 transition={{ duration: 0.6 }}
                 className="absolute inset-0"
               >
-                {selected.component}
+                {ActiveAnimation}
               </motion.div>
             </CardContent>
           </Card>
 
+          {/* Show Code Section */}
           {showCode && (
             <Card className="bg-zinc-950 text-zinc-100 border-zinc-800">
               <CardHeader>
@@ -289,36 +404,6 @@ export default function BackgroundDesignPage() {
               </CardContent>
             </Card>
           )}
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
-              <Palette className="w-4 h-4" /> All Designs
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {ANIMATIONS.map((a) => (
-                <motion.div
-                  key={a.id}
-                  onClick={() => handleSelect(a)}
-                  whileHover={{ scale: 1.05 }}
-                  className={`relative group cursor-pointer border rounded-xl overflow-hidden backdrop-blur-sm transition-all ${
-                    selected.id === a.id
-                      ? "border-violet-400 shadow-lg shadow-violet-400/30"
-                      : "border-zinc-300 dark:border-zinc-800"
-                  }`}
-                >
-                  <div className="h-50 bg-zinc-950/70 relative overflow-hidden">
-                    <div className="absolute inset-0 scale-125 opacity-80">
-                      {a.component}
-                    </div>
-                  </div>
-                  <div className="h-12 flex items-center justify-center text-sm font-medium">
-                    {a.name}
-                  </div>
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-gradient-to-tr from-violet-500/20 to-blue-500/20" />
-                </motion.div>
-              ))}
-            </div>
-          </div>
         </section>
       </div>
     </div>
