@@ -41,6 +41,7 @@
     "postprocessing": "^6.37.8",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-intersection-observer": "^10.0.0",
     "react-loader-spinner": "^8.0.0",
     "react-router-dom": "^7.9.4",
     "react-spinners": "^0.17.0",
