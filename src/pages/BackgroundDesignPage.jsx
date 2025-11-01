@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect, Suspense } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   Layers,
   Code,
@@ -24,38 +24,24 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Toaster, toast } from "sonner";
 
-// ✅ Lazy load heavy animation components for performance
-const PixelBlast = React.lazy(() =>
-  import("../components/animations/pixelblast/pixelplase")
-);
-const LightRays = React.lazy(() =>
-  import("../components/animations/lightrays/LightRays")
-);
-const LiquidEther = React.lazy(() =>
-  import("../components/animations/LiquidEther/LiquidEther")
-);
-const DarkVeil = React.lazy(() => import("../components/DarkVeil/DarkVeil"));
-const Prism = React.lazy(() =>
-  import("../components/animations/Prism/Prism")
-);
+import PixelBlast from "../components/animations/pixelblast/pixelplase";
+import LightRays from "../components/animations/lightrays/LightRays";
+import LiquidEther from "../components/animations/LiquidEther/LiquidEther";
+import DarkVeil from "../components/DarkVeil/DarkVeil";
+import Prism from "../components/animations/Prism/Prism";
+
+// Detect mobile for performance tuning
+const isMobile = typeof window !== "undefined" && /Mobi|Android/i.test(navigator.userAgent);
 
 export default function BackgroundDesignPage() {
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
   const [showCode, setShowCode] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const topRef = useRef(null);
 
-  // ✅ Detect mobile device
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
-
-  // ✅ Define animations (wrapped in a memo for better stability)
+  // Define animations (PixelBlast included with re-render key)
   const ANIMATIONS = useMemo(
     () => [
       {
@@ -64,6 +50,7 @@ export default function BackgroundDesignPage() {
         description: "Ripple-based pixel explosion effect.",
         component: (
           <PixelBlast
+            key={`pixelblast-${refreshKey}`}
             variant="circle"
             pixelSize={isMobile ? 10 : 6}
             color="#B19EEF"
@@ -87,9 +74,9 @@ export default function BackgroundDesignPage() {
           <LightRays
             raysOrigin="top-center"
             raysColor="#00ffff"
-            raysSpeed={isMobile ? 0.8 : 1.5}
+            raysSpeed={1.5}
             rayLength={1.2}
-            followMouse={!isMobile}
+            followMouse
           />
         ),
         code: `<LightRays raysOrigin="top-center" raysColor="#00ffff" followMouse />`,
@@ -102,8 +89,8 @@ export default function BackgroundDesignPage() {
           <LiquidEther
             colors={["#5227FF", "#FF9FFC", "#B19EEF"]}
             autoDemo
-            autoSpeed={isMobile ? 0.3 : 0.6}
-            autoIntensity={isMobile ? 1.8 : 2.2}
+            autoSpeed={0.5}
+            autoIntensity={2.2}
           />
         ),
         code: `<LiquidEther colors={["#5227FF", "#FF9FFC", "#B19EEF"]} autoDemo />`,
@@ -117,8 +104,8 @@ export default function BackgroundDesignPage() {
             animationType="rotate"
             height={3.5}
             baseWidth={5.5}
-            scale={isMobile ? 2.4 : 3.6}
-            glow={isMobile ? 0.6 : 1}
+            scale={3.6}
+            glow={1}
           />
         ),
         code: `<Prism animationType="rotate" glow={1} />`,
@@ -131,13 +118,15 @@ export default function BackgroundDesignPage() {
         code: `<DarkVeil />`,
       },
     ],
-    [isMobile]
+    [refreshKey]
   );
 
+  // Select default
   useEffect(() => {
     if (!selected) setSelected(ANIMATIONS[0]);
   }, [ANIMATIONS, selected]);
 
+  // Filter + Sort
   const filtered = useMemo(() => {
     let list = ANIMATIONS.filter((a) =>
       a.name.toLowerCase().includes(search.toLowerCase())
@@ -148,9 +137,16 @@ export default function BackgroundDesignPage() {
   }, [search, sortAsc, ANIMATIONS]);
 
   const handleSelect = (animation) => {
+    if (animation.id === "pixelblast") {
+      setRefreshKey((k) => k + 1); // ✅ Force re-render only for PixelBlast
+    }
     setSelected(animation);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const suggestions = filtered.slice(0, 5);
+
+  if (!selected) return null;
 
   return (
     <div
@@ -159,7 +155,7 @@ export default function BackgroundDesignPage() {
     >
       <Toaster richColors position="bottom-right" />
 
-      {/* 🏷️ Header */}
+      {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
         <div>
           <h1 className="text-3xl font-extrabold flex items-center gap-2">
@@ -186,17 +182,16 @@ export default function BackgroundDesignPage() {
             size="sm"
             onClick={() => setShowCode((prev) => !prev)}
           >
-            <Code className="w-4 h-4 mr-1" />
+            <Code className="w-4 h-4 mr-1" />{" "}
             {showCode ? "Hide Code" : "Show Code"}
           </Button>
         </div>
       </header>
 
-      {/* 🧭 Layout */}
+      {/* Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar */}
         <aside className="lg:col-span-1 space-y-3 border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-950/60 backdrop-blur-md rounded-xl p-4">
-          {/* Search */}
           <div className="relative">
             <div className="flex items-center gap-2 mb-3">
               <Search className="w-4 h-4 text-zinc-400" />
@@ -208,9 +203,27 @@ export default function BackgroundDesignPage() {
                 className="flex-1"
               />
             </div>
+            {search && (
+              <div className="absolute z-10 bg-zinc-950/90 text-zinc-100 rounded-md shadow-lg p-2 w-full">
+                {suggestions.length > 0 ? (
+                  suggestions.map((s) => (
+                    <div
+                      key={s.id}
+                      onClick={() => handleSelect(s)}
+                      className="cursor-pointer hover:bg-zinc-800/50 px-2 py-1 rounded-md"
+                    >
+                      {s.name}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-zinc-400 text-sm px-2 py-1">
+                    No results
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Sort */}
           <div className="flex items-center justify-between gap-2">
             <Button
               size="sm"
@@ -225,13 +238,12 @@ export default function BackgroundDesignPage() {
 
           <Separator className="my-3" />
 
-          {/* Scrollable list */}
           <ScrollArea className="h-[60vh] pr-2">
             <div className="flex flex-col gap-2">
               {filtered.map((a) => (
                 <Button
                   key={a.id}
-                  variant={selected?.id === a.id ? "secondary" : "ghost"}
+                  variant={selected.id === a.id ? "secondary" : "ghost"}
                   onClick={() => handleSelect(a)}
                   className="justify-start w-full text-left"
                 >
@@ -242,40 +254,28 @@ export default function BackgroundDesignPage() {
           </ScrollArea>
         </aside>
 
-        {/* Main Preview Section */}
+        {/* Main Preview */}
         <section className="lg:col-span-3 space-y-6">
           <Card className="overflow-hidden backdrop-blur-md border-zinc-700/40 bg-white/80 dark:bg-zinc-950/70">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {selected?.name}
+                {selected.name}
               </CardTitle>
             </CardHeader>
             <CardContent className="relative h-[400px] rounded-xl overflow-hidden">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={selected?.id}
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.6 }}
-                  className="absolute inset-0"
-                >
-                  <Suspense
-                    fallback={
-                      <div className="flex items-center justify-center h-full text-zinc-400 text-sm">
-                        Loading animation...
-                      </div>
-                    }
-                  >
-                    {selected?.component}
-                  </Suspense>
-                </motion.div>
-              </AnimatePresence>
+              <motion.div
+                key={`${selected.id}-${refreshKey}`}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6 }}
+                className="absolute inset-0"
+              >
+                {selected.component}
+              </motion.div>
             </CardContent>
           </Card>
 
-          {/* Source Code */}
-          {showCode && selected && (
+          {showCode && (
             <Card className="bg-zinc-950 text-zinc-100 border-zinc-800">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-zinc-300">
@@ -290,7 +290,6 @@ export default function BackgroundDesignPage() {
             </Card>
           )}
 
-          {/* 🔸 All Designs Grid */}
           <div>
             <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
               <Palette className="w-4 h-4" /> All Designs
@@ -302,14 +301,14 @@ export default function BackgroundDesignPage() {
                   onClick={() => handleSelect(a)}
                   whileHover={{ scale: 1.05 }}
                   className={`relative group cursor-pointer border rounded-xl overflow-hidden backdrop-blur-sm transition-all ${
-                    selected?.id === a.id
+                    selected.id === a.id
                       ? "border-violet-400 shadow-lg shadow-violet-400/30"
                       : "border-zinc-300 dark:border-zinc-800"
                   }`}
                 >
-                  <div className="h-40 bg-zinc-950/70 relative overflow-hidden">
-                    <div className="absolute inset-0 scale-125 opacity-70">
-                      <Suspense fallback={null}>{a.component}</Suspense>
+                  <div className="h-50 bg-zinc-950/70 relative overflow-hidden">
+                    <div className="absolute inset-0 scale-125 opacity-80">
+                      {a.component}
                     </div>
                   </div>
                   <div className="h-12 flex items-center justify-center text-sm font-medium">
