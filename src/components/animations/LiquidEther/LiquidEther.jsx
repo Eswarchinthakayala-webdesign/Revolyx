@@ -1140,5 +1140,5 @@ export default function LiquidEther({
     autoRampDuration
   ]);
 
-  return <div ref={mountRef} className={`liquid-ether-container ${className || ''}`} style={style} />;
+  return <div ref={mountRef} className={`liquid-ether-container bg-black ${className || ''}`} style={style} />;
 }

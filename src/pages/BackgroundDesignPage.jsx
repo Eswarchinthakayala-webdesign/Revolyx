@@ -71,6 +71,11 @@ import { ShootingStars } from "../components/ui/shadcn-io/shooting-stars";
 import Smoke from "../components/ui/shadcn-io/smoke";
 import { SparklesCore } from "../components/ui/shadcn-io/sparkles";
 import { Vortex } from "../components/ui/shadcn-io/vortex";
+import { showToast } from "../lib/ToastHelper";
+import { GridBackground } from "../components/ui/grid-background";
+import { HoverBackground } from "../components/ui/hover-background";
+
+
   typeof window !== "undefined" && /Mobi|Android/i.test(navigator.userAgent);
 
 export default function BackgroundDesignPage() {
@@ -316,6 +321,72 @@ export const HoleBackgroundDemo = () => {
 };`,
       },
       {
+        id: "hover-background",
+        name: "HoverBackground",
+        description: "HoverBackground",
+        render: () => (
+<div className="w-full h-full rounded-lg overflow-hidden">
+      <HoverBackground>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center space-y-4">
+            <h2 className="text-4xl font-bold text-white/90">Hover Me!</h2>
+            <p className="text-lg text-white/70 max-w-md">
+              Watch the animated objects come to life when you hover over this area.
+            </p>
+          </div>
+        </div>
+      </HoverBackground>
+    </div>
+
+
+
+
+        ),
+        code: `import { HoverBackground } from '@/components/ui/hover-background';
+
+export default function HoverBackgroundDefault() {
+  return (
+    <div className="w-full h-96 rounded-lg overflow-hidden">
+      <HoverBackground>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center space-y-4">
+            <h2 className="text-4xl font-bold text-white/90">Hover Me!</h2>
+            <p className="text-lg text-white/70 max-w-md">
+              Watch the animated objects come to life when you hover over this area.
+            </p>
+          </div>
+        </div>
+      </HoverBackground>
+    </div>
+  );
+}
+
+`,
+      },
+      {
+        id: "grid-background",
+        name: "GridBackground",
+        description: "GridBackground",
+        render: () => (
+<div className="relative h-full w-full rounded-xl overflow-hidden">
+      <GridBackground gridSize="10:10"></GridBackground>
+    </div>
+
+
+
+        ),
+        code: `import { GridBackground } from '@/components/ui/grid-background';
+
+export default function Component() {
+  return (
+    <div className="relative h-96 w-full rounded-xl overflow-hidden">
+      <GridBackground gridSize="6:6"></GridBackground>
+    </div>
+  );
+}
+`,
+      },
+      {
         id: "hexagon-background",
         name: "HexagonBackground",
         description: "HexagonBackground",
@@ -399,7 +470,7 @@ export default function FireworksBackgroundDemo({
         description: "Orb",
         render: () => (
    
-<div style={{ width: '100%', height: '600px', position: 'relative' }}>
+<div style={{ width: '100%', height: '600px', position: 'relative' }} className="bg-black">
   <Orb
     hoverIntensity={0.5}
     rotateOnHover={true}
@@ -757,10 +828,10 @@ export default function CosmicHero() {
         name: "SparklesCore",
         description: "SparklesCore",
         render: () => (
-<div className="relative h-screen w-full  overflow-hidden">
+<div className="relative h-screen w-full bg-black  overflow-hidden">
       {/* Your content */}
       <div className="relative z-10 flex items-center justify-center h-full">
-        <h1 className="text-6xl font-bold text-black  dark:text-white">
+        <h1 className="text-6xl font-bold text-white">
           Revolyx
         </h1>
       </div>
@@ -832,9 +903,9 @@ export default function Hero() {
         name: "ShootingStars",
         description: "ShootingStars",
         render: () => (
-   <div className="relative w-full h-screen bg-gradient-to-b from-slate-50 to-slate-200 dark:from-zinc-900 dark:to-black overflow-hidden">
+   <div className="relative w-full h-screen bg-gradient-to-b from-zinc-900 to-black overflow-hidden">
   <ShootingStars className="z-0" />
-  <div className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-center text-zinc-900 dark:text-white">
+  <div className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-center text-white">
     Welcome to the Night Sky 
   </div>
 </div>
@@ -914,7 +985,7 @@ export default function CallToAction() {
         name: "RetroGrid ",
         description: "RetroGrid ",
         render: () => (
-    <div className="relative h-screen w-full overflow-hidden bg-black">
+    <div className="relative h-screen w-full overflow-hidden ">
     
       
       {/* Retro grid background */}
@@ -922,8 +993,8 @@ export default function CallToAction() {
         angle={65}
         cellSize={60}
         opacity={0.5}
-        lightLineColor="#00ff41"
-        darkLineColor="#00ff41"
+        lightLineColor="#171717"
+        darkLineColor="#fafafa"
       />
     </div>
 
@@ -990,7 +1061,7 @@ export default function SpaceHero() {
         name: "GridPattern",
         description: "GridPattern",
         render: () => (
-<div className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden border bg-background">
+<div className="relative flex h-screen w-full flex-col items-center justify-center  bg-black overflow-hidden border ">
       <GridPattern
         width={40}
         height={40}
@@ -1099,7 +1170,7 @@ export default function Hero() {
    
   
 
-      <Boxes className="absolute inset-0" />
+      <Boxes className="absolute  inset-0" />
       
    
 
@@ -1219,7 +1290,8 @@ export default function Hero() {
 
   const handleSelect = (animation) => {
     setSelected(animation);
-    toast.success(`Revolyx Design: ${animation.name}`)
+    showToast("success",`Revolyx Design: ${animation.name}`,3000,"")
+   
     setRefreshKey((k) => k + 1); // forces rerender
     setShowCode(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1229,7 +1301,8 @@ export default function Hero() {
    const copySource = async () => {
     if (!selected?.code) return toast.error("No code to copy!");
     await navigator.clipboard.writeText(selected.code);
-    toast.success("Source code copied!");
+    showToast("success",`Source code copied!`,3000,"")
+    
   };
 
  const handleCopy = async () => {
@@ -1237,10 +1310,10 @@ export default function Hero() {
     try {
       await navigator.clipboard.writeText(selected.code);
       setCopied(true);
-      toast.success("Code copied!");
+      showToast("success",`Source code copied!`,3000,"")
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error("Copy failed");
+      showToast("error",`Copy Failed`,3000,"")
     }
   };
   // ✅ Only render selected  animation
@@ -1251,7 +1324,7 @@ export default function Hero() {
       ref={topRef}
       className="min-h-screen p-4 md:p-6   transition-all"
     >
-      <Toaster richColors position="bottom-right" />
+     
 
       {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">

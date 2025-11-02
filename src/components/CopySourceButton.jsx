@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { showToast } from "../lib/ToastHelper";
 
 function CopySourceButton({ onCopy }) {
   const [status, setStatus] = useState("idle"); // idle | loading | success
@@ -12,10 +13,11 @@ function CopySourceButton({ onCopy }) {
     try {
       onCopy();
       setStatus("success");
-      toast.success("Copied!", { description: "Chart source copied successfully." });
+      showToast("success","Chart source copied successfully!",2000,"")
+     
       setTimeout(() => setStatus("idle"), 1500); // revert after 1.5s
     } catch {
-      toast.error("Failed to copy");
+      showToast("error","Failed to copy",2000,"")
       setStatus("idle");
     }
   };

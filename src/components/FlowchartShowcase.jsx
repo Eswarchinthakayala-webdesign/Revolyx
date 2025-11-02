@@ -23,6 +23,8 @@ import {
 import clsx from "clsx";
 import { Canvg } from "canvg";
 import { toPng } from "html-to-image";
+import { showToast } from "../lib/ToastHelper";
+import { Code, CodeBlock, CodeHeader } from "./animate-ui/components/animate/code";
 
 export function FlowchartShowcase({
   selected = {},
@@ -47,15 +49,15 @@ export function FlowchartShowcase({
     if (!selected?.code) return;
     await navigator.clipboard.writeText(selected.code);
     setCopied(true);
-    toast.success("Copied source!");
+    showToast("success","Source code copied!",2000,"")
     setTimeout(() => setCopied(false), 1500);
   };
 
   // ✅ Download as SVG
   const downloadSvg = () => {
-    if (!chartRef?.current) return toast.error("No SVG found");
+    if (!chartRef?.current) return showToast("error","No svg found",2000,"")
     const svgElement = chartRef.current.querySelector("svg");
-    if (!svgElement) return toast.error("SVG not rendered yet");
+    if (!svgElement) return showToast("error","No svg render",2000,"");
 
     const svgData = new XMLSerializer().serializeToString(svgElement);
     const blob = new Blob([svgData], { type: "image/svg+xml" });
@@ -63,14 +65,14 @@ export function FlowchartShowcase({
     link.href = URL.createObjectURL(blob);
     link.download = `${selected.name || "flowchart"}.svg`;
     link.click();
-    toast.success("SVG downloaded!");
+    showToast("success","SVG downloaded successfully!",2000,"")
   };
 
   
 const snapshotPNG = async () => {
     const node = document.querySelector(".snapshot");
     if (!node) {
-      toast.error("Snapshot target not found");
+      showToast("error","Snapshot Target not founded",2000,"")
       return;
     }
 
@@ -85,10 +87,10 @@ const snapshotPNG = async () => {
       link.download = `Revolyx-${selected.name}.png`;
       link.href = dataUrl;
       link.click();
-      toast.success("Snapshot saved!");
+      showToast("success","Snapshot Saved successfully",2000,"")
     } catch (error) {
       console.error("Snapshot failed:", error);
-      toast.error("Failed to capture snapshot");
+      showToast("error","Failed to save Snapshot",2000,"")
     }
  
 }
@@ -295,19 +297,23 @@ const downloadPng = async () => {
               transition={{ duration: 0.28 }}
             >
               <div className="rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-800 p-2">
-                <SyntaxHighlighter
-                  language="javascript"
-                  style={isDark ? oneDark : oneLight}
-                  customStyle={{
-                    fontSize: "0.75rem",
-                    borderRadius: "0.5rem",
-                    padding: "1rem",
-                    whiteSpace: "pre-wrap",
-                  }}
-                  wrapLines
-                >
-                  {selected.code || "// No code available"}
-                </SyntaxHighlighter>
+                <Code
+      key={`${0.1}-${10}-${true}-${true}`}
+      className="w-full h-full"
+      code={selected.code || "// No code available"}
+    >
+      <CodeHeader  copyButton>
+        Demo
+      </CodeHeader>
+
+      <CodeBlock
+        cursor={true}
+        lang="js"
+        writing={true}
+        duration={10}
+        delay={0.1}
+      />
+    </Code>
               </div>
             </motion.div>
           )}

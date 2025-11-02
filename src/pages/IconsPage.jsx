@@ -4,7 +4,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import * as LucideIcons from "lucide-react";
 import clsx from "clsx";
-
+import * as RadixIcons from "@radix-ui/react-icons";
 /* shadcn/ui imports (adjust paths if necessary) */
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ import { motion } from "framer-motion";
 import { useTheme } from "../components/theme-provider";
 import IconSidebar from "../components/IconSidebar";
 import { IconShowcase } from "../components/IconShowcase";
+import { showToast } from "../lib/ToastHelper";
 
 /* --- color themes (from user) --- */
 const COLOR_THEMES = {
@@ -143,6 +144,12 @@ export default function IconsPage() {
   const allValidIcons = Object.keys(LucideIcons)
     .filter((name) => !name.endsWith("Icon"))
     .slice(0, 3730);
+const allValidRadixIcons = Object.keys(RadixIcons)
+  .filter((name) => name.endsWith("Icon")) // ✅ keep only icons
+  .slice(0, 4030);
+ // not necessary but okay
+
+console.log(allValidRadixIcons.length); // should show 50+ icons
 
   const usableIcons = allValidIcons.slice(0, 3730);
 
@@ -208,7 +215,7 @@ export default function IconsPage() {
     // simulate a short load for preview to show skeleton
     setTimeout(() => {
       setLoadingPreview(false);
-      toast(`${key} selected`);
+  showToast("success",`${key} selected`);
     }, 240);
   }
 
@@ -233,7 +240,7 @@ export default function IconsPage() {
 
   function copySource() {
     const src = generateIconSource(selectedIconKey, accent, size);
-    navigator.clipboard?.writeText(src).then(() => toast.success("Source copied to clipboard"));
+    navigator.clipboard?.writeText(src).then(() => showToast("success","Source copied to clipboard"));
   }
 
   /* quick page navigation helpers */

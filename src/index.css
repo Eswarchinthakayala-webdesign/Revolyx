@@ -264,3 +264,11 @@
   animation: ripple 6s ease-in-out infinite;
   will-change: transform, opacity;
 }
+@keyframes shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}

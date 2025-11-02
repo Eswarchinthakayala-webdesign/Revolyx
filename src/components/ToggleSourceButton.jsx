@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Code2, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { showToast } from "../lib/ToastHelper";
 
 function ToggleSourceButton({ expanded, onToggle }) {
   const [status, setStatus] = useState("idle"); // idle | loading
@@ -14,12 +15,8 @@ function ToggleSourceButton({ expanded, onToggle }) {
 
     onToggle();
     setStatus("idle");
+    showToast("success",expanded ? "Source code hidden" : "Source code shown",2000,"")
 
-    toast.info(expanded ? "Source hidden" : "Source shown", {
-      description: expanded
-        ? "Chart source code is now hidden."
-        : "Chart source code is now visible.",
-    });
   };
 
   return (

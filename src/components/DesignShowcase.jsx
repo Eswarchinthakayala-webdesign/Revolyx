@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import clsx from "clsx";
+import { showToast } from "../lib/ToastHelper";
 
 export function DesignShowcase({
   selected = {},
@@ -36,14 +37,14 @@ export function DesignShowcase({
   const [fullscreen, setFullscreen] = useState(false);
 
   const handleCopy = async () => {
-    if (!selected?.code) return toast.error("No code to copy!");
+    if (!selected?.code) return  showToast("error",`No code to copy`,3000,"");
     try {
       await navigator.clipboard.writeText(selected.code);
       setCopied(true);
-      toast.success("Code copied!");
+       showToast("success",`Source code copied!`,3000,"")
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error("Copy failed");
+       showToast("error",`Copy failed`,3000,"")
     }
   };
 
@@ -51,7 +52,7 @@ export function DesignShowcase({
     setLoading(true);
     setRefreshKey((k) => k + 1);
     setTimeout(() => setLoading(false), 1000);
-    toast.info("Preview refreshed");
+     showToast("info",`Preview Refreshed`,3000,"")
   };
 
   const toggleFullscreen = () => setFullscreen((f) => !f);

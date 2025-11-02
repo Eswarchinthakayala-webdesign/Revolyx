@@ -40,6 +40,7 @@ import { useTheme } from "../components/theme-provider";
 import { FlowchartShowcase } from "../components/FlowchartShowcase";
 import { FlowchartGrid } from "../components/FlowchartGrid";
 import { BUILT_IN_FLOWCHARTS } from "../data/BuitInFlowCharts";
+import { showToast } from "../lib/ToastHelper";
 
 /* local UI helpers (if you have them) removed for portability */
 
@@ -206,11 +207,11 @@ useEffect(() => {
     }).catch((err) => {
       console.error("Mermaid render error:", err);
       container.innerHTML = `<pre style="color:var(--muted)">${err?.str || err?.message || "Mermaid render error"}</pre>`;
-      toast.error("Failed to render chart");
+      showToast("error","Failed to render",2000,"")
     });
   } catch (e) {
     console.error("Mermaid exception:", e);
-    toast.error("Invalid Mermaid syntax");
+    showToast("error","Invalid syntax",2000,"")
   }
 }, [selected, subPaletteIdx, theme]);
 
@@ -218,8 +219,13 @@ useEffect(() => {
   function selectChart(id) {
     setSelectedId(id);
     // smooth scroll to top (like spinner page)
+      // update URL without full reload
+    try {
+      const newUrl = `${window.location.pathname}?flow-chart=${encodeURIComponent(id)}`;
+      window.history.pushState({}, "", newUrl);
+    } catch (e) {}
     window.scrollTo({ top: 0, behavior: "smooth" });
-    toast.success("Selected: " + (BUILT_IN_FLOWCHARTS.find(c => c.id === id)?.name || id));
+    showToast("success","Selected: " + (BUILT_IN_FLOWCHARTS.find(c => c.id === id)?.name || id),3000,"");
   }
 
   function toggleFavorite(id) {
@@ -233,11 +239,11 @@ useEffect(() => {
 
   function copySource() {
     const code = selected.code;
-    navigator.clipboard.writeText(code).then(() => toast.success("Source copied to clipboard"));
+    navigator.clipboard.writeText(code).then(() => showToast("success","Source copied to clipboard",2000,""));
   }
 
   function downloadSvg() {
-    if (!chartRef.current) return toast.error("Nothing to download");
+    if (!chartRef.current) return showToast("error","Nothing to download",2000,"");
     const svg = chartRef.current.innerHTML;
     const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -246,7 +252,7 @@ useEffect(() => {
     a.download = `${selected.name.replace(/\s+/g, "_")}.svg`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("SVG downloaded");
+    showToast("success","SVG downloaded",2000,"");
   }
 
 
@@ -254,11 +260,11 @@ useEffect(() => {
   async function generateWithAI(prompt) {
     const key = import.meta.env.VITE_GEMINI_API_KEY;
     if (!key) {
-      toast.error("Missing Gemini API key (VITE_GEMINI_API_KEY)");
+      showToast("error","Missing Gemini API key (VITE_GEMINI_API_KEY)",2000,"");
       return;
     }
     if (!prompt.trim()) {
-      toast.error("Enter a prompt");
+      showToast("error","Enter a prompt",3000,"");
       return;
     }
     setAiLoading(true);
@@ -283,7 +289,7 @@ useEffect(() => {
       let text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
       text = text.replace(/```mermaid/gi, "").replace(/```/g, "").trim();
       if (!text.startsWith("flowchart")) {
-        toast.error("AI did not return valid mermaid code");
+showToast("error","AI did not return valid mermaid code",3000,"");
         console.log("AI response:", text);
       } else {
         // create a new temporary built-in (or set as selected AI)
@@ -291,12 +297,12 @@ useEffect(() => {
         const aiEntry = { id: newId, name: "AI: " + prompt.slice(0, 30), category: "AI", description: prompt, code: text };
         BUILT_IN_FLOWCHARTS.unshift(aiEntry); // add to front
         setSelectedId(newId);
-        toast.success("AI flowchart generated");
+        showToast("success","AI flowchart generated",3000,"");
         setDialogOpen(false);
       }
     } catch (err) {
       console.error(err);
-      toast.error("AI generation failed");
+      showToast("error","AI generation failed",2000,"");
     } finally {
       setAiLoading(false);
     }
@@ -307,17 +313,17 @@ useEffect(() => {
     if (COLOR_THEMES[key]) {
       setPaletteName(key);
       setPalette(COLOR_THEMES[key].slice());
-      toast.success(`Palette ${key} applied`);
+showToast("success",`Palette ${key} applied`,3000,"");
     }
   }
 
   function addColor(hex) {
     if (!/^#([0-9A-F]{3}){1,2}$/i.test(hex)) {
-      toast.error("Invalid color");
+showToast("error","Invalid color",3000,"");
       return;
     }
     setPalette(p => [...p, hex]);
-    toast.success("Color added");
+    showToast("success","Color added",3000,"");
   }
 
   function removeColor(idx) {

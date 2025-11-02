@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { showToast } from "../lib/ToastHelper";
 
 // ---- Tailwind-style palette (common families + shades 50..950) ----
 // NOTE: these are the canonical Tailwind v3-ish hex values for reference.
@@ -299,7 +300,7 @@ export default function ColorsPage() {
 
   try {
       await navigator.clipboard.writeText(text);
-      toast.success(
+      showToast("success",
         <div className="max-w-xs">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-md flex-shrink-0"
@@ -309,10 +310,10 @@ export default function ColorsPage() {
            
           </div>
         </div>,
-        { duration: 6000 }
+        2000,""
       );
     } catch (err) {
-      toast.error("Failed to copy. Please allow clipboard access.");
+      showToast("error","Failed to copy",2000,"")
     }
   };
 

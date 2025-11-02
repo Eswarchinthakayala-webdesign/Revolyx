@@ -27,6 +27,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { showToast } from "../lib/ToastHelper";
+import { Code, CodeBlock, CodeHeader } from "./animate-ui/components/animate/code";
 
 export function SpinnerShowcase({
   ALL_SPINNERS = [],
@@ -66,17 +68,18 @@ export function SpinnerShowcase({
       await navigator.clipboard.writeText(src);
       setCopying(false);
       setCopiedTick(true);
-      toast.success("Source copied to clipboard");
+      showToast("success","Source code copied!",2000,"")
       setTimeout(() => setCopiedTick(false), 1400);
     } catch {
       setCopying(false);
-      toast.error("Failed to copy — please allow clipboard access.");
+      showToast("error","Failed to copy",2000,"")
     }
   };
 
   const refreshPreview = () => {
     setLoading(true);
     setTimeout(() => setLoading(false), 2000);
+    showToast("info","Preview Refreshed",2000,"")
   };
 
   const previewVariant = {
@@ -360,20 +363,24 @@ export function SpinnerShowcase({
                   transition={{ duration: 0.28 }}
                 >
                   <div className="rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-800 p-2">
+                      
+                                          <Code
+      key={`${0.1}-${10}-${true}-${true}`}
+      className="w-full h-full"
+      code={generateSpinnerSource(selectedSpinnerKey, accent, size, speed)}
+    >
+      <CodeHeader  copyButton>
+        Demo.jsx
+      </CodeHeader>
 
-                       <SyntaxHighlighter
-                                        language="jsx"
-                                        style={isDark ? oneDark : oneLight}
-                                        customStyle={{
-                                          fontSize: "0.75rem",
-                                          borderRadius: "0.5rem",
-                                          padding: "1rem",
-                                          whiteSpace: "pre-wrap",
-                                        }}
-                                        wrapLines
-                                      >
-                                       {generateSpinnerSource(selectedSpinnerKey, accent, size, speed)}
-                    </SyntaxHighlighter>
+      <CodeBlock
+        cursor={true}
+        lang="js"
+        writing={true}
+        duration={10}
+        delay={0.1}
+      />
+    </Code>
                                      
                   </div>
                 </motion.div>

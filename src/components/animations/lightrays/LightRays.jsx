@@ -393,7 +393,7 @@ void main() {
     }
   }, [followMouse]);
 
-  return <div ref={containerRef} className={`light-rays-container ${className}`.trim()} />;
+  return <div ref={containerRef} className={`light-rays-container bg-black ${className}`.trim()} />;
 };
 
 export default LightRays;

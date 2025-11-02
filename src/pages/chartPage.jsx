@@ -50,6 +50,7 @@ import CopySourceButton from "../components/CopySourceButton";
 import ToggleSourceButton from "../components/ToggleSourceButton";
 import { Link, useNavigate } from "react-router-dom";
 import ChartSidebar from "../components/ChartSidebar";
+import { showToast } from "../lib/ToastHelper";
 
 
 /* Color themes provided by user */
@@ -290,7 +291,7 @@ function sortCharts(list, mode) {
 }
 
 function copyToClipboard(text) {
-  navigator.clipboard?.writeText(text).then(()=> toast.success("Source copied to clipboard"));
+  navigator.clipboard?.writeText(text).then(()=> showToast("success","Source code copied!",2000,""))
 }
 
 /* ---------- source-code generator helpers (returns string snippets) ---------- */
@@ -2853,7 +2854,7 @@ const {theme}=useTheme()
     const newUrl = `${window.location.origin}${window.location.pathname}?chart=${key}`;
      window.history.pushState({ key }, "", newUrl);
     window.scrollTo({ top: 0, behavior: "smooth" });
-    toast("Chart loaded", { description: `Loaded ${key} preview` });
+    showToast("info","Chart loaded", 2000, `Loaded ${key} preview` );
   }
 
   const handleToggleSource = () => {
@@ -2862,12 +2863,9 @@ const {theme}=useTheme()
       ...prev,
       [selectedChartKey]: !isExpanded,
     }));
-
-    toast(isExpanded ? "Source hidden" : "Source shown", {
-      description: isExpanded
-        ? "Chart source code is now hidden."
-        : "Chart source code is now visible.",
-    });
+     
+    showToast("success",isExpanded ? "Source hidden" : "Source shown",2000,isExpanded? "Chart source code is now hidden.": "Chart source code is now visible.")
+   
   };
 
   const handleCopySource = () => {

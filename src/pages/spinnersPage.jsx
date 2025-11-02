@@ -89,6 +89,7 @@ import { useTheme } from "../components/theme-provider";
 import SpinnerSidebar from "../components/SpinnerSidebar";
 import { SpinnerShowcase } from "../components/SpinnerShowcase";
 import { SpinnerGrid } from "../components/SpinnerGrid";
+import { showToast } from "../lib/ToastHelper";
 
 /* --- color themes (user-provided, slightly normalized) --- */
 const COLOR_THEMES = {
@@ -369,7 +370,7 @@ export default function RevolyxSpinnersPage() {
     const newUrl = `${window.location.origin}${window.location.pathname}?spinner=${key}`;
     window.history.pushState({ key }, "", newUrl);
     window.scrollTo({ top: 0, behavior: "smooth" });
-    toast(`${ALL_SPINNERS.find(s=>s.key===key)?.title || key} selected`);
+    showToast("success",`${ALL_SPINNERS.find(s=>s.key===key)?.title || key} selected`);
   }
   const {theme}=useTheme()
    const isDark =
@@ -616,7 +617,7 @@ function renderSpinnerPreview(key) {
 
   function copySource() {
     const src = generateSpinnerSource(selectedSpinnerKey, accent, size, speed);
-    navigator.clipboard?.writeText(src).then(() => toast.success("Source copied to clipboard"));
+    navigator.clipboard?.writeText(src).then(() => showToast("success","Source copied to clipboard"));
   }
 
   // generate a compact visible label of palette and its sub-colors
