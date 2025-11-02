@@ -277,7 +277,7 @@ export const Plasma = ({
   return (
     <div
       ref={containerRef}
-      className="w-full overflow-hidden"
+      className="w-full overflow-hidden bg-black"
       style={{ minHeight: "100vh", position: "relative", ...style }}
     />
   );

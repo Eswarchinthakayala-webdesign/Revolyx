@@ -430,7 +430,7 @@ const Prism = ({
     suspendWhenOffscreen
   ]);
 
-  return <div className="prism-container" ref={containerRef} />;
+  return <div className="bg-black prism-container rounded" ref={containerRef} />;
 };
 
 export default Prism;

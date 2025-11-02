@@ -56,7 +56,21 @@ import { useTheme } from "../components/theme-provider";
 import DesignSidebar from "../components/DesignSidebar";
 import { DesignShowcase } from "../components/DesignShowcase";
 import clsx from "clsx";
-
+import { AuroraBackground } from "../components/ui/shadcn-io/aurora-background";
+import { FlickeringGrid } from "../components/ui/shadcn-io/flickering-grid";
+import { BackgroundBeams } from "../components/ui/shadcn-io/background-beams";
+import { Boxes } from "../components/ui/shadcn-io/background-boxes";
+import { BackgroundCircles } from "../components/ui/shadcn-io/background-circles";
+import { BackgroundPaths } from "../components/ui/shadcn-io/background-paths";
+import { GridPattern } from "../components/ui/shadcn-io/grid-pattern";
+import { cn } from "@/lib/utils";
+import { Meteors } from "../components/ui/shadcn-io/meteors";
+import { RetroGrid } from "../components/ui/shadcn-io/retro-grid";
+import { Ripple } from "../components/ui/shadcn-io/ripple";
+import { ShootingStars } from "../components/ui/shadcn-io/shooting-stars";
+import Smoke from "../components/ui/shadcn-io/smoke";
+import { SparklesCore } from "../components/ui/shadcn-io/sparkles";
+import { Vortex } from "../components/ui/shadcn-io/vortex";
   typeof window !== "undefined" && /Mobi|Android/i.test(navigator.userAgent);
 
 export default function BackgroundDesignPage() {
@@ -147,7 +161,7 @@ export default function BackgroundDesignPage() {
         name: "Galaxy",
         description: "Galaxy",
         render: () => (
-         <div style={{ width: '100%', height: '600px', position: 'relative' }}>
+         <div className="bg-black" style={{ width: '100%', height: '600px', position: 'relative' }}>
   <Galaxy 
     mouseRepulsion={true}
     mouseInteraction={true}
@@ -183,7 +197,7 @@ export default function BackgroundDesignPage() {
         name: "PrismaticBurst",
         description: "PrismaticBurst",
         render: () => (
-          <div style={{ width: '100%', height: '600px', position: 'relative' }}>
+          <div className="bg-black" style={{ width: '100%', height: '600px', position: 'relative' }}>
   <PrismaticBurst
     animationType="rotate3d"
     intensity={2}
@@ -629,7 +643,7 @@ import Ballpit from './Ballpit;'
         name: "GradientBlinds",
         description: "GradientBlinds",
         render: () => (
-          <div style={{ width: '100%', height: '600px', position: 'relative' }}>
+          <div style={{ width: '100%', height: '600px', position: 'relative' }} className="bg-black">
   <GradientBlinds
     gradientColors={['#FF9FFC', '#5227FF']}
     angle={0}
@@ -680,6 +694,487 @@ import Ballpit from './Ballpit;'
           />
         ),
         code: `<LiquidEther colors={["#5227FF", "#FF9FFC", "#B19EEF"]} autoDemo />`,
+      },
+      {
+        id: "vortex",
+        name: "Vortex",
+        description: "Vortex",
+        render: () => (
+    <div className="h-screen w-full overflow-hidden">
+      <Vortex
+        backgroundColor="black"
+        particleCount={700}
+        baseHue={220}
+        rangeHue={100}
+        baseSpeed={0.0}
+        rangeSpeed={1.5}
+        className="flex items-center justify-center w-full h-full"
+      >
+        {/* Your content floats above the vortex */}
+        <div className="text-center text-white z-10">
+          <h1 className="text-6xl font-bold mb-4">
+            Enter the Vortex
+          </h1>
+          <p className="text-xl opacity-80">
+            Where chaos becomes beauty
+          </p>
+        </div>
+      </Vortex>
+    </div>
+
+
+        ),
+        code: `import { Vortex } from "@/components/ui/vortex";
+
+export default function CosmicHero() {
+  return (
+    <div className="h-screen w-full overflow-hidden">
+      <Vortex
+        backgroundColor="black"
+        particleCount={700}
+        baseHue={220}
+        rangeHue={100}
+        baseSpeed={0.0}
+        rangeSpeed={1.5}
+        className="flex items-center justify-center w-full h-full"
+      >
+        {/* Your content floats above the vortex */}
+        <div className="text-center text-white z-10">
+          <h1 className="text-6xl font-bold mb-4">
+            Enter the Vortex
+          </h1>
+          <p className="text-xl opacity-80">
+            Where chaos becomes beauty
+          </p>
+        </div>
+      </Vortex>
+    </div>
+  );
+}`,
+      },
+      {
+        id: "sparkles-core",
+        name: "SparklesCore",
+        description: "SparklesCore",
+        render: () => (
+<div className="relative h-screen w-full  overflow-hidden">
+      {/* Your content */}
+      <div className="relative z-10 flex items-center justify-center h-full">
+        <h1 className="text-6xl font-bold text-black  dark:text-white">
+          Revolyx
+        </h1>
+      </div>
+      
+      {/* Sparkles effect */}
+      <SparklesCore
+        background="transparent"
+        minSize={0.6}
+        maxSize={1.4}
+        particleDensity={100}
+        className="absolute inset-0 w-full h-full"
+        particleColor="#a3a3a3"
+        speed={1}
+      />
+    </div>
+
+
+        ),
+        code: `import { Particles } from "@/components/ui/particles";
+
+export default function InteractiveHero() {
+  return (
+<div className="relative h-screen w-full bg-black overflow-hidden">
+      {/* Your content */}
+      <div className="relative z-10 flex items-center justify-center h-full">
+        <h1 className="text-6xl font-bold text-white">
+          Make Magic Happen
+        </h1>
+      </div>
+      
+      {/* Sparkles effect */}
+      <SparklesCore
+        background="transparent"
+        minSize={0.6}
+        maxSize={1.4}
+        particleDensity={100}
+        className="absolute inset-0 w-full h-full"
+        particleColor="#FFFFFF"
+        speed={1}
+      />
+    </div>
+  );
+}`,
+      },
+      {
+        id: "smoke",
+        name: "Smoke",
+        description: "Smoke",
+        render: () => (
+    <Smoke>
+    </Smoke>
+
+
+        ),
+        code: `import { Smoke } from "@/components/ui/smoke";
+
+export default function Hero() {
+  return (
+    <Smoke>
+      <div className="relative z-10">
+        <h1>Your content here</h1>
+      </div>
+    </Smoke>
+  );
+}`,
+      },
+      {
+        id: "shooting-stars",
+        name: "ShootingStars",
+        description: "ShootingStars",
+        render: () => (
+   <div className="relative w-full h-screen bg-gradient-to-b from-slate-50 to-slate-200 dark:from-zinc-900 dark:to-black overflow-hidden">
+  <ShootingStars className="z-0" />
+  <div className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-center text-zinc-900 dark:text-white">
+    Welcome to the Night Sky 
+  </div>
+</div>
+
+
+        ),
+        code: `import { ShootingStars } from "@/components/ui/shooting-stars";
+
+export default function CosmicHero() {
+  return (
+    <div className="relative h-screen w-full bg-black overflow-hidden">
+      {/* Your content */}
+      <div className="relative z-10 flex items-center justify-center h-full">
+        <div className="text-center">
+          <h1 className="text-6xl font-bold text-white mb-4">
+            Explore the Universe
+          </h1>
+          <p className="text-xl text-gray-300">
+            Journey through infinite cosmic possibilities
+          </p>
+        </div>
+      </div>
+      
+      {/* Shooting stars effect */}
+      <ShootingStars
+        starColor="#9E00FF"
+        trailColor="#2EB9DF"
+        minSpeed={15}
+        maxSpeed={35}
+        minDelay={1200}
+        maxDelay={4200}
+      />
+    </div>
+  );
+}`,
+      },
+      {
+        id: "ripple  ",
+        name: "Ripple  ",
+        description: "Ripple  ",
+        render: () => (
+      <div className="relative h-screen w-full flex items-center justify-center bg-white dark:bg-zinc-950 overflow-hidden transition-colors duration-500">
+      <Ripple />
+      <div className="relative z-10 text-center">
+        <h1 className="text-5xl md:text-6xl font-bold text-zinc-900 dark:text-white">
+          Revolyx
+        </h1>
+        <p className="mt-4 text-zinc-600 dark:text-zinc-400">
+          Expanding waves of innovation — adaptive to light & dark themes.
+        </p>
+      </div>
+    </div>
+
+        ),
+        code: `import { Ripple } from "@/components/ui/ripple";
+
+export default function CallToAction() {
+  return (
+    <div className="relative">
+      {/* Your button or content */}
+      <button className="relative z-10 px-8 py-4 bg-blue-600 text-white rounded-lg">
+        Get Started
+      </button>
+      
+      {/* Ripple attention effect */}
+      <Ripple 
+        mainCircleSize={200}
+        mainCircleOpacity={0.2}
+        numCircles={6}
+      />
+    </div>
+  );
+}`,
+      },
+      {
+        id: "retro-grid ",
+        name: "RetroGrid ",
+        description: "RetroGrid ",
+        render: () => (
+    <div className="relative h-screen w-full overflow-hidden bg-black">
+    
+      
+      {/* Retro grid background */}
+      <RetroGrid
+        angle={65}
+        cellSize={60}
+        opacity={0.5}
+        lightLineColor="#00ff41"
+        darkLineColor="#00ff41"
+      />
+    </div>
+
+
+        ),
+        code: `import { RetroGrid } from "@/components/ui/retro-grid";
+
+export default function CyberpunkHero() {
+  return (
+    <div className="relative h-screen w-full overflow-hidden bg-black">
+      {/* Your content */}
+      <div className="relative z-10 flex items-center justify-center h-full">
+        <h1 className="text-6xl font-bold bg-gradient-to-b from-[#ffd319] via-[#ff2975] to-[#8c1eff] bg-clip-text text-transparent">
+          Welcome to 2080
+        </h1>
+      </div>
+      
+      {/* Retro grid background */}
+      <RetroGrid 
+        angle={65}
+        cellSize={60}
+        opacity={0.5}
+        lightLineColor="#00ff41"
+        darkLineColor="#00ff41"
+      />
+    </div>
+  );
+}`,
+      },
+      {
+        id: "meteors",
+        name: "Meteors",
+        description: "Meteors",
+        render: () => (
+<div className="relative h-screen w-full  overflow-hidden">
+      <Meteors number={30} />
+      
+    </div>
+
+
+        ),
+        code: `import { Meteors } from "@/components/ui/meteors";
+
+export default function SpaceHero() {
+  return (
+    <div className="relative h-screen w-full bg-black overflow-hidden">
+      <Meteors number={30} />
+      <div className="relative z-10 flex items-center justify-center h-full">
+        <div className="text-center">
+          <h1 className="text-6xl font-bold text-white mb-4">
+            Launch into the Future
+          </h1>
+          <p className="text-xl text-gray-300">
+            Where innovation meets the cosmos
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}`,
+      },
+      {
+        id: "grid-pattern",
+        name: "GridPattern",
+        description: "GridPattern",
+        render: () => (
+<div className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden border bg-background">
+      <GridPattern
+        width={40}
+        height={40}
+        x={-1}
+        y={-1}
+        squares={[
+          [4, 4],
+          [5, 1],
+          [8, 2],
+          [5, 3],
+          [5, 5],
+        ]}
+        className={cn(
+          "[mask-image:radial-gradient(400px_circle_at_center,white,transparent)]",
+          "inset-x-0 inset-y-[-30%] h-[200%] skew-y-12"
+        )}
+      />
+    </div>
+
+
+        ),
+        code: `import { GridPattern } from "@/components/ui/grid-pattern";
+import { cn } from "@/lib/utils";
+
+export default function Dashboard() {
+  return (
+    <div className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden border bg-background">
+      <GridPattern
+        width={40}
+        height={40}
+        x={-1}
+        y={-1}
+        squares={[
+          [4, 4],
+          [5, 1],
+          [8, 2],
+          [5, 3],
+          [5, 5],
+        ]}
+        className={cn(
+          "[mask-image:radial-gradient(400px_circle_at_center,white,transparent)]",
+          "inset-x-0 inset-y-[-30%] h-[200%] skew-y-12"
+        )}
+      />
+      <div className="relative z-10">
+        <h1 className="text-4xl font-bold">Your Content</h1>
+      </div>
+    </div>
+  );
+}`,
+      },
+      {
+        id: "background-paths",
+        name: "BackgroundPaths",
+        description: "BackgroundPaths",
+        render: () => (
+ <div className="relative h-screen w-full">
+      <BackgroundPaths title="Revolyx" />
+      {/* The component includes its own content overlay with title and button */}
+      {/* Additional content can be layered with higher z-index if needed */}
+    </div>
+
+        ),
+        code: `import { BackgroundPaths } from "@/components/ui/background-paths";
+
+export default function ArtisticLanding() {
+  return (
+    <div className="relative h-screen w-full">
+      <BackgroundPaths title="Creative Studio" />
+      {/* The component includes its own content overlay with title and button */}
+      {/* Additional content can be layered with higher z-index if needed */}
+    </div>
+  );
+}`,
+      },
+      {
+        id: "background-circles",
+        name: "BackgroundCircles",
+        description: "BackgroundCircles",
+        render: () => (
+   
+<BackgroundCircles 
+      title="Revolyx"
+      description=""
+      variant="septenary"
+    />
+
+        ),
+        code: `import { BackgroundCircles } from "@/components/ui/background-circles";
+
+export default function Hero() {
+  return (
+  <BackgroundCircles 
+      title="Revolyx"
+      description=""
+      variant="primary"
+    />
+  );
+}`,
+      },
+      {
+        id: "boxes",
+        name: "Boxes",
+        description: "Boxes",
+        render: () => (
+   
+  
+
+      <Boxes className="absolute inset-0" />
+      
+   
+
+
+        ),
+        code: `import { Boxes } from "@/components/ui/background-boxes";
+
+export default function Hero() {
+  return (
+    <div className="relative h-screen">
+      <Boxes className="absolute inset-0" />
+      <div className="relative z-20">
+        <h1>Your content here</h1>
+      </div>
+    </div>
+  );
+}`,
+      },
+      {
+        id: "background-beams",
+        name: "BackgroundBeams",
+        description: "BackgroundBeams",
+        render: () => (
+   
+  
+ 
+      <BackgroundBeams className="absolute inset-0" />
+      
+   
+
+
+        ),
+        code: `import { BackgroundBeams } from "@/components/ui/background-beams";
+
+export default function Hero() {
+  return (
+    <div className="relative">
+      <BackgroundBeams className="absolute inset-0" />
+      <div className="relative z-10">
+        <h1>Your content here</h1>
+      </div>
+    </div>
+  );
+}`,
+      },
+      {
+        id: "flickering-grid",
+        name: "FlickeringGrid",
+        description: "FlickeringGrid",
+        render: () => (
+   
+  
+<FlickeringGrid
+  className="absolute inset-0 z-0"  // ensure grid is below
+  squareSize={4}
+  gridGap={6}
+  flickerChance={0.3}
+  color="rgb(100, 100, 100)"
+  maxOpacity={0.2}
+/>
+
+
+
+        ),
+        code: `import { AuroraBackground } from "@/components/ui/aurora-background";
+
+export default function Hero() {
+  return (
+    <AuroraBackground>
+      <div className="relative z-10">
+        <h1>Your content here</h1>
+      </div>
+    </AuroraBackground>
+  );
+}`,
       },
       {
         id: "prism",

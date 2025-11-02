@@ -39,7 +39,33 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-}
+  --animate-aurora: aurora 60s linear infinite;
+  @keyframes aurora {
+  from {
+    backgroundPosition: 50% 50%, 50% 50%;
+    }
+  to {
+    backgroundPosition: 350% 50%, 350% 50%;
+    }
+  }
+  --animate-spin: spin 2s linear infinite
+;
+  --animate-meteor-effect: meteor 5s linear infinite;
+  @keyframes meteor {
+  0% {
+    transform: rotate(215deg) translateX(0);
+    opacity: 1;}
+  70% {
+    opacity: 1;}
+  100% {
+    transform: rotate(215deg) translateX(-500px);
+    opacity: 0;}}
+  --animate-grid: grid 15s linear infinite;
+  @keyframes grid {
+  0% {
+    transform: translateY(-50%);}
+  100% {
+    transform: translateY(0);}}}
 
 :root {
   --radius: 0.625rem;
@@ -178,4 +204,63 @@
 .no-scrollbar {
   -ms-overflow-style: none;  /* for Internet Explorer, Edge */
   scrollbar-width: none;     /* for Firefox */
+}
+@keyframes meteor-fall {
+  0% {
+    transform: translateY(-100%) translateX(0) rotate(45deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(120vh) translateX(-30vw) rotate(45deg);
+    opacity: 0;
+  }
+}
+
+.meteor {
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+/* Shorter trails and smoother motion on mobile */
+@media (max-width: 768px) {
+  .meteor {
+    height: 60px;
+    opacity: 0.5;
+  }
+}
+
+@keyframes retro-grid-move {
+  0% {
+    transform: translate3d(0, 0, 0);
+    background-position: 0 0;
+  }
+  100% {
+    transform: translate3d(0, -200px, 0);
+    background-position: 0 var(--cell-size);
+  }
+}
+
+.animate-retro-grid-move {
+  animation: retro-grid-move var(--speed) linear infinite;
+}
+@keyframes ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.25;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-ripple {
+  animation: ripple 6s ease-in-out infinite;
+  will-change: transform, opacity;
 }
