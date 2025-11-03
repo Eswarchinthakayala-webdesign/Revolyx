@@ -18,6 +18,16 @@ import * as ReactAi from "react-icons/ai";
 import * as ReactFa from "react-icons/fa";
 import * as ReactGi from "react-icons/gi";
 import * as ReactMd from "react-icons/md";
+import * as MuiIcons from "@mui/icons-material";
+import primeIconsCSS from "primeicons/primeicons.css?inline";
+import "primeicons/primeicons.css";
+import * as AntdIcons from "@ant-design/icons";
+import { Icon as BlueprintIcon } from "@blueprintjs/core";
+import { IconNames } from "@blueprintjs/icons";
+// import "@blueprintjs/core/lib/css/blueprint.css";
+import "@blueprintjs/icons/lib/css/blueprint-icons.css";
+import * as CarbonIcons from "@carbon/icons-react";
+
 
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
@@ -27,13 +37,29 @@ import clsx from "clsx";
 const allValidLucideIcons = Object.keys(LucideIcons)
   .filter((name) => !name.endsWith("Icon"))
   .slice(0, 3730);
+const allAntdIcons = Object.keys(AntdIcons)
+  .filter((name) => /^[A-Z]/.test(name))
+  .reduce((acc, name) => {
+    acc[name] = AntdIcons[name];
+    return acc;
+  }, {});
+const blueprintIconNames = Object.values(IconNames);
+
 
 export default function AllIconsPage() {
   const [activeLib, setActiveLib] = useState("Lucide");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 100;
+  
 
+  // Define all PrimeIcons dynamically
+ const primeIconList = [
+  ...primeIconsCSS.matchAll(/\.pi-([a-z0-9-]+):before/g),
+].map((m) => `pi pi-${m[1]}`);
+// const blueprintIconNames = Object.keys(BlueprintIcons.IconNames).map(
+//   (key) => BlueprintIcons.IconNames[key]
+// );
   // ✅ combine React-icons into one flat object (avoid symbol errors)
   const ReactIcons = {
     ...ReactAi,
@@ -55,9 +81,16 @@ export default function AllIconsPage() {
     Remix: RemixIcons,
     Tabler: TablerIcons,
     ReactIcons,
+    MaterialUI: MuiIcons, // ✅ NEW
     Iconify: { "mdi:home": true, "mdi:bell": true, "mdi:email": true, "mdi:heart": true },
     Simple: SimpleIcons,
     Eva: EvaIcons,
+    PrimeIcons: Object.fromEntries(primeIconList.map((n) => [n, n])),
+    AntDesign: allAntdIcons,
+    Blueprint: Object.fromEntries(blueprintIconNames.map((n) => [n, n])),
+    Carbon: CarbonIcons,
+
+
   };
 
   // 📦 Icons for current library
@@ -79,10 +112,6 @@ export default function AllIconsPage() {
         name,
       }));
     }
-
-  
-
-
 
     return Object.keys(libIcons)
       .filter((n) => /^[A-Za-z]/.test(n))
@@ -118,6 +147,14 @@ export default function AllIconsPage() {
           const Icon = RadixIcons[name];
           return Icon ? <Icon width={size} height={size} /> : null;
         }
+        case "Blueprint": {
+            return (
+                <div className="flex items-center justify-center bg-white dark:bg-transparent p-1 rounded">
+                <BlueprintIcon icon={name} iconSize={size} color={color} />
+                </div>
+            );
+            }
+
         case "Phosphor": {
           const Icon = PhosphorIcons[name];
           return Icon ? <Icon size={size} /> : null;
@@ -130,6 +167,15 @@ export default function AllIconsPage() {
           const Icon = FeatherIcons[name];
           return Icon ? <Icon size={size} /> : null;
         }
+        case "Carbon": {
+        const Icon = CarbonIcons[name];
+        return Icon ? <Icon size={size} color={color} /> : null;
+        }
+
+        case "AntDesign":
+        const AntdIcon = AntdIcons[name];
+        return AntdIcon ? <AntdIcon style={{ fontSize: size, color }} /> : null;
+
         case "FontAwesomeSolid":
           return FaSolid[name] ? <FontAwesomeIcon icon={FaSolid[name]} size="lg" /> : null;
         case "FontAwesomeRegular":
@@ -140,34 +186,52 @@ export default function AllIconsPage() {
           const Icon = RemixIcons[name];
           return Icon ? <Icon size={size} /> : null;
         }
+      case "PrimeIcons":
+        return (
+            <i
+            className={name}
+            style={{ fontSize: size, color }}
+            />
+        );
+
+
         case "Tabler": {
           const Icon = TablerIcons[name];
           return Icon ? <Icon size={size} /> : null;
         }
         case "ReactIcons": {
           const Icon = ReactIcons[name];
-          return typeof Icon === "function" ? <Icon size={size}  /> : null;
+          return typeof Icon === "function" ? <Icon size={size} /> : null;
+        }
+        case "MaterialUI": {
+          const Icon = MuiIcons[name];
+          return Icon ? <Icon style={{ fontSize: size, color }} /> : null;
         }
         case "Iconify":
-          return <IconifyIcon  icon={name} width={size} height={size} />;
+          return <IconifyIcon icon={name} width={size} height={size} />;
         case "Simple":
-        return SimpleIcons[name]
-          ? <div className="bg-white p-1 rounded"> <svg viewBox="0 0 24 24" width={size} height={size} fill={`#${SimpleIcons[name].hex}`}>
-              <path d={SimpleIcons[name].path} />
-            </svg>
+          return SimpleIcons[name] ? (
+            <div className="bg-white p-1 rounded">
+              <svg
+                viewBox="0 0 24 24"
+                width={size}
+                height={size}
+                fill={`#${SimpleIcons[name].hex}`}
+              >
+                <path d={SimpleIcons[name].path} />
+              </svg>
             </div>
-          : null;
+          ) : null;
         case "Eva": {
           const evaIcon = EvaIcons.icons[name];
-          return evaIcon
-            ? (
-              <div className="bg-white rounded"
-                dangerouslySetInnerHTML={{
-                  __html: evaIcon.toSvg({ width: size, height: size,color:"#fff" }),
-                }}
-              />
-            )
-            : null;
+          return evaIcon ? (
+            <div
+              className="bg-white rounded"
+              dangerouslySetInnerHTML={{
+                __html: evaIcon.toSvg({ width: size, height: size, color: "#fff" }),
+              }}
+            />
+          ) : null;
         }
         default:
           return null;
