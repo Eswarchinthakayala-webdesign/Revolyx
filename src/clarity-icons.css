@@ -1,0 +1,10 @@
+/* clarity-icons.css */
+@import "@cds/core/global.min.css";
+
+/* isolate clarity's global tokens to .clarity-scope */
+.clarity-scope {
+  all: initial;
+  * {
+    all: revert;
+  }
+}
