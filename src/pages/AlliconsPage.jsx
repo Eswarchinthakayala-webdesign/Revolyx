@@ -20,6 +20,7 @@ import * as ReactAi from "react-icons/ai";
 import * as ReactFa from "react-icons/fa";
 import * as ReactGi from "react-icons/gi";
 import * as ReactMd from "react-icons/md";
+import * as ReactTfi from "react-icons/tfi"
 import * as MuiIcons from "@mui/icons-material";
 import * as AntdIcons from "@ant-design/icons";
 import * as CarbonIcons from "@carbon/icons-react";
@@ -39,7 +40,23 @@ import "primeicons/primeicons.css";
 import { Icon as BlueprintIcon } from "@blueprintjs/core";
 import { IconNames } from "@blueprintjs/icons";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
+import * as Evergreen from "evergreen-ui";
+import * as GrommetIcons from "grommet-icons";
+import * as Web3Icons from "@web3icons/react";
+import * as PayIcons from "react-pay-icons";
+import * as IconPark from "@icon-park/react";
+import * as BoxIcons from "react-icons/bi";
+import * as IconoirIcons from "iconoir-react";
+import * as HugeIcons from "@hugeicons/react";
+import * as ReactBs from "react-icons/bs"
+import * as ReactCi from "react-icons/ci"
+import * as ReactCg from "react-icons/cg"
+import * as ReactDi from "react-icons/di"
+import * as ReactFi from "react-icons/fi"
+import * as ReactFc from "react-icons/fc"
 
+
+console.log(HugeIcons)
 import { motion } from "framer-motion";
 import clsx from "clsx";
 
@@ -106,6 +123,7 @@ const allValidLucideIcons = Object.keys(LucideIcons)
     ...ReactFa,
     ...ReactGi,
     ...ReactMd,
+    ...ReactTfi,
   };
 const validFluentIcons = Object.keys(FluentIcons).filter((n) => /^[A-Z]/.test(n));
 const FluentIconsFiltered = Object.fromEntries(validFluentIcons.map((n) => [n, FluentIcons[n]]));
@@ -120,6 +138,49 @@ const primeIconList = [
 ].map((m) => `pi pi-${m[1]}`);
 const blueprintIconNames = Object.values(IconNames);
 
+const EvergreenIcons = Object.fromEntries(
+  Object.entries(Evergreen)
+    .filter(([name]) => name.endsWith("Icon"))
+    .map(([name, Comp]) => [name, Comp])
+);
+
+
+const GrommetIconsList = Object.fromEntries(
+  Object.entries(GrommetIcons).filter(([name, Comp]) => {
+    return (
+      typeof Comp === "object" &&
+      Comp.$$typeof && // only React components
+      name !== "Blank" &&
+      name !== "extendDefaultTheme"
+    );
+  })
+);
+
+const Web3IconsList = Object.fromEntries(
+  Object.entries(Web3Icons).filter(([name, Comp]) => {
+    return (
+      typeof Comp === "function" ||
+      (typeof Comp === "object" && Comp.$$typeof)
+    );
+  })
+);
+
+
+const PayIconsList = Object.fromEntries(
+  Object.entries(PayIcons).filter(([name, Comp]) => {
+    return (
+      typeof Comp === "function" ||
+      (typeof Comp === "object" && Comp.$$typeof)
+    );
+  })
+);
+const IconParkList = Object.fromEntries(
+  Object.entries(IconPark).filter(([name, Comp]) =>
+    typeof Comp === "function"
+  )
+);
+
+
 const libraries = {
   Lucide: Object.fromEntries(allValidLucideIcons.map((n) => [n, LucideIcons[n]])),
   Radix: RadixIcons,
@@ -131,7 +192,7 @@ const libraries = {
   FontAwesomeBrands: FaBrands,
   Remix: RemixIcons,
   Tabler: TablerIcons,
-  ReactIcons: { ...ReactAi, ...ReactFa, ...ReactGi, ...ReactMd },
+  ReactIcons: { ...ReactAi, ...ReactFa, ...ReactGi, ...ReactMd,...ReactTfi },
   MaterialUI: MuiIcons,
   AntDesign: AntdIcons,
   Fluent: FluentIconsFiltered,
@@ -149,6 +210,21 @@ const libraries = {
   EmojiMart: emojiMartData,
   PrimeIcons: Object.fromEntries(primeIconList.map((n) => [n, n])),
   Blueprint: Object.fromEntries(blueprintIconNames.map((n) => [n, n])),
+  Evergreen: EvergreenIcons,
+  Grommet: GrommetIconsList,
+  Web3: Web3IconsList,
+  PayIcons: PayIconsList,
+  IconPark: IconParkList,
+  Boxicons: BoxIcons,
+  Iconoir: IconoirIcons,
+  BootStrap:ReactBs,
+  Circumicons:ReactCi,
+  CSSgg:ReactCg,
+  Devicons:ReactDi,
+
+
+
+
   // Add more mappings if necessary
 };
 
@@ -236,7 +312,7 @@ export default function AllIconsPage() {
     return arr;
   }, [icons, search, sortAsc]);
 
-  // console.log(filtered)
+  
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   useEffect(() => {
@@ -287,6 +363,61 @@ export default function AllIconsPage() {
           const Icon = FeatherIcons[name];
           return Icon ? <Icon size={size} /> : null;
         }
+
+        case "Circumicons": {
+        const Icon = ReactCi[name];
+        return Icon ? <Icon size={size} color={color} /> : null;
+      }
+       case "CSSgg": {
+        const Icon = ReactCi[name];
+        return Icon ? <Icon size={size} color={color} /> : null;
+      }
+      case "Grommet": {
+        const Icon = libraries[lib][name];
+        if (!Icon) return null;
+        // Grommet requires size as string (like "24px")
+        return <Icon size={`${size}px`} color={color} />;
+      }
+      case "PayIcons": {
+        const Icon = PayIconsList[name];
+        return Icon ? <Icon className="bg-white rounded" style={{ width: 40, height: 40 }} /> : null;
+      }
+       case "Devicons": {
+        const Icon = ReactCi[name];
+        return Icon ? <Icon size={size} color={color} /> : null;
+      }
+      case "HugeIcons": {
+        const Icon = HugeIcons[name];
+        return Icon ? <Icon size={size} color={color} /> : null;
+      }
+     
+      case "IconPark": {
+        const Icon = IconPark[name];
+        return Icon ? (
+          <Icon theme="outline" size={size} fill={color} />
+        ) : null;
+      }
+       case "BootStrap": {
+        const Icon = ReactBs[name];
+        return Icon ? <Icon size={size} color={color} /> : null;
+      }
+      case "Boxicons": {
+        const Icon = BoxIcons[name];
+        return Icon ? <Icon size={size} color={color} /> : null;
+      }
+     case "Iconoir": {
+        const Icon = IconoirIcons[name];
+        return Icon ? <Icon color={color} size={size} /> : null;
+      }
+      case "Web3": {
+          const Icon = Web3IconsList[name];
+          return Icon ? <Icon variant="background" size={64} color={color} /> : null;
+        }
+       case "Evergreen": {
+          const Icon = libraries[lib][name];
+          return Icon ? <Icon size={size} color={color} /> : null;
+        }
+        
         case "AntDesign": {
           const Icon = AntdIcons[name];
           return Icon ? <Icon style={{ fontSize: size, color }} /> : null;
@@ -403,7 +534,7 @@ export default function AllIconsPage() {
           const s = SimpleIcons[name];
           if (!s) return null;
           return (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full h-full flex bg-white rounded items-center justify-center">
               <svg viewBox="0 0 24 24" width={size} height={size} fill={`#${s.hex}`}>
                 <path d={s.path} />
               </svg>
