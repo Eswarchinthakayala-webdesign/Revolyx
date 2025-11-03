@@ -134,7 +134,6 @@ const libraries = {
   ReactIcons: { ...ReactAi, ...ReactFa, ...ReactGi, ...ReactMd },
   MaterialUI: MuiIcons,
   AntDesign: AntdIcons,
-  Carbon: CarbonIcons,
   Fluent: FluentIconsFiltered,
   Octicons: Octicons,
   CoreUI: CIcon, 
@@ -236,6 +235,8 @@ export default function AllIconsPage() {
     arr.sort((a, b) => (sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)));
     return arr;
   }, [icons, search, sortAsc]);
+
+  // console.log(filtered)
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   useEffect(() => {
@@ -512,7 +513,7 @@ export default function AllIconsPage() {
   const SidebarSheet = (
     <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" className="lg:hidden">
+        <Button variant="ghost" className="lg:hidden cursor-pointer">
           <MenuIcon className="w-5 h-5" />
         </Button>
       </SheetTrigger>
@@ -524,38 +525,24 @@ export default function AllIconsPage() {
               <ListIcon className="w-4 h-4" />
               <div className="font-medium">Icons</div>
             </div>
-            <Button size="sm" variant="ghost" onClick={() => setSheetOpen(false)}>
-              <XIcon className="w-4 h-4" />
-            </Button>
+            
           </div>
 
-          <div className="mb-3">
-            <Input
-              id="mobile-search"
-              placeholder="Search icons..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            />
-          </div>
+          
 
-          <ScrollArea className="h-[60vh]">
-            <div className="space-y-2">
-              {filtered.map((it) => (
-                <button
-                  key={it.lib + it.name}
-                  onClick={() => {
-                    handleSelect(it);
-                    setSheetOpen(false);
-                  }}
-                  className="w-full text-left p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800"
+           <ScrollArea className="h-[68vh] pr-2">
+            <div className="flex flex-col gap-2">
+              {Object.keys(libraries).map((lib) => (
+                  <button
+                  key={lib}
+                  onClick={() => { setActiveLib(lib); setPage(1); setSearch(""); }}
+                  className={clsx(
+                    "w-full text-left cursor-pointer px-3 py-2 rounded-md transition-colors flex items-center justify-between",
+                    activeLib === lib ? "bg-zinc-200/80 dark:bg-zinc-500/30 border border-indigo-500/10" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/30"
+                  )}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">{it.name}</div>
-                      <div className="text-xs opacity-60">{it.lib}</div>
-                    </div>
-                    <div style={{ width: 28, height: 28, background: subColor }} className="rounded-sm" />
-                  </div>
+                  <span>{lib}</span>
+                  <span className="text-xs opacity-60">{getIconListForLib(lib).length}</span>
                 </button>
               ))}
             </div>
@@ -583,7 +570,7 @@ export default function AllIconsPage() {
           {/* mobile sheet trigger */}
           {SidebarSheet}
 
-          <div className="hidden md:flex items-center gap-2 border rounded-md px-2 py-1 bg-white/60 dark:bg-zinc-900">
+          <div className="flex items-center gap-2 border rounded-md px-2 py-1 bg-white/60 dark:bg-zinc-900">
             <SearchIcon className="w-4 h-4 opacity-60" />
             <Input
               id="icon-search-input"
@@ -598,14 +585,14 @@ export default function AllIconsPage() {
           </div>
 
           <Select value={paletteKey} onValueChange={(v) => { setPaletteKey(v); setSubPaletteIndex(0); }}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-40 cursor-pointer">
               <SelectValue placeholder="Palette" />
             </SelectTrigger>
             <SelectContent>
               {Object.keys(COLOR_THEMES).map((k) => (
-                <SelectItem key={k} value={k}>
+                <SelectItem className="cursor-pointer" key={k} value={k}>
                   <div className="flex items-center gap-2">
-                    <div className="w-16 h-4 rounded-sm" style={{ background: `linear-gradient(90deg, ${COLOR_THEMES[k].join(",")})` }} />
+                    <div className="w-6 h-6 rounded-sm" style={{ background: `linear-gradient(90deg, ${COLOR_THEMES[k].join(",")})` }} />
                     <div className="text-sm">{k}</div>
                   </div>
                 </SelectItem>
@@ -614,11 +601,11 @@ export default function AllIconsPage() {
           </Select>
 
           <div className="hidden md:flex items-center gap-2 ml-2">
-            <Button size="sm" variant="outline" onClick={() => setSortAsc((s) => !s)}>
+            <Button size="sm" className='cursor-pointer' variant="outline" onClick={() => setSortAsc((s) => !s)}>
               {sortAsc ? <><ArrowDownIcon className="w-4 h-4 mr-1" /> A→Z</> : <><ArrowUpIcon className="w-4 h-4 mr-1" /> Z→A</>}
             </Button>
 
-            <Button size="sm" variant="ghost" onClick={() => { setPage(1); setSearch(""); toast("Filters reset"); }}>
+            <Button size="sm" className="cursor-pointer" variant="ghost" onClick={() => { setPage(1); setSearch(""); toast("Filters reset"); }}>
               <FilterIcon className="w-4 h-4 mr-1" /> Reset
             </Button>
           </div>
@@ -640,8 +627,8 @@ export default function AllIconsPage() {
                   key={lib}
                   onClick={() => { setActiveLib(lib); setPage(1); setSearch(""); }}
                   className={clsx(
-                    "w-full text-left px-3 py-2 rounded-md transition-colors flex items-center justify-between",
-                    activeLib === lib ? "bg-indigo-600/10 dark:bg-indigo-900/30 border border-indigo-500/10" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/30"
+                    "w-full text-left cursor-pointer px-3 py-2 rounded-md transition-colors flex items-center justify-between",
+                    activeLib === lib ? "bg-zinc-200/80 dark:bg-zinc-500/30 border border-indigo-500/10" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/30"
                   )}
                 >
                   <span>{lib}</span>
@@ -671,7 +658,7 @@ export default function AllIconsPage() {
               <CardContent className="p-4">
                 {selectedIcon ? (
                   <div className="flex flex-col md:flex-row gap-4">
-                    <div className="flex-none w-full md:w-36 h-36 rounded-lg border flex items-center justify-center" style={{ background: "linear-gradient(180deg,#fff,#f3f4f6)" }}>
+                    <div className="flex-none w-full md:w-36 h-36 rounded-lg border flex items-center justify-center">
                       <div style={{ color: subColor }}>
                         {renderIconPreview(selectedIcon, 48, subColor) || <div className="text-xs opacity-60">Preview unavailable</div>}
                       </div>
@@ -753,15 +740,15 @@ export default function AllIconsPage() {
             <CardContent>
               {/* grid of icons */}
               <ScrollArea className="h-[60vh]">
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 p-2 gap-3">
                   {paginated.map((ic) => (
                     <motion.button
                       key={ic.lib + ic.name}
                       onClick={() => handleSelect(ic)}
                       whileHover={{ scale: 1.02 }}
                       className={clsx(
-                        "flex flex-col items-center justify-center p-3 border rounded-lg transition-colors",
-                        selectedIcon && selectedIcon.lib === ic.lib && selectedIcon.name === ic.name ? "ring-2 ring-indigo-400" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/40"
+                        "flex flex-col items-center justify-center cursor-pointer p-3 border rounded-lg transition-colors",
+                        selectedIcon && selectedIcon.lib === ic.lib && selectedIcon.name === ic.name ? "ring-2 ring-zinc-400/20" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/40"
                       )}
                       title={`${ic.lib}: ${ic.name}`}
                     >
@@ -789,7 +776,7 @@ export default function AllIconsPage() {
           {/* alphabetized quick jump */}
           <div className="flex flex-wrap gap-2 items-center">
             {Object.keys(grouped).map((letter) => (
-              <button key={letter} className="px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-800 text-sm" onClick={() => {
+              <button key={letter} className="px-2 py-1 rounded cursor-pointer bg-zinc-100 dark:bg-zinc-800 text-sm" onClick={() => {
                 // jump to first icon starting with letter (find page)
                 const idx = filtered.findIndex((f) => f.name[0].toUpperCase() === letter);
                 if (idx >= 0) {
