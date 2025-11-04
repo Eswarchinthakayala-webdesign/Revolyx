@@ -10,7 +10,7 @@ import SpinnersPage from './pages/spinnersPage'
 import IconsPage from './pages/IconsPage'
 import BackgroundPage from './pages/BackgroundDesignPage'
 import FlowchartPage from './pages/FlowchartPage'
-import AllIconsPage from './pages/AlliconsPage'
+// import AllIconsPage from './pages/AlliconsPage'
 const router=createBrowserRouter([
   {
 
@@ -40,22 +40,22 @@ const router=createBrowserRouter([
         path:"/spinners/:id",
         element:<SpinnersPage/>
       },
-      // {
-      //   path:"/icons",
-      //   element:<IconsPage/>
-      // },
+      {
+        path:"/icons",
+        element:<IconsPage/>
+      },
        {
         path:"/designs",
         element:<BackgroundPage/>
       },
-      //  {
-      //   path:"/flow-chart",
-      //   element:<FlowchartPage/>
-      // },
        {
-        path:"/all-icons",
-        element:<AllIconsPage/>
-      }
+        path:"/flow-chart",
+        element:<FlowchartPage/>
+      },
+      //  {
+      //   path:"/all-icons",
+      //   element:<AllIconsPage/>
+      // }
     ]
   }
 
