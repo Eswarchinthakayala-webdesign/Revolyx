@@ -47,7 +47,6 @@ import * as PayIcons from "react-pay-icons";
 import * as IconPark from "@icon-park/react";
 import * as BoxIcons from "react-icons/bi";
 import * as IconoirIcons from "iconoir-react";
-import * as HugeIcons from "@hugeicons/react";
 import * as ReactBs from "react-icons/bs"
 import * as ReactCi from "react-icons/ci"
 import * as ReactCg from "react-icons/cg"
@@ -425,10 +424,7 @@ export default function AllIconsPage() {
         const Icon = ReactDi[name];
         return Icon ? <Icon size={size} color={color} /> : null;
       }
-      case "HugeIcons": {
-        const Icon = HugeIcons[name];
-        return Icon ? <Icon size={size} color={color} /> : null;
-      }
+     
        case "GithubIcons": {
         const Icon = ReactGo[name];
         return Icon ? <Icon size={size} color={color} /> : null;
