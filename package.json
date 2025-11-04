@@ -56,6 +56,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.4.0",
+    "@remixicon/react": "^4.7.0",
     "@tailwindcss/vite": "^4.1.16",
     "@tsparticles/engine": "^3.9.1",
     "@tsparticles/react": "^3.0.0",
