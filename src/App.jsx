@@ -40,18 +40,18 @@ const router=createBrowserRouter([
         path:"/spinners/:id",
         element:<SpinnersPage/>
       },
-      {
-        path:"/icons",
-        element:<IconsPage/>
-      },
+      // {
+      //   path:"/icons",
+      //   element:<IconsPage/>
+      // },
        {
         path:"/designs",
         element:<BackgroundPage/>
       },
-       {
-        path:"/flow-chart",
-        element:<FlowchartPage/>
-      },
+      //  {
+      //   path:"/flow-chart",
+      //   element:<FlowchartPage/>
+      // },
        {
         path:"/all-icons",
         element:<AllIconsPage/>

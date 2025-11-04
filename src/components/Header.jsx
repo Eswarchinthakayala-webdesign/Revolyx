@@ -40,10 +40,10 @@ export default function Header() {
     { name: "Colors", icon: Palette, path: "/colors" },
     { name: "Charts", icon: ChartAreaIcon, path: "/charts" },
     { name: "Spinners", icon: Chromium, path: "/spinners" },
-    {name:"Icons",icon:Wand,path:"/icons"},
+    // {name:"Icons",icon:Wand,path:"/icons"},
      {name:"Designs",icon:Wallpaper,path:"/designs"},
      {name:"All Icons",icon:CupSoda,path:"/all-icons"},
-    {name:"Flow Chart",icon:FolderDown,path:"/flow-chart"},
+    // {name:"Flow Chart",icon:FolderDown,path:"/flow-chart"},
 
   ]; 
 
