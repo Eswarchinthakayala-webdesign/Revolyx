@@ -42,7 +42,7 @@ export default function Header() {
     { name: "Spinners", icon: Chromium, path: "/spinners" },
     {name:"Icons",icon:Wand,path:"/icons"},
      {name:"Designs",icon:Wallpaper,path:"/designs"},
-    //  {name:"All Icons",icon:CupSoda,path:"/all-icons"},
+     {name:"All Icons",icon:CupSoda,path:"/all-icons"},
     {name:"Flow Chart",icon:FolderDown,path:"/flow-chart"},
 
   ]; 
