@@ -108,6 +108,7 @@
     "recharts": "^3.3.0",
     "shadcn-ui": "^0.9.5",
     "shiki": "^3.14.0",
+    "simple-icons": "^15.19.0",
     "simplex-noise": "^4.0.3",
     "sonner": "^2.0.7",
     "tabler-icons-react": "^1.56.0",
