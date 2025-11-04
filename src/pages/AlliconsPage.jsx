@@ -11,11 +11,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as FaSolid from "@fortawesome/free-solid-svg-icons";
 import * as FaRegular from "@fortawesome/free-regular-svg-icons";
 import * as FaBrands from "@fortawesome/free-brands-svg-icons";
-import * as RemixIcons from "@remixicon/react";
+// import * as RemixIcons from "@remixicon/react";
 import * as TablerIcons from "tabler-icons-react";
 import { Icon as IconifyIcon } from "@iconify/react";
-import * as SimpleIcons from "simple-icons";
 import * as EvaIcons from "eva-icons";
+import * as SimpleIcons from "react-icons/si";
+import * as RemixIcons from "react-icons/ri";
 import * as ReactAi from "react-icons/ai";
 import * as ReactFa from "react-icons/fa";
 import * as ReactGi from "react-icons/gi";
@@ -39,6 +40,12 @@ import "primeicons/primeicons.css";
 import { Icon as BlueprintIcon } from "@blueprintjs/core";
 import { IconNames } from "@blueprintjs/icons";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
+import * as Evergreen from "evergreen-ui";
+import * as GrommetIcons from "react-icons/gr";
+import * as Web3Icons from "@web3icons/react";
+import * as PayIcons from "react-pay-icons";
+import * as IconPark from "@icon-park/react";
+import * as HealthIcons from "healthicons-react";
 
 import { motion } from "framer-motion";
 import clsx from "clsx";
@@ -120,6 +127,32 @@ const primeIconList = [
 ].map((m) => `pi pi-${m[1]}`);
 const blueprintIconNames = Object.values(IconNames);
 
+const EvergreenIcons = Object.fromEntries(
+  Object.entries(Evergreen)
+    .filter(([name]) => name.endsWith("Icon"))
+    .map(([name, Comp]) => [name, Comp])
+);
+const PayIconsList = Object.fromEntries(
+  Object.entries(PayIcons).filter(([name, Comp]) => {
+    return (
+      typeof Comp === "function" ||
+      (typeof Comp === "object" && Comp.$$typeof)
+    );
+  })
+);
+const Web3IconsList = Object.fromEntries(
+  Object.entries(Web3Icons).filter(([name, Comp]) => {
+    return (
+      typeof Comp === "function" ||
+      (typeof Comp === "object" && Comp.$$typeof)
+    );
+  })
+);
+const IconParkList = Object.fromEntries(
+  Object.entries(IconPark).filter(([name, Comp]) =>
+    typeof Comp === "function"
+  )
+);
 const libraries = {
   Lucide: Object.fromEntries(allValidLucideIcons.map((n) => [n, LucideIcons[n]])),
   Radix: RadixIcons,
@@ -149,6 +182,12 @@ const libraries = {
   EmojiMart: emojiMartData,
   PrimeIcons: Object.fromEntries(primeIconList.map((n) => [n, n])),
   Blueprint: Object.fromEntries(blueprintIconNames.map((n) => [n, n])),
+  Evergreen: EvergreenIcons,
+  Grommet: GrommetIcons,
+  Web3: Web3IconsList,
+   PayIcons: PayIconsList,
+  IconPark: IconParkList,
+    HealthIcons,
   // Add more mappings if necessary
 };
 
@@ -304,10 +343,24 @@ export default function AllIconsPage() {
               <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-700 animate-pulse rounded" />
           );
           }
+        case "Web3": {
+          const Icon = Web3IconsList[name];
+          return Icon ? <Icon variant="background" size={64} color={color} /> : null;
+        }  
         case "Fluent": {
           const Icon = FluentIcons[name];
           return Icon ? <Icon className="w-6 h-6" /> : null;
           }
+         case "Evergreen": {
+          const Icon = libraries[lib][name];
+          return Icon ? <Icon size={size} color={color} /> : null;
+        }  
+         case "IconPark": {
+        const Icon = IconPark[name];
+        return Icon ? (
+          <Icon theme="outline" size={size} fill={color} />
+        ) : null;
+      }
         case "FontAwesomeSolid":
           return FaSolid[name] ? <FontAwesomeIcon icon={FaSolid[name]} size="lg" /> : null;
         case "FontAwesomeRegular":
@@ -318,6 +371,10 @@ export default function AllIconsPage() {
           const Icon = RemixIcons[name];
           return Icon ? <Icon size={size} /> : null;
         }
+           case "HealthIcons": {
+      const Icon = HealthIcons[name];
+      return Icon ? <Icon height={size} width={size} color={color} /> : null;
+    }
         case "Tabler": {
           const Icon = TablerIcons[name];
           return Icon ? <Icon size={size} /> : null;
@@ -326,6 +383,10 @@ export default function AllIconsPage() {
           const Icon = ReactIcons[name];
           return typeof Icon === "function" ? <Icon size={size} /> : null;
         }
+         case "PayIcons": {
+        const Icon = PayIconsList[name];
+        return Icon ? <Icon className="bg-white rounded" style={{ width: 40, height: 40 }} /> : null;
+      }
        case "NotoEmoji": {
           const emojiChar = libraries.NotoEmoji[name];
           if (!emojiChar) return null;
@@ -400,15 +461,8 @@ export default function AllIconsPage() {
               ? <CoreUIIcons.CIcon icon={CIcon[name]}  className="bg-white text-red-500 p-2 rounded h-10 w-10" />
               : null;
         case "Simple": {
-          const s = SimpleIcons[name];
-          if (!s) return null;
-          return (
-            <div className="w-full h-full flex items-center justify-center">
-              <svg viewBox="0 0 24 24" width={size} height={size} fill={`#${s.hex}`}>
-                <path d={s.path} />
-              </svg>
-            </div>
-          );
+          const Icon = SimpleIcons[name];
+          return Icon ? <Icon size={size} color={color} /> : null;
         }
         case "MaterialUI": {
           const Icon = MuiIcons[name];
@@ -426,6 +480,10 @@ export default function AllIconsPage() {
               }}
             />
           );
+         case "Grommet": {
+        const Icon = GrommetIcons[name];
+        return Icon ? <Icon size={size} color={color} /> : null;
+      }  
         case "EmojiMart": {
           return (
             <span style={{ fontSize: size + 6, lineHeight: 1 }}>
