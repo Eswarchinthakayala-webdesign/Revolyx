@@ -303,7 +303,7 @@ export default function AllIconsPage() {
 function handleSelect(icon) {
   setSelectedIcon(icon);
   showToast("success", `Selected ${icon.lib}: ${icon.name}`);
-
+  window.scrollTo({ top: 0, behavior: "smooth" });
   // 🆕 Update URL
   setSearchParams({ lib: icon.lib, icon: icon.name });
   navigate(`?lib=${icon.lib}&icon=${icon.name}`);
