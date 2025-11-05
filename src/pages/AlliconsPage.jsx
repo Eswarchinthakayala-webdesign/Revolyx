@@ -2,9 +2,11 @@
 "use client";
 
 import React, { useEffect, useMemo, useState, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+
 import * as LucideIcons from "lucide-react";
 import { Icon } from "@iconify/react";
-import CollectionData from "/IconData/collections.json"
+import CollectionData from "../IconData/collections.json";
 import { motion } from "framer-motion";
 import clsx from "clsx";
 
@@ -19,7 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogTrigger,DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 import {
   Search as SearchIcon,
@@ -38,7 +40,6 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Code, CodeBlock, CodeHeader } from "../components/animate-ui/components/animate/code";
 import { showToast } from "../lib/ToastHelper";
-
 
 /* ------------------------- COLOR THEMES ------------------------- */
 const COLOR_THEMES = {
@@ -61,19 +62,51 @@ const COLOR_THEMES = {
   red: ["#ef4444", "#f87171", "#dc2626", "#fca5a5", "#fee2e2"],
   yellow: ["#eab308", "#facc15", "#ca8a04", "#fde047", "#fef9c3"],
   amber: ["#f59e0b", "#fbbf24", "#d97706", "#fcd34d", "#fef3c7"],
+  lime: ["#84cc16", "#a3e635", "#65a30d", "#bef264", "#ecfccb"],
+  mint: ["#3eb489", "#70e1a1", "#1f9f75", "#a8f5c3", "#e0fff1"],
+  turquoise: ["#14c8c8", "#3be0e0", "#089b9b", "#88eded", "#ccffff"],
+  aqua: ["#00ffff", "#33ffff", "#00cccc", "#66ffff", "#ccffff"],
+  sapphire: ["#0f52ba", "#2563eb", "#1e40af", "#60a5fa", "#93c5fd"],
+  lavender: ["#b57edc", "#c084fc", "#a855f7", "#d8b4fe", "#f3e8ff"],
+  magenta: ["#d946ef", "#e879f9", "#a21caf", "#f0abfc", "#fae8ff"],
+  coral: ["#fb6f5f", "#fca5a5", "#dc2626", "#fecaca", "#fee2e2"],
+  peach: ["#ffb997", "#ff9478", "#ff6f61", "#ffc9b9", "#ffe5dc"],
+  gold: ["#facc15", "#fbbf24", "#ca8a04", "#fde68a", "#fef9c3"],
+  bronze: ["#b08d57", "#cd9a6d", "#8c6239", "#e0b589", "#f4e1c1"],
+  brown: ["#92400e", "#b45309", "#78350f", "#f59e0b", "#ffedd5"],
+  midnight: ["#1e1b4b", "#312e81", "#1e3a8a", "#4338ca", "#6366f1"],
+  neutral: ["#737373", "#a3a3a3", "#525252", "#d4d4d4", "#f5f5f5"],
+  neon: ["#39ff14", "#7fff00", "#00ffcc", "#cc00ff", "#ff00aa"],
+  navy: ["#1e3a8a", "#1d4ed8", "#172554", "#3b82f6", "#93c5fd"],
+  copper: ["#b87333", "#c87a4b", "#a65e2e", "#d29572", "#f1d3b2"],
+  silver: ["#c0c0c0", "#d1d5db", "#9ca3af", "#e5e7eb", "#f9fafb"],
+    neonGreen: ["#39ff14", "#66ff66", "#00ff00", "#aaffaa", "#ccffcc"],
+  neonBlue: ["#00f0ff", "#33ffff", "#009dff", "#80eaff", "#ccf7ff"],
+  neonPink: ["#ff00ff", "#ff66ff", "#ff33cc", "#ff99ff", "#ffe6ff"],
+  neonPurple: ["#b026ff", "#c266ff", "#8a2be2", "#d6a6ff", "#f0e6ff"],
+  neonCyan: ["#00ffff", "#40e0d0", "#00bfff", "#80ffff", "#e0ffff"],
+  neonOrange: ["#ff6e00", "#ff9933", "#ff4500", "#ffbb66", "#ffe0cc"],
+  neonYellow: ["#faff00", "#ffff66", "#e6ff00", "#ffff99", "#ffffe6"],
+  neonRed: ["#ff073a", "#ff3366", "#ff0040", "#ff8099", "#ffd6dd"],
+  neonAqua: ["#00ffee", "#00ffcc", "#00e6b8", "#66fff0", "#ccfffa"],
+  neonLime: ["#aaff00", "#ccff33", "#99e600", "#ddff99", "#f4ffe0"],
+  neonTeal: ["#00ffbf", "#33ffd6", "#00cc99", "#99ffee", "#e6fffa"],
+  neonRose: ["#ff1493", "#ff66b2", "#ff3385", "#ffa6cc", "#ffe6f0"],
+  neonViolet: ["#bf00ff", "#d966ff", "#9900cc", "#e6b3ff", "#f7e6ff"],
+  neonGold: ["#ffd700", "#ffef5a", "#ffcc00", "#fff27a", "#fff9cc"],
 };
 
+/* ------------------------- LUCIDE ICON NAMES ------------------------- */
 const allValidLucideIcons = Object.keys(LucideIcons)
   .filter((name) => !name.endsWith("Icon"))
   .slice(0, 3730);
-/* ------------------------- LIBRARIES (use earlier pattern) ------------------------- */
 
+/* ------------------------- ICONIFY LIBRARIES (metadata) ------------------------- */
 const iconifyLibraries = Object.keys(CollectionData).reduce((acc, key) => {
   acc[`Iconify-${key}`] = { __iconify: true, prefix: key };
   return acc;
 }, {});
 
-console.log(iconifyLibraries)
 const libraries = {
   Lucide: Object.fromEntries(allValidLucideIcons.map((n) => [n, LucideIcons[n]])),
   ...iconifyLibraries,
@@ -83,66 +116,129 @@ const libraries = {
 function getIconListForLib(libKey) {
   const lib = libraries[libKey];
   if (!lib) return [];
-  // For some libs the keys are complex; we filter to readable names
+  // If it's an Iconify collection, try to return known icons from CollectionData if available
+  if (lib.__iconify) {
+    const meta = CollectionData[lib.prefix];
+    if (meta && meta.icons) {
+      return Object.keys(meta.icons).map((n) => `${lib.prefix}:${n}`);
+    }
+    // fallback to empty array (we don't have the full json loaded here)
+    return [];
+  }
+  // For simple object libraries (like Lucide) keys are icon component names
   return Object.keys(lib).filter((n) => /^[A-Za-z0-9_-]/.test(n));
 }
 
 /* ------------------------- UI Component ------------------------- */
 export default function AllIconsPage() {
-  const [activeLib, setActiveLib] = useState("Lucide");
+    const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [activeLib, setActiveLib] = useState(searchParams.get("lib") || "Lucide");
+  const [selectedIcon, setSelectedIcon] = useState(
+    searchParams.get("icon")
+      ? { lib: searchParams.get("lib") || "Lucide", name: searchParams.get("icon") }
+      : null
+  );
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [paletteKey, setPaletteKey] = useState("blue");
   const [subPaletteIndex, setSubPaletteIndex] = useState(0);
   const [sortAsc, setSortAsc] = useState(true);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedIcon, setSelectedIcon] = useState(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [zondiconSvgs, setZondiconSvgs] = useState({});
   const [selectedLetter, setSelectedLetter] = useState(null);
   const [icons, setIcons] = useState([]);
   const ITEMS_PER_PAGE = 120;
   const iconNames = useMemo(() => getIconListForLib(activeLib), [activeLib]);
+  
+  useEffect(() => {
+  const libParam = searchParams.get("lib");
+  const iconParam = searchParams.get("icon");
 
-useEffect(() => {
-  const loadIcons = async () => {
-    const lib = libraries[activeLib];
-    if (!lib) return;
+  if (libParam && libParam !== activeLib) {
+    setActiveLib(libParam);
+  }
 
-    // 🔹 If it’s a normal React icon lib
-    if (!lib.__iconify) {
-      const libIcons = Object.keys(lib).filter((n) => /^[A-Za-z]/.test(n));
-      setIcons(libIcons.map((name) => ({ lib: activeLib, name })));
-      return;
-    }
+  if (iconParam && (!selectedIcon || selectedIcon.name !== iconParam)) {
+    setSelectedIcon({ lib: libParam || "Lucide", name: iconParam });
+  }
+}, [searchParams]);
 
-    // 🔹 If it’s an Iconify collection
-    try {
-      const data = await import(`/IconData/json/json/${lib.prefix}.json`);
-      console.log(data)
-      const names = Object.keys(data.icons || {}).map(
-        (n) => ({ lib: activeLib, name: `${data.prefix}:${n}` })
-      );
-      setIcons(names);
-    } catch (e) {
-      console.error("❌ Failed to load Iconify collection:", lib.prefix, e);
-      setIcons([]);
-    }
-  };
 
-  loadIcons();
-}, [activeLib]);
+  useEffect(() => {
+    const loadIcons = async () => {
+      const lib = libraries[activeLib];
+      if (!lib) return;
+
+      // 🔹 If it’s a normal React icon lib (like Lucide)
+      if (!lib.__iconify) {
+        const libIcons = Object.keys(lib).filter((n) => /^[A-Za-z]/.test(n));
+        setIcons(libIcons.map((name) => ({ lib: activeLib, name })));
+        return;
+      }
+
+      // 🔹 If it’s an Iconify collection (dynamically import the JSON bundle if present)
+      try {
+        // NOTE: your data path was ../IconData/json/json/${prefix}.json in the original file.
+        // keep the same path to avoid layout changes — if your actual path differs, update here.
+        const data = await import(`../IconData/json/json/${lib.prefix}.json`);
+        // imported module might be { default: { icons: {...}, prefix: '...', ... } } or the object itself
+        const payload = data?.default || data;
+        const names = Object.keys(payload.icons || {}).map((n) => ({ lib: activeLib, name: `${payload.prefix || lib.prefix}:${n}` }));
+        setIcons(names);
+      } catch (e) {
+        console.error("❌ Failed to load Iconify collection:", lib.prefix, e);
+        // fall back to using CollectionData meta (names might not be present)
+        const meta = CollectionData[lib.prefix];
+        if (meta && meta.icons) {
+          const names = Object.keys(meta.icons).map((n) => ({ lib: activeLib, name: `${lib.prefix}:${n}` }));
+          setIcons(names);
+        } else {
+          setIcons([]);
+        }
+      }
+    };
+
+    loadIcons();
+  }, [activeLib]);
 
   // filter / search / sort
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let arr = icons.filter((i) => (q ? i.name.toLowerCase().includes(q) : true));
-    arr.sort((a, b) => (sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)));
-    return arr;
-  }, [icons, search, sortAsc]);
 
-  
+    // 🔍 Filter icons by search
+    let arr = icons.filter((i) => {
+      const cleanName = i.name.includes(":")
+        ? i.name.split(":")[1] // remove library prefix
+        : i.name;
+      return q ? cleanName.toLowerCase().includes(q) : true;
+    });
+
+    // 🔠 Sort alphabetically
+    arr.sort((a, b) => {
+      const nameA = a.name.includes(":") ? a.name.split(":")[1] : a.name;
+      const nameB = b.name.includes(":") ? b.name.split(":")[1] : b.name;
+      return sortAsc
+        ? nameA.localeCompare(nameB)
+        : nameB.localeCompare(nameA);
+    });
+
+    // 🧱 Add firstLetter for quick jump and cleanName
+    return arr.map((icon) => {
+      const cleanName = icon.name.includes(":")
+        ? icon.name.split(":")[1]
+        : icon.name;
+      const firstLetter = cleanName && cleanName[0]
+        ? (cleanName[0].toUpperCase().match(/[A-Z]/) ? cleanName[0].toUpperCase() : "_")
+        : "_"; // non-alphabetic group
+      return {
+        ...icon,
+        cleanName,
+        firstLetter,
+      };
+    });
+  }, [icons, search, sortAsc]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   useEffect(() => {
@@ -154,15 +250,24 @@ useEffect(() => {
     return filtered.slice(start, start + ITEMS_PER_PAGE);
   }, [filtered, page]);
 
-  // grouped alphabetically for quick categories
+  // grouped alphabetically for quick categories (based on filtered.cleanName)
   const grouped = useMemo(() => {
-    const m = {};
+    const map = {};
+
     filtered.forEach((it) => {
-      const letter = it.name && it.name[0] ? it.name[0].toUpperCase() : "#";
-      if (!m[letter]) m[letter] = [];
-      m[letter].push(it);
+      const cleanName = it.cleanName || (it.name.includes(":") ? it.name.split(":")[1] : it.name);
+      const letter = cleanName && cleanName[0] ? cleanName[0].toUpperCase() : "#";
+      if (!map[letter]) map[letter] = [];
+      map[letter].push({
+        ...it,
+        cleanName,
+      });
     });
-    return Object.fromEntries(Object.entries(m).sort(([a], [b]) => a.localeCompare(b)));
+
+    // 🔡 Sort alphabetically (A → Z)
+    return Object.fromEntries(
+      Object.entries(map).sort(([a], [b]) => a.localeCompare(b))
+    );
   }, [filtered]);
 
   /* palette helpers */
@@ -170,39 +275,49 @@ useEffect(() => {
   const subColor = palette[subPaletteIndex % palette.length];
 
   /* render icon safely */
-  function renderIconPreview({ lib, name }, size = 28, color = "currentColor") {
-    try {
-      switch (lib) {
-        case "Lucide": {
-          const Icon = LucideIcons[name];
-          return Icon ? <Icon size={size} color={color} /> : null;
-        }
-   
-        case "Iconify":
-        case lib.startsWith("Iconify-") && lib:
-          return <Icon icon={name} width={size} color={color} height={size} />;
+  function renderIconPreview(iconObj, size = 28, color = "currentColor") {
+    if (!iconObj) return null;
+    const { lib, name } = iconObj;
 
-        default:
-          return null;
-      }
+    // Iconify collections: lib like "Iconify-prefix"
+    if (lib && lib.startsWith("Iconify-")) {
+      // name is expected to be "prefix:iconname"
+      return <Icon icon={name} width={size} height={size} color={color} />;
+    }
+
+    // Lucide case (React component)
+    if (lib === "Lucide") {
+      const IconComp = LucideIcons[name];
+      return IconComp ? <IconComp size={size} color={color} /> : null;
+    }
+
+    // fallback: try treating as Iconify string
+    try {
+      return <Icon icon={name} width={size} height={size} color={color} />;
     } catch (e) {
       return null;
     }
   }
 
   /* preview & code panel actions */
-  function handleSelect(icon) {
-    setSelectedIcon(icon);
-    // show toast
-    showToast("success",`Selected ${icon.lib}: ${icon.name}`);
-  }
+function handleSelect(icon) {
+  setSelectedIcon(icon);
+  showToast("success", `Selected ${icon.lib}: ${icon.name}`);
+
+  // 🆕 Update URL
+  setSearchParams({ lib: icon.lib, icon: icon.name });
+  navigate(`?lib=${icon.lib}&icon=${icon.name}`);
+}
+
 
   function copySource(icon) {
     if (!icon) return;
-    // generate a small JSX snippet depending on lib
-    const snippet = `<${icon.lib}Icon name="${icon.name}" size={24} color="${subColor}" />`;
+    const isIconify = icon.lib === "Iconify" || icon.lib.startsWith("Iconify-");
+    const snippet = isIconify
+      ? `<Icon icon="${icon.name}" width={24} height={24} color="${subColor}" />`
+      : `<${icon.lib} icon="${icon.name}" size={24} color="${subColor}" />`;
     navigator.clipboard.writeText(snippet);
-    showToast("success","Icon JSX copied!");
+    showToast("success", "Icon JSX copied!");
   }
 
   // keyboard: quick open suggestions on slash or ctrl+k
@@ -237,14 +352,13 @@ useEffect(() => {
             style={{ background: c }}
             onClick={() => {
               setSubPaletteIndex(i);
-              showToast("success",    <div className="max-w-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-md flex-shrink-0"
-                 style={{ background: c }} />
-             <div>{`Color set to ${c}`}</div>
-    
-          </div>
-        </div>);
+              showToast("success", <div className="max-w-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-md flex-shrink-0"
+                    style={{ background: c }} />
+                  <div>{`Color set to ${c}`}</div>
+                </div>
+              </div>);
             }}
           />
         ))}
@@ -268,26 +382,45 @@ useEffect(() => {
               <ListIcon className="w-4 h-4" />
               <div className="font-medium">Icons</div>
             </div>
-            
           </div>
 
-          
-
-           <ScrollArea className="h-[68vh] pr-2">
+          <ScrollArea className="h-[68vh] pr-2">
             <div className="flex flex-col gap-2">
-              {Object.keys(libraries).sort().map((lib) => (
+              {Object.keys(libraries).sort().map((libKey) => {
+                const lib = libraries[libKey];
+                const displayName = libKey.startsWith("Iconify-")
+                  ? libKey.replace("Iconify-", "")
+                  : libKey;
+
+                const count =
+                  lib.__iconify && CollectionData[lib.prefix]
+                    ? CollectionData[lib.prefix].total || 0
+                    : getIconListForLib(libKey).length;
+
+                return (
                   <button
-                  key={lib}
-                  onClick={() => { setActiveLib(lib); setPage(1); setSearch(""); showToast("success",`Selected Library: ${lib}`)  }}
-                  className={clsx(
-                    "w-full text-left cursor-pointer px-3 py-2 rounded-md transition-colors flex items-center justify-between",
-                    activeLib === lib ? "bg-zinc-200/80 dark:bg-zinc-500/30 border border-indigo-500/10" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/30"
-                  )}
-                >
-                  <span>{lib}</span>
-                  <span className="text-xs opacity-60">{filtered.length}</span>
-                </button>
-              ))}
+                    key={libKey}
+                    onClick={() => {
+                      setActiveLib(libKey);
+                      setPage(1);
+                      setSearch("");
+                      showToast("success", `Selected Library: ${displayName}`);
+                      setSearchParams({ lib: libKey });
+                      navigate(`?lib=${libKey}`);
+                      setSelectedIcon(null);
+                    }}
+                    className={clsx(
+                      "w-full text-left cursor-pointer px-3 py-2 rounded-md transition-colors flex items-center justify-between",
+                      activeLib === libKey
+                        ? "bg-zinc-200/80 dark:bg-zinc-500/30 border border-indigo-500/10"
+                        : "hover:bg-zinc-100 dark:hover:bg-zinc-800/30"
+                    )}
+                  >
+                    <span>{displayName}</span>
+                    <span className="text-xs opacity-60">{count}</span>
+                  </button>
+                );
+              })}
             </div>
           </ScrollArea>
         </div>
@@ -303,7 +436,6 @@ useEffect(() => {
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold flex items-center gap-3">
-            
             Revolyx Icons
           </h1>
           <p className="text-sm opacity-70 mt-1">Browse, preview and copy icon JSX with palettes & code.</p>
@@ -365,19 +497,41 @@ useEffect(() => {
 
           <ScrollArea className="h-[68vh] pr-2">
             <div className="flex flex-col gap-2">
-              {Object.keys(libraries).sort().map((lib) => (
-                <button
-                  key={lib}
-                  onClick={() => { setActiveLib(lib); setPage(1); setSearch("");showToast("success",`Selected Library: ${lib}`) }}
-                  className={clsx(
-                    "w-full text-left cursor-pointer px-3 py-2 rounded-md transition-colors flex items-center justify-between",
-                    activeLib === lib ? "bg-zinc-200/80 dark:bg-zinc-500/30 border border-indigo-500/10" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/30"
-                  )}
-                >
-                  <span>{lib}</span>
-                  <span className="text-xs opacity-60">{getIconListForLib(lib).length}</span>
-                </button>
-              ))}
+              {Object.keys(libraries).sort().map((libKey) => {
+                const lib = libraries[libKey];
+                const displayName = libKey.startsWith("Iconify-")
+                  ? libKey.replace("Iconify-", "")
+                  : libKey;
+
+                const count =
+                  lib.__iconify && CollectionData[lib.prefix]
+                    ? CollectionData[lib.prefix].total || 0
+                    : getIconListForLib(libKey).length;
+
+                return (
+                  <button
+                    key={libKey}
+                    onClick={() => {
+                      setActiveLib(libKey);
+                      setPage(1);
+                      setSearch("");
+                      showToast("success", `Selected Library: ${displayName}`);
+                      setSearchParams({ lib: libKey });
+                       navigate(`?lib=${libKey}`);
+                       setSelectedIcon(null);
+                    }}
+                    className={clsx(
+                      "w-full text-left cursor-pointer px-3 py-2 rounded-md transition-colors flex items-center justify-between",
+                      activeLib === libKey
+                        ? "bg-zinc-200/80 dark:bg-zinc-500/30 border border-indigo-500/10"
+                        : "hover:bg-zinc-100 dark:hover:bg-zinc-800/30"
+                    )}
+                  >
+                    <span>{displayName}</span>
+                    <span className="text-xs opacity-60">{count}</span>
+                  </button>
+                );
+              })}
             </div>
           </ScrollArea>
         </aside>
@@ -395,11 +549,11 @@ useEffect(() => {
 
                 <div className="flex items-end flex-col  gap-2">
                   {renderPaletteSwatches()}
-                     <div className="mt-3 text-xs  text-wrap text-zinc-500 dark:text-zinc-400">
-                Click swatch to change color
-              </div>
+                  <div className="mt-3 text-xs  text-wrap text-zinc-500 dark:text-zinc-400">
+                    Click swatch to change color
+                  </div>
                 </div>
-              
+
               </CardHeader>
 
               <CardContent className="p-4">
@@ -409,35 +563,35 @@ useEffect(() => {
                       <div style={{ color: subColor }}>
                         {renderIconPreview(selectedIcon, 48, subColor) || <div className="text-xs opacity-60">Preview unavailable</div>}
                       </div>
-                             <Dialog>
-                                      <DialogTrigger asChild>
-                                        <Button
-                                          size="sm"
-                                          variant="secondary"
-                                          className="absolute cursor-pointer bottom-3 right-3 text-xs flex items-center gap-1 px-2 py-1.5 bg-white/40 dark:bg-zinc-800/60 backdrop-blur-md border border-zinc-300/50 dark:border-zinc-700/50 hover:scale-105 transition-all"
-                                        >
-                                          <Maximize2 className="w-3.5 h-3.5" />
-                                          View Full
-                                        </Button>
-                                      </DialogTrigger>
-                                      <DialogContent className="sm:max-w-[500px] md:max-w-[700px] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl">
-                                        <DialogHeader>
-                                          <DialogTitle className="text-center text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                                            Full Icon Preview
-                                          </DialogTitle>
-                                        </DialogHeader>
-                                        <div className="flex items-center justify-center p-6">
-                                          <motion.div
-                                            key={`icon-full-${selectedIcon}-${48}-${subColor}`}
-                                            initial={{ opacity: 0, scale: 0.9 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            transition={{ duration: 0.35 }}
-                                          >
-                                           {renderIconPreview(selectedIcon, 100, subColor) || <div className="text-xs opacity-60">Preview unavailable</div>}
-                                          </motion.div>
-                                        </div>
-                                      </DialogContent>
-                                    </Dialog>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="absolute cursor-pointer bottom-3 right-3 text-xs flex items-center gap-1 px-2 py-1.5 bg-white/40 dark:bg-zinc-800/60 backdrop-blur-md border border-zinc-300/50 dark:border-zinc-700/50 hover:scale-105 transition-all"
+                          >
+                            <Maximize2 className="w-3.5 h-3.5" />
+                            View Full
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[500px] md:max-w-[700px] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl">
+                          <DialogHeader>
+                            <DialogTitle className="text-center text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                              Full Icon Preview
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="flex items-center justify-center p-6">
+                            <motion.div
+                              key={`icon-full-${selectedIcon.lib}-${selectedIcon.name}-${subColor}`}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.35 }}
+                            >
+                              {renderIconPreview(selectedIcon, 100, subColor) || <div className="text-xs opacity-60">Preview unavailable</div>}
+                            </motion.div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
 
                     <div className="overflow-auto">
@@ -449,28 +603,30 @@ useEffect(() => {
 
                         <div className="flex items-center gap-2">
                           <Button size="sm" className="cursor-pointer" onClick={() => copySource(selectedIcon)}><CopyIcon className="w-4 h-4 mr-1 cursor-pointer" /> Copy JSX</Button>
-                          
+
                         </div>
                       </div>
 
                       <div className="mt-4 flex  text-sm opacity-80">
-                          <Code
-                              key={`${0.1}-${10}-${true}-${true}`}
-                              className="w-full h-full"
-                              code= {`<${selectedIcon.lib} icon="${selectedIcon.name}" size={24} color="${subColor}" />`}
-                            >
-                              <CodeHeader  copyButton>
-                                Demo.jsx
-                              </CodeHeader>
-                        
-                              <CodeBlock
-                                cursor={true}
-                                lang="js"
-                                writing={true}
-                                duration={10}
-                                delay={0.1}
-                              />
-                            </Code>
+                        <Code
+                          key={`${0.1}-${10}-${true}-${true}`}
+                          className="w-full h-full"
+                          code={selectedIcon.lib === "Iconify" || selectedIcon.lib.startsWith("Iconify-")
+                            ? `<Icon icon="${selectedIcon.name}" width={24} height={24} color="${subColor}" />`
+                            : `<${selectedIcon.lib} icon="${selectedIcon.name}" size={24} color="${subColor}" />`}
+                        >
+                          <CodeHeader copyButton>
+                            Demo.jsx
+                          </CodeHeader>
+
+                          <CodeBlock
+                            cursor={true}
+                            lang="js"
+                            writing={true}
+                            duration={10}
+                            delay={0.1}
+                          />
+                        </Code>
                       </div>
                     </div>
                   </div>
@@ -501,8 +657,8 @@ useEffect(() => {
                   <Separator />
 
                   <div className="flex gap-2">
-                    <Button className="cursor-pointer" onClick={() => { setSearch(""); setPage(1);setSelectedLetter("");  showToast("success","Search cleared"); }} size="sm">Clear Search</Button>
-                    <Button className='cursor-pointer' onClick={() => { setSelectedIcon(null); showToast("success","Selection cleared"); }} size="sm" variant="outline">Clear Selection</Button>
+                    <Button className="cursor-pointer" onClick={() => { setSearch(""); setPage(1); setSelectedLetter(null); showToast("success", "Search cleared"); }} size="sm">Clear Search</Button>
+                    <Button className='cursor-pointer' onClick={() => { setSelectedIcon(null); showToast("success", "Selection cleared"); }} size="sm" variant="outline">Clear Selection</Button>
                   </div>
                 </div>
               </CardContent>
@@ -529,8 +685,8 @@ useEffect(() => {
               <ScrollArea className="h-[60vh]">
                 <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-10 p-2 gap-3">
                   {paginated.map((ic) => (
-                    <motion.Card
-                      key={ic.lib + ic.name}
+                    <motion.div
+                      key={`${ic.lib}:${ic.name}`}
                       onClick={() => handleSelect(ic)}
                       whileHover={{ scale: 1.02 }}
                       className={clsx(
@@ -540,16 +696,20 @@ useEffect(() => {
                          hover:border-zinc-400 dark:hover:border-zinc-600`,
                         selectedIcon && selectedIcon.lib === ic.lib && selectedIcon.name === ic.name ? "ring-2 ring-zinc-400/20" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/40"
                       )}
-                      
                     >
-                            <div className="absolute inset-0 flex items-end justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            <div className="bg-black text-white text-xs px-2 py-1 rounded-md mb-2" style={{background:subColor}}>{ic.name}</div>
-                             </div>
+                      <div className="absolute inset-0 flex items-end justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        <div
+                          className="bg-black text-white text-xs px-2 py-1 rounded-md mb-2"
+                          style={{ background: subColor }}
+                        >
+                          {ic.name.includes(":") ? ic.name.split(":")[1] : ic.name}
+                        </div>
+                      </div>
                       <div className="w-10 h-10 flex items-center justify-center mb-2" style={{ color: subColor }}>
                         {renderIconPreview(ic, 20, subColor) || <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse" />}
                       </div>
-                      <div className="text-[10px] text-center opacity-80 group-hover:opacity-0 truncate w-full">{ic.name}</div>
-                    </motion.Card>
+                      <div className="text-[10px] text-center opacity-80 group-hover:opacity-0 truncate w-full"> {ic.name.includes(":") ? ic.name.split(":")[1] : ic.name}</div>
+                    </motion.div>
                   ))}
                 </div>
               </ScrollArea>
@@ -568,57 +728,32 @@ useEffect(() => {
 
           {/* alphabetized quick jump */}
           <div className="flex flex-wrap gap-2 items-center">
-          {Object.keys(grouped).map((letter) => (
-            <button
-              key={letter}
-              onClick={() => {
-                setSelectedLetter(letter);
-                const idx = filtered.findIndex(
-                  (f) => f.name[0].toUpperCase() === letter
-                );
-                if (idx >= 0) {
-                  setPage(Math.floor(idx / ITEMS_PER_PAGE) + 1);
-                }
-              }}
-              className={clsx(
-                "px-2 py-1 rounded cursor-pointer text-sm transition-colors",
-                selectedLetter === letter
-                  ? "bg-red-500 text-white dark:bg-red-600" 
-                  : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-              )}
-            >
-              {letter}
-            </button>
-          ))}
-        </div>
+            {Object.keys(grouped).map((letter) => (
+              <button
+                key={letter}
+                onClick={() => {
+                  setSelectedLetter(letter);
+                  // find by cleanName's first letter (previous bug: used name[0] which could contain prefix)
+                  const idx = filtered.findIndex(
+                    (f) => (f.cleanName && f.cleanName[0] && f.cleanName[0].toUpperCase()) === letter
+                  );
+                  if (idx >= 0) {
+                    setPage(Math.floor(idx / ITEMS_PER_PAGE) + 1);
+                  }
+                }}
+                className={clsx(
+                  "px-2 py-1 rounded cursor-pointer text-sm transition-colors",
+                  selectedLetter === letter
+                    ? "bg-red-500 text-white dark:bg-red-600"
+                    : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                )}
+              >
+                {letter}
+              </button>
+            ))}
+          </div>
         </section>
       </main>
-
-      {/* code dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Icon JSX Source</DialogTitle>
-          </DialogHeader>
-
-          <div className="py-2">
-            {selectedIcon ? (
-              <SyntaxHighlighter language="jsx" style={oneDark} customStyle={{ borderRadius: 8 }}>
-{`// Example JSX for ${selectedIcon.lib} ${selectedIcon.name}
-<${selectedIcon.lib} icon="${selectedIcon.name}" size={24} color="${subColor}" />`}
-              </SyntaxHighlighter>
-            ) : (
-              <div className="text-sm opacity-60">No icon selected</div>
-            )}
-          </div>
-
-          <DialogFooter className="flex gap-2 justify-end">
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Close</Button>
-            <Button onClick={() => { copySource(selectedIcon); setDialogOpen(false); }}>Copy</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
-

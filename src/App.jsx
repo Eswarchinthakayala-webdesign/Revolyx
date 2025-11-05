@@ -7,7 +7,6 @@ import Landing from './pages/Landing'
 import ColorsPage from './pages/colorsPage'
 import ChartsPage from './pages/chartPage'
 import SpinnersPage from './pages/spinnersPage'
-import IconsPage from './pages/IconsPage'
 import BackgroundPage from './pages/BackgroundDesignPage'
 import FlowchartPage from './pages/FlowchartPage'
 import AllIconsPage from './pages/AlliconsPage'
@@ -39,10 +38,6 @@ const router=createBrowserRouter([
       {
         path:"/spinners/:id",
         element:<SpinnersPage/>
-      },
-      {
-        path:"/icons",
-        element:<IconsPage/>
       },
        {
         path:"/designs",
