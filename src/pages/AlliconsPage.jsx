@@ -3,43 +3,8 @@
 
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import * as LucideIcons from "lucide-react";
-import * as RadixIcons from "@radix-ui/react-icons";
-import * as PhosphorIcons from "phosphor-react";
-import * as HeroIcons from "@heroicons/react/24/outline";
-import * as FeatherIcons from "react-feather";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import * as FaSolid from "@fortawesome/free-solid-svg-icons";
-import * as FaRegular from "@fortawesome/free-regular-svg-icons";
-import * as FaBrands from "@fortawesome/free-brands-svg-icons";
-import * as RemixIcons from "@remixicon/react";
-import * as TablerIcons from "tabler-icons-react";
-import { Icon as IconifyIcon } from "@iconify/react";
-import * as SimpleIcons from "simple-icons";
-import * as EvaIcons from "eva-icons";
-import * as ReactAi from "react-icons/ai";
-import * as ReactFa from "react-icons/fa";
-import * as ReactGi from "react-icons/gi";
-import * as ReactMd from "react-icons/md";
-import * as MuiIcons from "@mui/icons-material";
-import * as AntdIcons from "@ant-design/icons";
-import * as CarbonIcons from "@carbon/icons-react";
-import * as FluentIcons from "@fluentui/react-icons";
-import * as Octicons from "@primer/octicons-react";
-import * as CoreUIIcons from "@coreui/icons-react";
-import * as CIcon from "@coreui/icons";
-import * as Zondicons from "zondicons";
-import allTeenyIcons from "../components/TeenyIconsGallery";
-import "foundation-icons/foundation-icons.css";
-import { foundationIconList } from "../data/FoundationList";
-import twemoji from "twemoji";
-import emojiData from "emoji.json";
-import data from "@emoji-mart/data";
-import primeIconsCSS from "primeicons/primeicons.css?inline";
-import "primeicons/primeicons.css";
-import { Icon as BlueprintIcon } from "@blueprintjs/core";
-import { IconNames } from "@blueprintjs/icons";
-import "@blueprintjs/icons/lib/css/blueprint-icons.css";
-
+import { Icon } from "@iconify/react";
+import CollectionData from "/IconData/collections.json"
 import { motion } from "framer-motion";
 import clsx from "clsx";
 
@@ -54,7 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger,DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 import {
   Search as SearchIcon,
@@ -65,11 +30,15 @@ import {
   ArrowUp as ArrowUpIcon,
   Palette as PaletteIcon,
   Menu as MenuIcon,
-  X as XIcon
+  X as XIcon,
+  Maximize2
 } from "lucide-react";
 
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { Code, CodeBlock, CodeHeader } from "../components/animate-ui/components/animate/code";
+import { showToast } from "../lib/ToastHelper";
+
 
 /* ------------------------- COLOR THEMES ------------------------- */
 const COLOR_THEMES = {
@@ -98,58 +67,16 @@ const allValidLucideIcons = Object.keys(LucideIcons)
   .filter((name) => !name.endsWith("Icon"))
   .slice(0, 3730);
 /* ------------------------- LIBRARIES (use earlier pattern) ------------------------- */
-/* NOTE: you already imported many libs above; we create a libraries map for UI listing.
-   Some libs expose objects of components; others are svg strings or font classes.
-   This page will attempt to render safe previews for the major ones. */
-  const ReactIcons = {
-    ...ReactAi,
-    ...ReactFa,
-    ...ReactGi,
-    ...ReactMd,
-  };
-const validFluentIcons = Object.keys(FluentIcons).filter((n) => /^[A-Z]/.test(n));
-const FluentIconsFiltered = Object.fromEntries(validFluentIcons.map((n) => [n, FluentIcons[n]]));
-const emojiList = emojiData.map((e) => ({
-  name: e.name,
-  char: e.char,
-})); 
-const emojiMartData=Object.fromEntries(
-     Object.values(data.emojis).map((e) => [e.skins[0].native,true]))
-const primeIconList = [
-  ...primeIconsCSS.matchAll(/\.pi-([a-z0-9-]+):before/g),
-].map((m) => `pi pi-${m[1]}`);
-const blueprintIconNames = Object.values(IconNames);
 
+const iconifyLibraries = Object.keys(CollectionData).reduce((acc, key) => {
+  acc[`Iconify-${key}`] = { __iconify: true, prefix: key };
+  return acc;
+}, {});
+
+console.log(iconifyLibraries)
 const libraries = {
   Lucide: Object.fromEntries(allValidLucideIcons.map((n) => [n, LucideIcons[n]])),
-  Radix: RadixIcons,
-  Phosphor: PhosphorIcons,
-  Heroicons: HeroIcons,
-  Feather: FeatherIcons,
-  FontAwesomeSolid: FaSolid,
-  FontAwesomeRegular: FaRegular,
-  FontAwesomeBrands: FaBrands,
-  Remix: RemixIcons,
-  Tabler: TablerIcons,
-  ReactIcons: { ...ReactAi, ...ReactFa, ...ReactGi, ...ReactMd },
-  MaterialUI: MuiIcons,
-  AntDesign: AntdIcons,
-  Fluent: FluentIconsFiltered,
-  Octicons: Octicons,
-  CoreUI: CIcon, 
-  Simple: SimpleIcons,
-  Eva: EvaIcons,
-  Zondicons: Zondicons,
-  Iconify: { "mdi:home": true, "mdi:bell": true, "mdi:email": true },
-  Carbon: CarbonIcons,
-  TeenyIcons: Object.fromEntries(allTeenyIcons.map((i) => [i.name, i.src])),
-  Foundation: Object.fromEntries(foundationIconList.map((n) => [n, true])),
-  Twemoji: Object.fromEntries(emojiList.map((e) => [e.name, e.char])),
-  NotoEmoji: Object.fromEntries(emojiList.map((e) => [e.name, e.char])),
-  EmojiMart: emojiMartData,
-  PrimeIcons: Object.fromEntries(primeIconList.map((n) => [n, n])),
-  Blueprint: Object.fromEntries(blueprintIconNames.map((n) => [n, n])),
-  // Add more mappings if necessary
+  ...iconifyLibraries,
 };
 
 /* helper to get icon names for each library */
@@ -173,61 +100,40 @@ export default function AllIconsPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [zondiconSvgs, setZondiconSvgs] = useState({});
-  
-  useEffect(() => {
-    const loadZondicons = async () => {
-      const entries = await Promise.all(
-        Object.entries(Zondicons).map(async ([name, loader]) => {
-          if (typeof loader === "function") {
-            try {
-              const mod = await loader();
-              return [name, mod.default]; // SVG file URL
-            } catch {
-              return [name, null];
-            }
-          }
-          return [name, null];
-        })
-      );
-      setZondiconSvgs(Object.fromEntries(entries));
-    };
-    loadZondicons();
-  }, []);
+  const [selectedLetter, setSelectedLetter] = useState(null);
+  const [icons, setIcons] = useState([]);
   const ITEMS_PER_PAGE = 120;
   const iconNames = useMemo(() => getIconListForLib(activeLib), [activeLib]);
 
-  // build icon objects array: { lib, name }
-   const icons = useMemo(() => {
-     if (activeLib === "Lucide") {
-       const allValidIcons = Object.keys(LucideIcons)
-         .filter((name) => !name.endsWith("Icon"))
-         .slice(0, 3730);
-       return allValidIcons.map((name) => ({ lib: activeLib, name }));
-     }
- 
-     const libIcons = libraries[activeLib];
-     if (!libIcons) return [];
- 
-     // Eva uses icons object
-     if (activeLib === "Eva") {
-       return Object.keys(EvaIcons.icons || {}).map((name) => ({
-         lib: activeLib,
-         name,
-       }));
-     }
- 
-     if (activeLib === "EmojiMart") {
-     return Object.values(data.emojis).map((e) => ({
-       lib: activeLib,
-       name: e.skins[0].native,
-     }));
-   }
- 
- 
-     return Object.keys(libIcons)
-       .filter((n) => /^[A-Za-z]/.test(n))
-       .map((name) => ({ lib: activeLib, name }));
-   }, [activeLib]);
+useEffect(() => {
+  const loadIcons = async () => {
+    const lib = libraries[activeLib];
+    if (!lib) return;
+
+    // 🔹 If it’s a normal React icon lib
+    if (!lib.__iconify) {
+      const libIcons = Object.keys(lib).filter((n) => /^[A-Za-z]/.test(n));
+      setIcons(libIcons.map((name) => ({ lib: activeLib, name })));
+      return;
+    }
+
+    // 🔹 If it’s an Iconify collection
+    try {
+      const data = await import(`/IconData/json/json/${lib.prefix}.json`);
+      console.log(data)
+      const names = Object.keys(data.icons || {}).map(
+        (n) => ({ lib: activeLib, name: `${data.prefix}:${n}` })
+      );
+      setIcons(names);
+    } catch (e) {
+      console.error("❌ Failed to load Iconify collection:", lib.prefix, e);
+      setIcons([]);
+    }
+  };
+
+  loadIcons();
+}, [activeLib]);
+
   // filter / search / sort
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -236,7 +142,7 @@ export default function AllIconsPage() {
     return arr;
   }, [icons, search, sortAsc]);
 
-  // console.log(filtered)
+  
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   useEffect(() => {
@@ -271,181 +177,11 @@ export default function AllIconsPage() {
           const Icon = LucideIcons[name];
           return Icon ? <Icon size={size} color={color} /> : null;
         }
-        case "Radix": {
-          const Icon = RadixIcons[name];
-          return Icon ? <Icon width={size} height={size} /> : null;
-        }
-        case "Phosphor": {
-          const Icon = PhosphorIcons[name];
-          return Icon ? <Icon size={size} /> : null;
-        }
-        case "Heroicons": {
-          const Icon = HeroIcons[name];
-          return Icon ? <Icon className="w-6 h-6" /> : null;
-        }
-        case "Feather": {
-          const Icon = FeatherIcons[name];
-          return Icon ? <Icon size={size} /> : null;
-        }
-        case "AntDesign": {
-          const Icon = AntdIcons[name];
-          return Icon ? <Icon style={{ fontSize: size, color }} /> : null;
-        }
-        case "Zondicons": {
-          const svgUrl = zondiconSvgs[name];
-          return svgUrl ? (
-              <img
-              src={svgUrl}
-              alt={name}
-              className="w-6 h-6 bg-white p-1 rounded object-contain"
-              loading="lazy"
-              />
-          ) : (
-              <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-700 animate-pulse rounded" />
-          );
-          }
-        case "Fluent": {
-          const Icon = FluentIcons[name];
-          return Icon ? <Icon className="w-6 h-6" /> : null;
-          }
-        case "FontAwesomeSolid":
-          return FaSolid[name] ? <FontAwesomeIcon icon={FaSolid[name]} size="lg" /> : null;
-        case "FontAwesomeRegular":
-          return FaRegular[name] ? <FontAwesomeIcon icon={FaRegular[name]} size="lg" /> : null;
-        case "FontAwesomeBrands":
-          return FaBrands[name] ? <FontAwesomeIcon icon={FaBrands[name]} size="lg" /> : null;
-        case "Remix": {
-          const Icon = RemixIcons[name];
-          return Icon ? <Icon size={size} /> : null;
-        }
-        case "Tabler": {
-          const Icon = TablerIcons[name];
-          return Icon ? <Icon size={size} /> : null;
-        }
-        case "ReactIcons": {
-          const Icon = ReactIcons[name];
-          return typeof Icon === "function" ? <Icon size={size} /> : null;
-        }
-       case "NotoEmoji": {
-          const emojiChar = libraries.NotoEmoji[name];
-          if (!emojiChar) return null;
-
-          return (
-            <span
-              style={{
-                fontFamily: '"Noto Color Emoji"',
-                fontSize: size,
-                lineHeight: 1,
-              }}
-            >
-              {emojiChar}
-            </span>
-          );
-        }
-        case "Blueprint": {
-          return (
-                <div className="flex items-center justify-center bg-white dark:bg-transparent p-1 rounded">
-                <BlueprintIcon icon={name} iconSize={size} color={color} />
-                </div>
-                  );
-                }
-        case "Twemoji": {
-          const emojiChar = libraries.Twemoji[name];
-          if (!emojiChar) return null;
-        
-          const parsedHTML = twemoji.parse(emojiChar, {
-            folder: "svg",
-            ext: ".svg",
-            base: "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/",
-          });
-        
-          return (
-            <div
-              className="flex items-center justify-center"
-              style={{ width: size, height: size }}
-              dangerouslySetInnerHTML={{ __html: parsedHTML }}
-            />
-          );
-        }
-        case "TeenyIcons": {
-          const src = libraries[lib][name];
-          return src ? (
-              <img
-              src={src}
-              alt={name}
-              className="w-6 h-6 bg-white p-1 rounded object-contain"
-              loading="lazy"
-              />
-          ) : (
-              <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-700 animate-pulse rounded" />
-          );
-          }
-        case "Octicons": {
-          const Icon = Octicons[name];
-          return Icon ? <Icon /> : null;
-        }
-        case "PrimeIcons":
-         return (
-            <i
-            className={name}
-            style={{ fontSize: size, color }}
-            />
-        );
-        case "Carbon": {
-          const Icon = CarbonIcons[name];
-          return Icon ? <Icon size={size} color={color} /> : null;
-          }
-        case "CoreUI":
-          return CoreUIIcons.CIcon && CIcon[name]
-              ? <CoreUIIcons.CIcon icon={CIcon[name]}  className="bg-white text-red-500 p-2 rounded h-10 w-10" />
-              : null;
-        case "Simple": {
-          const s = SimpleIcons[name];
-          if (!s) return null;
-          return (
-            <div className="w-full h-full flex items-center justify-center">
-              <svg viewBox="0 0 24 24" width={size} height={size} fill={`#${s.hex}`}>
-                <path d={s.path} />
-              </svg>
-            </div>
-          );
-        }
-        case "MaterialUI": {
-          const Icon = MuiIcons[name];
-          return Icon ? <Icon style={{ fontSize: size, color }} /> : null;
-        }
-        case "Foundation":
-          return (
-            <i
-              className={`fi fi-${name}`}
-              style={{
-                fontSize: size,
-                color,
-                display: "inline-block",
-                lineHeight: 1,
-              }}
-            />
-          );
-        case "EmojiMart": {
-          return (
-            <span style={{ fontSize: size + 6, lineHeight: 1 }}>
-              {name}
-            </span>
-          );
-        }  
+   
         case "Iconify":
-          return <IconifyIcon icon={name} width={size} height={size} />;
-        case "Eva": {
-          const evaIcon = EvaIcons.icons[name];
-          return evaIcon ? (
-            <div
-              className="bg-white rounded"
-              dangerouslySetInnerHTML={{
-                __html: evaIcon.toSvg({ width: size, height: size, color: "#fff" }),
-              }}
-            />
-          ) : null;
-        }
+        case lib.startsWith("Iconify-") && lib:
+          return <Icon icon={name} width={size} color={color} height={size} />;
+
         default:
           return null;
       }
@@ -458,7 +194,7 @@ export default function AllIconsPage() {
   function handleSelect(icon) {
     setSelectedIcon(icon);
     // show toast
-    toast.success(`Selected ${icon.lib}: ${icon.name}`);
+    showToast("success",`Selected ${icon.lib}: ${icon.name}`);
   }
 
   function copySource(icon) {
@@ -466,7 +202,7 @@ export default function AllIconsPage() {
     // generate a small JSX snippet depending on lib
     const snippet = `<${icon.lib}Icon name="${icon.name}" size={24} color="${subColor}" />`;
     navigator.clipboard.writeText(snippet);
-    toast.success("Icon JSX copied!");
+    showToast("success","Icon JSX copied!");
   }
 
   // keyboard: quick open suggestions on slash or ctrl+k
@@ -501,7 +237,14 @@ export default function AllIconsPage() {
             style={{ background: c }}
             onClick={() => {
               setSubPaletteIndex(i);
-              toast(`Subcolor set to ${c}`, { icon: "🎨" });
+              showToast("success",    <div className="max-w-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-md flex-shrink-0"
+                 style={{ background: c }} />
+             <div>{`Color set to ${c}`}</div>
+    
+          </div>
+        </div>);
             }}
           />
         ))}
@@ -532,17 +275,17 @@ export default function AllIconsPage() {
 
            <ScrollArea className="h-[68vh] pr-2">
             <div className="flex flex-col gap-2">
-              {Object.keys(libraries).map((lib) => (
+              {Object.keys(libraries).sort().map((lib) => (
                   <button
                   key={lib}
-                  onClick={() => { setActiveLib(lib); setPage(1); setSearch(""); }}
+                  onClick={() => { setActiveLib(lib); setPage(1); setSearch(""); showToast("success",`Selected Library: ${lib}`)  }}
                   className={clsx(
                     "w-full text-left cursor-pointer px-3 py-2 rounded-md transition-colors flex items-center justify-between",
                     activeLib === lib ? "bg-zinc-200/80 dark:bg-zinc-500/30 border border-indigo-500/10" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/30"
                   )}
                 >
                   <span>{lib}</span>
-                  <span className="text-xs opacity-60">{getIconListForLib(lib).length}</span>
+                  <span className="text-xs opacity-60">{filtered.length}</span>
                 </button>
               ))}
             </div>
@@ -560,7 +303,7 @@ export default function AllIconsPage() {
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold flex items-center gap-3">
-            <PaletteIcon className="w-7 h-7 text-indigo-500" />
+            
             Revolyx Icons
           </h1>
           <p className="text-sm opacity-70 mt-1">Browse, preview and copy icon JSX with palettes & code.</p>
@@ -622,10 +365,10 @@ export default function AllIconsPage() {
 
           <ScrollArea className="h-[68vh] pr-2">
             <div className="flex flex-col gap-2">
-              {Object.keys(libraries).map((lib) => (
+              {Object.keys(libraries).sort().map((lib) => (
                 <button
                   key={lib}
-                  onClick={() => { setActiveLib(lib); setPage(1); setSearch(""); }}
+                  onClick={() => { setActiveLib(lib); setPage(1); setSearch("");showToast("success",`Selected Library: ${lib}`) }}
                   className={clsx(
                     "w-full text-left cursor-pointer px-3 py-2 rounded-md transition-colors flex items-center justify-between",
                     activeLib === lib ? "bg-zinc-200/80 dark:bg-zinc-500/30 border border-indigo-500/10" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/30"
@@ -650,40 +393,84 @@ export default function AllIconsPage() {
                   <ListIcon className="w-5 h-5" /> Preview
                 </CardTitle>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-end flex-col  gap-2">
                   {renderPaletteSwatches()}
+                     <div className="mt-3 text-xs  text-wrap text-zinc-500 dark:text-zinc-400">
+                Click swatch to change color
+              </div>
                 </div>
+              
               </CardHeader>
 
               <CardContent className="p-4">
                 {selectedIcon ? (
                   <div className="flex flex-col md:flex-row gap-4">
-                    <div className="flex-none w-full md:w-36 h-36 rounded-lg border flex items-center justify-center">
+                    <div className="relative flex-none w-full md:w-50 h-50 rounded-lg border flex items-center justify-center">
                       <div style={{ color: subColor }}>
                         {renderIconPreview(selectedIcon, 48, subColor) || <div className="text-xs opacity-60">Preview unavailable</div>}
                       </div>
+                             <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="secondary"
+                                          className="absolute cursor-pointer bottom-3 right-3 text-xs flex items-center gap-1 px-2 py-1.5 bg-white/40 dark:bg-zinc-800/60 backdrop-blur-md border border-zinc-300/50 dark:border-zinc-700/50 hover:scale-105 transition-all"
+                                        >
+                                          <Maximize2 className="w-3.5 h-3.5" />
+                                          View Full
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="sm:max-w-[500px] md:max-w-[700px] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl">
+                                        <DialogHeader>
+                                          <DialogTitle className="text-center text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                                            Full Icon Preview
+                                          </DialogTitle>
+                                        </DialogHeader>
+                                        <div className="flex items-center justify-center p-6">
+                                          <motion.div
+                                            key={`icon-full-${selectedIcon}-${48}-${subColor}`}
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ duration: 0.35 }}
+                                          >
+                                           {renderIconPreview(selectedIcon, 100, subColor) || <div className="text-xs opacity-60">Preview unavailable</div>}
+                                          </motion.div>
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
                     </div>
 
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
+                    <div className="overflow-auto">
+                      <div className="flex items-center flex-wrap justify-between">
                         <div>
                           <div className="text-lg font-semibold">{selectedIcon.name}</div>
                           <div className="text-sm opacity-60">{selectedIcon.lib}</div>
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <Button size="sm" onClick={() => copySource(selectedIcon)}><CopyIcon className="w-4 h-4 mr-1" /> Copy JSX</Button>
-                          <Button size="sm" variant="outline" onClick={() => { setDialogOpen(true); }}>
-                            View Code
-                          </Button>
+                          <Button size="sm" className="cursor-pointer" onClick={() => copySource(selectedIcon)}><CopyIcon className="w-4 h-4 mr-1 cursor-pointer" /> Copy JSX</Button>
+                          
                         </div>
                       </div>
 
-                      <div className="mt-4 text-sm opacity-80">
-                        {/* Example inline snippet */}
-                        <pre className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded text-sm overflow-x-auto">
-{`<${selectedIcon.lib} icon="${selectedIcon.name}" size={24} color="${subColor}" />`}
-                        </pre>
+                      <div className="mt-4 flex  text-sm opacity-80">
+                          <Code
+                              key={`${0.1}-${10}-${true}-${true}`}
+                              className="w-full h-full"
+                              code= {`<${selectedIcon.lib} icon="${selectedIcon.name}" size={24} color="${subColor}" />`}
+                            >
+                              <CodeHeader  copyButton>
+                                Demo.jsx
+                              </CodeHeader>
+                        
+                              <CodeBlock
+                                cursor={true}
+                                lang="js"
+                                writing={true}
+                                duration={10}
+                                delay={0.1}
+                              />
+                            </Code>
                       </div>
                     </div>
                   </div>
@@ -714,8 +501,8 @@ export default function AllIconsPage() {
                   <Separator />
 
                   <div className="flex gap-2">
-                    <Button onClick={() => { setSearch(""); setPage(1); toast("Search cleared"); }} size="sm">Clear Search</Button>
-                    <Button onClick={() => { setSelectedIcon(null); toast("Selection cleared"); }} size="sm" variant="outline">Clear Selection</Button>
+                    <Button className="cursor-pointer" onClick={() => { setSearch(""); setPage(1);setSelectedLetter("");  showToast("success","Search cleared"); }} size="sm">Clear Search</Button>
+                    <Button className='cursor-pointer' onClick={() => { setSelectedIcon(null); showToast("success","Selection cleared"); }} size="sm" variant="outline">Clear Selection</Button>
                   </div>
                 </div>
               </CardContent>
@@ -740,23 +527,29 @@ export default function AllIconsPage() {
             <CardContent>
               {/* grid of icons */}
               <ScrollArea className="h-[60vh]">
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 p-2 gap-3">
+                <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-10 p-2 gap-3">
                   {paginated.map((ic) => (
-                    <motion.button
+                    <motion.Card
                       key={ic.lib + ic.name}
                       onClick={() => handleSelect(ic)}
                       whileHover={{ scale: 1.02 }}
                       className={clsx(
-                        "flex flex-col items-center justify-center cursor-pointer p-3 border rounded-lg transition-colors",
+                        `flex flex-col relative group items-center justify-center  p-3  group cursor-pointer rounded-2xl border transition-all duration-300 hover:shadow-lg hover:scale-[1.03]
+                       bg-white/80 backdrop-blur-sm border-zinc-200
+                          dark:bg-gradient-to-br dark:from-zinc-900 dark:to-zinc-950 dark:border-zinc-800
+                         hover:border-zinc-400 dark:hover:border-zinc-600`,
                         selectedIcon && selectedIcon.lib === ic.lib && selectedIcon.name === ic.name ? "ring-2 ring-zinc-400/20" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/40"
                       )}
-                      title={`${ic.lib}: ${ic.name}`}
+                      
                     >
+                            <div className="absolute inset-0 flex items-end justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            <div className="bg-black text-white text-xs px-2 py-1 rounded-md mb-2" style={{background:subColor}}>{ic.name}</div>
+                             </div>
                       <div className="w-10 h-10 flex items-center justify-center mb-2" style={{ color: subColor }}>
                         {renderIconPreview(ic, 20, subColor) || <div className="w-6 h-6 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse" />}
                       </div>
-                      <div className="text-[10px] text-center opacity-80 truncate w-full">{ic.name}</div>
-                    </motion.button>
+                      <div className="text-[10px] text-center opacity-80 group-hover:opacity-0 truncate w-full">{ic.name}</div>
+                    </motion.Card>
                   ))}
                 </div>
               </ScrollArea>
@@ -775,16 +568,29 @@ export default function AllIconsPage() {
 
           {/* alphabetized quick jump */}
           <div className="flex flex-wrap gap-2 items-center">
-            {Object.keys(grouped).map((letter) => (
-              <button key={letter} className="px-2 py-1 rounded cursor-pointer bg-zinc-100 dark:bg-zinc-800 text-sm" onClick={() => {
-                // jump to first icon starting with letter (find page)
-                const idx = filtered.findIndex((f) => f.name[0].toUpperCase() === letter);
+          {Object.keys(grouped).map((letter) => (
+            <button
+              key={letter}
+              onClick={() => {
+                setSelectedLetter(letter);
+                const idx = filtered.findIndex(
+                  (f) => f.name[0].toUpperCase() === letter
+                );
                 if (idx >= 0) {
                   setPage(Math.floor(idx / ITEMS_PER_PAGE) + 1);
                 }
-              }}>{letter}</button>
-            ))}
-          </div>
+              }}
+              className={clsx(
+                "px-2 py-1 rounded cursor-pointer text-sm transition-colors",
+                selectedLetter === letter
+                  ? "bg-red-500 text-white dark:bg-red-600" 
+                  : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+              )}
+            >
+              {letter}
+            </button>
+          ))}
+        </div>
         </section>
       </main>
 
@@ -815,3 +621,4 @@ export default function AllIconsPage() {
     </div>
   );
 }
+

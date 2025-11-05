@@ -33,6 +33,8 @@
     "@fortawesome/react-fontawesome": "^3.1.0",
     "@heroicons/react": "^2.2.0",
     "@icon-park/react": "^1.4.2",
+    "@iconify/collections": "^1.0.614",
+    "@iconify/json": "^2.2.403",
     "@iconify/react": "^6.0.2",
     "@ledgerhq/crypto-icons": "^1.1.3",
     "@mui/icons-material": "^7.3.4",
