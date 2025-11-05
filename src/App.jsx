@@ -10,6 +10,7 @@ import SpinnersPage from './pages/spinnersPage'
 import BackgroundPage from './pages/BackgroundDesignPage'
 import FlowchartPage from './pages/FlowchartPage'
 import AllIconsPage from './pages/AlliconsPage'
+import Documentation from './pages/Documention'
 const router=createBrowserRouter([
   {
 
@@ -50,7 +51,12 @@ const router=createBrowserRouter([
        {
         path:"/all-icons",
         element:<AllIconsPage/>
+      },
+      {
+        path:"/docs",
+        element:<Documentation/>
       }
+     
     ]
   }
 

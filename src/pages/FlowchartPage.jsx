@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import clsx from "clsx";
 import mermaid from "mermaid";
 import { motion } from "framer-motion";
@@ -166,13 +167,16 @@ async function downloadPng() {
 
 /* -------------------- The Page Component -------------------- */
 export default function FlowchartPage() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [query, setQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false); // hidden by default
   const [sortMode, setSortMode] = useState("asc");
   const [paletteName, setPaletteName] = useState("blue");
   const [subPaletteIdx, setSubPaletteIdx] = useState(0);
   const [palette, setPalette] = useState(COLOR_THEMES.blue.slice());
-  const [selectedId, setSelectedId] = useState(BUILT_IN_FLOWCHARTS[0].id);
+  const [selectedId, setSelectedId] = useState(searchParams.get("flow-chart") ||BUILT_IN_FLOWCHARTS[0].id);
   const [favorites, setFavorites] = useState(new Set());
   const [sheetOpen, setSheetOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -191,6 +195,16 @@ export default function FlowchartPage() {
     // keep palette in sync with paletteName
     setPalette(COLOR_THEMES[paletteName] ? COLOR_THEMES[paletteName].slice() : COLOR_THEMES.blue.slice());
   }, [paletteName]);
+
+  useEffect(() => {
+  const flowChartParam = searchParams.get("flow-chart");
+  
+
+  if (flowChartParam  && flowChartParam  !== selectedId) {
+    setSelectedId(flowChartParam );
+  }
+
+}, [searchParams]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -252,10 +266,8 @@ useEffect(() => {
     setSelectedId(id);
     // smooth scroll to top (like spinner page)
       // update URL without full reload
-    try {
-      const newUrl = `${window.location.pathname}?flow-chart=${encodeURIComponent(id)}`;
-      window.history.pushState({}, "", newUrl);
-    } catch (e) {}
+   setSearchParams({ id: id });
+   navigate(`?flow-chart=${id}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
     showToast("success","Selected: " + (BUILT_IN_FLOWCHARTS.find(c => c.id === id)?.name || id),3000,"");
   }

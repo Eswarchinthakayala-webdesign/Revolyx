@@ -63,6 +63,7 @@
     "@tsparticles/engine": "^3.9.1",
     "@tsparticles/react": "^3.0.0",
     "@tsparticles/slim": "^3.9.1",
+    "@uiw/react-md-editor": "^4.0.8",
     "@web3icons/react": "^4.0.31",
     "boxicons": "^2.1.4",
     "canvg": "^4.0.3",

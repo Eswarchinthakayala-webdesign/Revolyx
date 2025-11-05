@@ -1,8 +1,9 @@
 // src/pages/RevolyxSpinnersPage.jsx
 "use client";
 
-import React, { useEffect, useSearchParams, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 /* react-spinners */
 import {
@@ -370,6 +371,9 @@ export default Demo;`;
 
 /* --- MAIN COMPONENT --- */
 export default function RevolyxSpinnersPage() {
+    const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [paletteName, setPaletteName] = useState("blue");
   const [subPaletteIdx, setSubPaletteIdx] = useState(0);
   const [size, setSize] = useState(40);
@@ -377,8 +381,17 @@ export default function RevolyxSpinnersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [sortMode, setSortMode] = useState("asc"); // asc | desc
-  const [selectedSpinnerKey, setSelectedSpinnerKey] = useState(ALL_SPINNERS[0].key);
+  const [selectedSpinnerKey, setSelectedSpinnerKey] = useState(searchParams.get("spinner") ||ALL_SPINNERS[0].key);
   
+  useEffect(() => {
+  const spinnerParam = searchParams.get("spinner");
+  
+
+  if (spinnerParam && spinnerParam !== selectedSpinnerKey) {
+    setSelectedSpinnerKey(spinnerParam);
+  }
+
+}, [searchParams]);
 
   const inputRef = useRef(null);
 
@@ -399,8 +412,8 @@ export default function RevolyxSpinnersPage() {
 
   function handleSelectSpinner(key) {
     setSelectedSpinnerKey(key);
-    const newUrl = `${window.location.origin}${window.location.pathname}?spinner=${key}`;
-    window.history.pushState({ key }, "", newUrl);
+    setSearchParams({ key: key });
+      navigate(`?spinner=${key}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
     showToast("success",`${ALL_SPINNERS.find(s=>s.key===key)?.title || key} selected`);
   }

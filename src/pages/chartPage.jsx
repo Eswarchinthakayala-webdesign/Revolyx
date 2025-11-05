@@ -1,5 +1,6 @@
 // src/pages/RevolyxChartsPage.jsx
 import React, { useMemo, useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   LineChart,Label, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
   Tooltip, Legend, ResponsiveContainer, CartesianGrid, ComposedChart,
@@ -2842,15 +2843,26 @@ export default ThreeDimScatterChart;
 
 /* ---------- Main Component ---------- */
 export default function RevolyxChartsPage() {
-
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [paletteName, setPaletteName] = useState("blue");
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [sortMode, setSortMode] = useState("none"); // none | asc | desc
-  const [selectedChartKey, setSelectedChartKey] = useState(ALL_CHARTS[0].key);
+  const [selectedChartKey, setSelectedChartKey] = useState(searchParams.get("chart") || ALL_CHARTS[0].key);
   const [expandedSource, setExpandedSource] = useState({});
   const inputRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+  const chartParam = searchParams.get("chart");
+  
+
+  if (chartParam && chartParam !== selectedChartKey) {
+    setSelectedChartKey(chartParam);
+  }
+
+}, [searchParams]);
   useEffect(() => {
     if (!selectedChartKey) return;
 
@@ -2868,7 +2880,7 @@ useEffect(() => {
     setSelectedChartKey(chartFromUrl);
   }
 }, []);
-const navigate=useNavigate()
+
 const {theme}=useTheme()
   const isDark =
     theme === "dark" ||
@@ -2882,8 +2894,8 @@ const {theme}=useTheme()
 
   function handleChartClick(key) {
     setSelectedChartKey(key);
-    const newUrl = `${window.location.origin}${window.location.pathname}?chart=${key}`;
-     window.history.pushState({ key }, "", newUrl);
+    setSearchParams({ key: key });
+      navigate(`?chart=${key}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
     showToast("info","Chart loaded", 2000, `Loaded ${key} preview` );
   }

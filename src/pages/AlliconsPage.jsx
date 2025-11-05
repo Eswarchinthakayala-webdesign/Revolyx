@@ -80,7 +80,7 @@ const COLOR_THEMES = {
   navy: ["#1e3a8a", "#1d4ed8", "#172554", "#3b82f6", "#93c5fd"],
   copper: ["#b87333", "#c87a4b", "#a65e2e", "#d29572", "#f1d3b2"],
   silver: ["#c0c0c0", "#d1d5db", "#9ca3af", "#e5e7eb", "#f9fafb"],
-    neonGreen: ["#39ff14", "#66ff66", "#00ff00", "#aaffaa", "#ccffcc"],
+  neonGreen: ["#39ff14", "#66ff66", "#00ff00", "#aaffaa", "#ccffcc"],
   neonBlue: ["#00f0ff", "#33ffff", "#009dff", "#80eaff", "#ccf7ff"],
   neonPink: ["#ff00ff", "#ff66ff", "#ff33cc", "#ff99ff", "#ffe6ff"],
   neonPurple: ["#b026ff", "#c266ff", "#8a2be2", "#d6a6ff", "#f0e6ff"],
@@ -108,7 +108,7 @@ const iconifyLibraries = Object.keys(CollectionData).reduce((acc, key) => {
 }, {});
 
 const libraries = {
-  Lucide: Object.fromEntries(allValidLucideIcons.map((n) => [n, LucideIcons[n]])),
+  LucideReact: Object.fromEntries(allValidLucideIcons.map((n) => [n, LucideIcons[n]])),
   ...iconifyLibraries,
 };
 
@@ -131,7 +131,7 @@ function getIconListForLib(libKey) {
 
 /* ------------------------- UI Component ------------------------- */
 export default function AllIconsPage() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [activeLib, setActiveLib] = useState(searchParams.get("lib") || "Lucide");
@@ -140,7 +140,12 @@ export default function AllIconsPage() {
       ? { lib: searchParams.get("lib") || "Lucide", name: searchParams.get("icon") }
       : null
   );
+
+  // primary icon search (header + main)
   const [search, setSearch] = useState("");
+  // separate library search (sidebar + mobile)
+  const [librarySearch, setLibrarySearch] = useState("");
+
   const [page, setPage] = useState(1);
   const [paletteKey, setPaletteKey] = useState("blue");
   const [subPaletteIndex, setSubPaletteIndex] = useState(0);
@@ -151,20 +156,19 @@ export default function AllIconsPage() {
   const [icons, setIcons] = useState([]);
   const ITEMS_PER_PAGE = 120;
   const iconNames = useMemo(() => getIconListForLib(activeLib), [activeLib]);
-  
+
   useEffect(() => {
-  const libParam = searchParams.get("lib");
-  const iconParam = searchParams.get("icon");
+    const libParam = searchParams.get("lib");
+    const iconParam = searchParams.get("icon");
 
-  if (libParam && libParam !== activeLib) {
-    setActiveLib(libParam);
-  }
+    if (libParam && libParam !== activeLib) {
+      setActiveLib(libParam);
+    }
 
-  if (iconParam && (!selectedIcon || selectedIcon.name !== iconParam)) {
-    setSelectedIcon({ lib: libParam || "Lucide", name: iconParam });
-  }
-}, [searchParams]);
-
+    if (iconParam && (!selectedIcon || selectedIcon.name !== iconParam)) {
+      setSelectedIcon({ lib: libParam || "Lucide", name: iconParam });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const loadIcons = async () => {
@@ -207,7 +211,7 @@ export default function AllIconsPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    // 🔍 Filter icons by search
+    // 🔍 Filter icons by search (uses cleaned name)
     let arr = icons.filter((i) => {
       const cleanName = i.name.includes(":")
         ? i.name.split(":")[1] // remove library prefix
@@ -229,9 +233,8 @@ export default function AllIconsPage() {
       const cleanName = icon.name.includes(":")
         ? icon.name.split(":")[1]
         : icon.name;
-      const firstLetter = cleanName && cleanName[0]
-        ? (cleanName[0].toUpperCase().match(/[A-Z]/) ? cleanName[0].toUpperCase() : "_")
-        : "_"; // non-alphabetic group
+      const firstChar = cleanName && cleanName[0] ? cleanName[0] : "_";
+      const firstLetter = /^[A-Za-z]$/.test(firstChar.toUpperCase()) ? firstChar.toUpperCase() : "_";
       return {
         ...icon,
         cleanName,
@@ -256,7 +259,8 @@ export default function AllIconsPage() {
 
     filtered.forEach((it) => {
       const cleanName = it.cleanName || (it.name.includes(":") ? it.name.split(":")[1] : it.name);
-      const letter = cleanName && cleanName[0] ? cleanName[0].toUpperCase() : "#";
+      const letterChar = cleanName && cleanName[0] ? cleanName[0].toUpperCase() : "#";
+      const letter = /^[A-Z]$/.test(letterChar) ? letterChar : "#";
       if (!map[letter]) map[letter] = [];
       map[letter].push({
         ...it,
@@ -264,10 +268,14 @@ export default function AllIconsPage() {
       });
     });
 
-    // 🔡 Sort alphabetically (A → Z)
-    return Object.fromEntries(
-      Object.entries(map).sort(([a], [b]) => a.localeCompare(b))
-    );
+    // 🔡 Sort alphabetically (A → Z), put '#' at the end
+    const entries = Object.entries(map).sort(([a], [b]) => {
+      if (a === "#") return 1;
+      if (b === "#") return -1;
+      return a.localeCompare(b);
+    });
+
+    return Object.fromEntries(entries);
   }, [filtered]);
 
   /* palette helpers */
@@ -286,7 +294,7 @@ export default function AllIconsPage() {
     }
 
     // Lucide case (React component)
-    if (lib === "Lucide") {
+    if (lib === "LucideReact") {
       const IconComp = LucideIcons[name];
       return IconComp ? <IconComp size={size} color={color} /> : null;
     }
@@ -300,15 +308,14 @@ export default function AllIconsPage() {
   }
 
   /* preview & code panel actions */
-function handleSelect(icon) {
-  setSelectedIcon(icon);
-  showToast("success", `Selected ${icon.lib}: ${icon.name}`);
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  // 🆕 Update URL
-  setSearchParams({ lib: icon.lib, icon: icon.name });
-  navigate(`?lib=${icon.lib}&icon=${icon.name}`);
-}
-
+  function handleSelect(icon) {
+    setSelectedIcon(icon);
+    showToast("success", `Selected ${icon.lib}: ${icon.name}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Update URL & params
+    setSearchParams({ lib: icon.lib, icon: icon.name });
+    navigate(`?lib=${icon.lib}&icon=${icon.name}`);
+  }
 
   function copySource(icon) {
     if (!icon) return;
@@ -366,6 +373,17 @@ function handleSelect(icon) {
     );
   }
 
+  /* suggestions for icon names (small list) */
+  const suggestions = useMemo(() => {
+    if (!search.trim()) return [];
+    const q = search.trim().toLowerCase();
+    // show top 8 suggestions from filtered icons (by cleanName)
+    return filtered
+      .slice(0, 500) // reduce work
+      .filter((i) => i.cleanName && i.cleanName.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [search, filtered]);
+
   /* responsive sheet for mobile */
   const SidebarSheet = (
     <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -382,45 +400,66 @@ function handleSelect(icon) {
               <ListIcon className="w-4 h-4" />
               <div className="font-medium">Icons</div>
             </div>
+            {/* <button className="lg:hidden" onClick={() => setSheetOpen(false)}>
+              <XIcon className="w-4 h-4" />
+            </button> */}
           </div>
 
-          <ScrollArea className="h-[68vh] pr-2">
+          {/* library search inside mobile sheet */}
+          <div className="mb-3">
+            <Input
+              placeholder="Search libraries..."
+              value={librarySearch}
+              onChange={(e) => setLibrarySearch(e.target.value)}
+              className="mb-2"
+            />
+          </div>
+
+          <ScrollArea className="h-[60vh] pr-2">
             <div className="flex flex-col gap-2">
-              {Object.keys(libraries).sort().map((libKey) => {
-                const lib = libraries[libKey];
-                const displayName = libKey.startsWith("Iconify-")
-                  ? libKey.replace("Iconify-", "")
-                  : libKey;
+              {Object.keys(libraries)
+                .sort()
+                .filter((libKey) => {
+                  if (!librarySearch) return true;
+                  const displayName = libKey.startsWith("Iconify-") ? libKey.replace("Iconify-", "") : libKey;
+                  return displayName.toLowerCase().includes(librarySearch.toLowerCase());
+                })
+                .map((libKey) => {
+                  const lib = libraries[libKey];
+                  const displayName = libKey.startsWith("Iconify-")
+                    ? libKey.replace("Iconify-", "")
+                    : libKey;
 
-                const count =
-                  lib.__iconify && CollectionData[lib.prefix]
-                    ? CollectionData[lib.prefix].total || 0
-                    : getIconListForLib(libKey).length;
+                  const count =
+                    lib.__iconify && CollectionData[lib.prefix]
+                      ? CollectionData[lib.prefix].total || 0
+                      : getIconListForLib(libKey).length;
 
-                return (
-                  <button
-                    key={libKey}
-                    onClick={() => {
-                      setActiveLib(libKey);
-                      setPage(1);
-                      setSearch("");
-                      showToast("success", `Selected Library: ${displayName}`);
-                      setSearchParams({ lib: libKey });
-                      navigate(`?lib=${libKey}`);
-                      setSelectedIcon(null);
-                    }}
-                    className={clsx(
-                      "w-full text-left cursor-pointer px-3 py-2 rounded-md transition-colors flex items-center justify-between",
-                      activeLib === libKey
-                        ? "bg-zinc-200/80 dark:bg-zinc-500/30 border border-indigo-500/10"
-                        : "hover:bg-zinc-100 dark:hover:bg-zinc-800/30"
-                    )}
-                  >
-                    <span>{displayName}</span>
-                    <span className="text-xs opacity-60">{count}</span>
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={libKey}
+                      onClick={() => {
+                        setActiveLib(libKey);
+                        setPage(1);
+                        setSearch("");
+                        showToast("success", `Selected Library: ${displayName}`);
+                        setSearchParams({ lib: libKey });
+                        navigate(`?lib=${libKey}`);
+                        setSelectedIcon(null);
+                        setSheetOpen(false);
+                      }}
+                      className={clsx(
+                        "w-full text-left cursor-pointer px-3 py-2 rounded-md transition-colors flex items-center justify-between",
+                        activeLib === libKey
+                          ? "bg-zinc-200/80 dark:bg-zinc-500/30 border border-indigo-500/10"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800/30"
+                      )}
+                    >
+                      <span className="capitalize">{displayName}</span>
+                      <span className="text-xs opacity-60">{count}</span>
+                    </button>
+                  );
+                })}
             </div>
           </ScrollArea>
         </div>
@@ -441,7 +480,7 @@ function handleSelect(icon) {
           <p className="text-sm opacity-70 mt-1">Browse, preview and copy icon JSX with palettes & code.</p>
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex items-center gap-2 w-full md:w-auto relative">
           {/* mobile sheet trigger */}
           {SidebarSheet}
 
@@ -458,6 +497,33 @@ function handleSelect(icon) {
               className="border-0 shadow-none"
             />
           </div>
+
+          {/* suggestions dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute right-0 top-full mt-2 w-[320px] z-50 rounded-md shadow-lg bg-white/90 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+              <div className="p-2">
+                {suggestions.map((s) => (
+                  <button
+                    key={`${s.lib}:${s.name}`}
+                    onMouseDown={(e) => e.preventDefault()} // keep focus behavior stable
+                    onClick={() => {
+                      handleSelect(s);
+                      setShowSuggestions(false);
+                    }}
+                    className="w-full text-left px-2 py-2 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2"
+                  >
+                    <div className="w-6 h-6 flex items-center justify-center" style={{ color: subColor }}>
+                      {renderIconPreview(s, 18, subColor)}
+                    </div>
+                    <div className="flex flex-col text-sm">
+                      <span className="font-medium">{s.cleanName}</span>
+                      <span className="text-xs opacity-60">{s.lib}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <Select value={paletteKey} onValueChange={(v) => { setPaletteKey(v); setSubPaletteIndex(0); }}>
             <SelectTrigger className="w-40 cursor-pointer">
@@ -495,43 +561,58 @@ function handleSelect(icon) {
             <Badge>{Object.keys(libraries).length}</Badge>
           </div>
 
+          {/* library search (desktop) */}
+          <Input
+            placeholder={`Search libraries...`}
+            value={librarySearch}
+            onChange={(e) => setLibrarySearch(e.target.value)}
+            className="mb-4"
+          />
+
           <ScrollArea className="h-[68vh] pr-2">
             <div className="flex flex-col gap-2">
-              {Object.keys(libraries).sort().map((libKey) => {
-                const lib = libraries[libKey];
-                const displayName = libKey.startsWith("Iconify-")
-                  ? libKey.replace("Iconify-", "")
-                  : libKey;
+              {Object.keys(libraries)
+                .sort()
+                .filter((libKey) => {
+                  if (!librarySearch) return true;
+                  const displayName = libKey.startsWith("Iconify-") ? libKey.replace("Iconify-", "") : libKey;
+                  return displayName.toLowerCase().includes(librarySearch.toLowerCase());
+                })
+                .map((libKey) => {
+                  const lib = libraries[libKey];
+                  const displayName = libKey.startsWith("Iconify-")
+                    ? libKey.replace("Iconify-", "")
+                    : libKey;
 
-                const count =
-                  lib.__iconify && CollectionData[lib.prefix]
-                    ? CollectionData[lib.prefix].total || 0
-                    : getIconListForLib(libKey).length;
+                  const count =
+                    lib.__iconify && CollectionData[lib.prefix]
+                      ? CollectionData[lib.prefix].total || 0
+                      : getIconListForLib(libKey).length;
 
-                return (
-                  <button
-                    key={libKey}
-                    onClick={() => {
-                      setActiveLib(libKey);
-                      setPage(1);
-                      setSearch("");
-                      showToast("success", `Selected Library: ${displayName}`);
-                      setSearchParams({ lib: libKey });
-                       navigate(`?lib=${libKey}`);
-                       setSelectedIcon(null);
-                    }}
-                    className={clsx(
-                      "w-full text-left cursor-pointer px-3 py-2 rounded-md transition-colors flex items-center justify-between",
-                      activeLib === libKey
-                        ? "bg-zinc-200/80 dark:bg-zinc-500/30 border border-indigo-500/10"
-                        : "hover:bg-zinc-100 dark:hover:bg-zinc-800/30"
-                    )}
-                  >
-                    <span>{displayName}</span>
-                    <span className="text-xs opacity-60">{count}</span>
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={libKey}
+                      onClick={() => {
+                        setActiveLib(libKey);
+                        setPage(1);
+                        setSearch("");
+                        showToast("success", `Selected Library: ${displayName}`);
+                        setSearchParams({ lib: libKey });
+                        navigate(`?lib=${libKey}`);
+                        setSelectedIcon(null);
+                      }}
+                      className={clsx(
+                        "w-full text-left cursor-pointer px-3 py-2 rounded-md transition-colors flex items-center justify-between",
+                        activeLib === libKey
+                          ? "bg-zinc-200/80 dark:bg-zinc-500/30 border border-indigo-500/10"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800/30"
+                      )}
+                    >
+                      <span>{displayName}</span>
+                      <span className="text-xs opacity-60">{count}</span>
+                    </button>
+                  );
+                })}
             </div>
           </ScrollArea>
         </aside>
@@ -612,8 +693,12 @@ function handleSelect(icon) {
                           key={`${0.1}-${10}-${true}-${true}`}
                           className="w-full h-full"
                           code={selectedIcon.lib === "Iconify" || selectedIcon.lib.startsWith("Iconify-")
-                            ? `<Icon icon="${selectedIcon.name}" width={24} height={24} color="${subColor}" />`
-                            : `<${selectedIcon.lib} icon="${selectedIcon.name}" size={24} color="${subColor}" />`}
+                            ? `//npm install @iconify/react
+import { Icon } from "@iconify/react";
+<Icon icon="${selectedIcon.name}" width={24} height={24} color="${subColor}" />`
+                            : `//npm install lucide-react
+import { ${selectedIcon.name} } from "lucide-react";                           
+<${selectedIcon.name} size={24} color="${subColor}" />`}
                         >
                           <CodeHeader copyButton>
                             Demo.jsx
@@ -733,7 +818,7 @@ function handleSelect(icon) {
                 key={letter}
                 onClick={() => {
                   setSelectedLetter(letter);
-                  // find by cleanName's first letter (previous bug: used name[0] which could contain prefix)
+                  // find by cleanName's first letter
                   const idx = filtered.findIndex(
                     (f) => (f.cleanName && f.cleanName[0] && f.cleanName[0].toUpperCase()) === letter
                   );

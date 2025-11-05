@@ -40,7 +40,7 @@ export default function Header() {
     { name: "Colors", icon: Palette, path: "/colors" },
     { name: "Charts", icon: ChartAreaIcon, path: "/charts" },
     { name: "Spinners", icon: Chromium, path: "/spinners" },
-    {name:"All Icons",icon:CupSoda,path:"/all-icons"},
+    {name:"All Icons",icon:CupSoda,path:"/all-icons?lib=LucideReact"},
     {name:"Designs",icon:Wallpaper,path:"/designs"},
     {name:"Flow Chart",icon:FolderDown,path:"/flow-chart"},
 
