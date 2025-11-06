@@ -1,0 +1,198 @@
+/* markdown.css — Modern UI-integrated Markdown Styles */
+
+/* ---------- BASE STYLES ---------- */
+.wmde-markdown {
+  font-family: "Inter", "SF Pro Display", "Roboto", sans-serif;
+  line-height: 1.65;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Hide the automatic link icon in headings */
+.wmde-markdown a.anchor {
+  display: none !important;
+}
+
+/* ---------- DARK MODE ---------- */
+[data-color-mode="dark"] .wmde-markdown {
+  background-color: #0b0b0c !important;
+  color: #e6e6e6 !important;
+}
+
+/* Headings */
+[data-color-mode="dark"] .wmde-markdown h1,
+[data-color-mode="dark"] .wmde-markdown h2,
+[data-color-mode="dark"] .wmde-markdown h3 {
+  color: #fff !important;
+  border: none !important;
+  margin-top: 1.5em;
+  font-weight: 700;
+}
+
+/* Code blocks */
+[data-color-mode="dark"] .wmde-markdown pre {
+  background-color: #111214 !important;
+  color: #aee7ff !important;
+  border-radius: 10px;
+  padding: 1em 1.2em;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+/* Inline code */
+[data-color-mode="dark"] .wmde-markdown code {
+  background-color: #151618 !important;
+  color: #7dd3fc !important;
+  border-radius: 6px;
+  padding: 0.2em 0.45em;
+  font-size: 0.95em;
+}
+
+/* ---------- DARK MODE TABLES (Borderless, Themed) ---------- */
+[data-color-mode="dark"] .wmde-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  background-color: #0d0e10;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+/* Header row */
+[data-color-mode="dark"] .wmde-markdown th {
+  background-color: #121316;
+  color: #fafafa;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.9em 1em;
+  font-size: 0.95em;
+}
+
+/* Table cells */
+[data-color-mode="dark"] .wmde-markdown td {
+  padding: 0.9em 1em;
+  color: #e6e6e6;
+  background-color: transparent;
+}
+
+/* Row hover (soft glow effect) */
+[data-color-mode="dark"] .wmde-markdown tr:hover td {
+  background-color: rgba(255, 255, 255, 0.03);
+  transition: background-color 0.2s ease;
+}
+
+/* Even row background tint */
+[data-color-mode="dark"] .wmde-markdown tr:nth-child(even) td {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Inline code inside table cells */
+[data-color-mode="dark"] .wmde-markdown td code {
+  background-color: #1a1d22;
+  color: #60a5fa;
+  border-radius: 6px;
+  padding: 0.15em 0.4em;
+  font-size: 0.9em;
+}
+
+/* ---------- LIGHT MODE ---------- */
+[data-color-mode="light"] .wmde-markdown {
+  background-color: #ffffff !important;
+  color: #1f1f1f !important;
+}
+
+/* Headings */
+[data-color-mode="light"] .wmde-markdown h1,
+[data-color-mode="light"] .wmde-markdown h2,
+[data-color-mode="light"] .wmde-markdown h3 {
+  color: #111 !important;
+  border: none !important;
+  margin-top: 1.5em;
+  font-weight: 700;
+}
+
+/* Code blocks */
+[data-color-mode="light"] .wmde-markdown pre {
+  background-color: #f8fafc !important;
+  color: #1e293b !important;
+  border-radius: 10px;
+  padding: 1em 1.2em;
+  overflow-x: auto;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+/* Inline code */
+[data-color-mode="light"] .wmde-markdown code {
+  background-color: #f1f5f9 !important;
+  color: #2563eb !important;
+  border-radius: 6px;
+  padding: 0.2em 0.45em;
+  font-size: 0.95em;
+}
+
+/* ---------- LIGHT MODE TABLES (Borderless, Themed) ---------- */
+[data-color-mode="light"] .wmde-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  background-color: #f9fafb;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+/* Header row */
+[data-color-mode="light"] .wmde-markdown th {
+  background-color: #f3f4f6;
+  color: #111827;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.9em 1em;
+  font-size: 0.95em;
+}
+
+/* Table cells */
+[data-color-mode="light"] .wmde-markdown td {
+  padding: 0.9em 1em;
+  color: #1f2937;
+  background-color: transparent;
+}
+
+/* Row hover (soft highlight) */
+[data-color-mode="light"] .wmde-markdown tr:hover td {
+  background-color: rgba(0, 0, 0, 0.03);
+  transition: background-color 0.2s ease;
+}
+
+/* Even row background tint */
+[data-color-mode="light"] .wmde-markdown tr:nth-child(even) td {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Inline code inside table cells */
+[data-color-mode="light"] .wmde-markdown td code {
+  background-color: #eef2ff;
+  color: #2563eb;
+  border-radius: 6px;
+  padding: 0.15em 0.4em;
+  font-size: 0.9em;
+}
+
+/* ---------- RESPONSIVE TABLES ---------- */
+.wmde-markdown table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 100, 100, 0.4) transparent;
+}
+
+.wmde-markdown table::-webkit-scrollbar {
+  height: 8px;
+}
+
+.wmde-markdown table::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 100, 100, 0.4);
+  border-radius: 4px;
+}
