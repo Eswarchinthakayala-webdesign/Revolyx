@@ -74,6 +74,11 @@ import { Vortex } from "../components/ui/shadcn-io/vortex";
 import { showToast } from "../lib/ToastHelper";
 import { GridBackground } from "../components/ui/grid-background";
 import { HoverBackground } from "../components/ui/hover-background";
+import { AnimatedBackground } from 'animated-backgrounds';
+import Checks from "../components/animations/Checks";
+import Chinese from "../components/animations/Chinese";
+import Kencode from "../components/animations/Kencode";
+import GridDesign from "../components/animations/GridDesign";
 
 
   typeof window !== "undefined" && /Mobi|Android/i.test(navigator.userAgent);
@@ -115,6 +120,110 @@ export default function BackgroundDesignPage() {
   amplitude={1.0}
   speed={0.5}
 />`,
+      },
+                  {
+        id: "checks",
+        name: "Checks",
+        description: "Checks",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+       <Checks/>
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import styled from 'styled-components';
+
+function App() {
+  return (
+    <div>
+      <Checks/>
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "Kencode",
+        name: "Kencode",
+        description: "Kencode",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+       <Kencode/>
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import styled from 'styled-components';
+
+function App() {
+  return (
+    <div>
+      <Kencode/>
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "GridDesign",
+        name: "GridDesign",
+        description: "GridDesign",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+       <GridDesign/>
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import styled from 'styled-components';
+
+function App() {
+  return (
+    <div>
+      <GridDesign/>
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "Chinese",
+        name: "Chinese",
+        description: "Chinese;",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+       <Chinese/>
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import styled from 'styled-components';
+
+function App() {
+  return (
+    <div>
+      <Chinese/>
+    </div>
+  );
+}
+
+export default App;`,
       },
       {
         id: "lightrays",
@@ -160,6 +269,1069 @@ export default function BackgroundDesignPage() {
     mouseInteractive={true}
   />
 </div>`,
+      },
+            {
+        id: "starry-night",
+        name: "StarryNight",
+        description: "starryNight",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+        animationName="starryNight"
+        blendMode="screen"
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="starryNight" 
+        blendMode="screen" 
+      />
+      {/* Your app content */}
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "ocean-waves",
+        name: "OceanWaves",
+        description: "oceanWaves",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+        animationName="oceanWaves"
+        theme="wellness"
+        adaptivePerformance={true}
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="oceanWaves"
+        theme="wellness"
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "matrix-rain",
+        name: "MatrixRain",
+        description: "matrixRain",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+       animationName="matrixRain"
+        theme="gaming"
+        interactive={true}
+        enablePerformanceMonitoring={true}
+
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="matrixRain"
+        theme="gaming"
+        interactive={true}
+        enablePerformanceMonitoring={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "particle-network",
+        name: "particleNetwork",
+        description: "particleNetwork",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+       animationName="particleNetwork"
+        interactive={true}
+        interactionConfig={{
+          effect: 'attract',     // 'attract', 'repel', 'follow', 'burst'
+          strength: 0.8,         // 0-1
+          radius: 150,           // pixels
+          continuous: true       // keep effect after mouse leaves
+        }}
+
+
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="particleNetwork"
+        interactive={true}
+        interactionConfig={{
+          effect: 'attract',     // 'attract', 'repel', 'follow', 'burst'
+          strength: 0.8,         // 0-1
+          radius: 150,           // pixels
+          continuous: true       // keep effect after mouse leaves
+        }}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },
+
+                  {
+        id: "electric-storm",
+        name: "ElectricStorm",
+        description: "electricStorm",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+       animationName="electricStorm"
+        enablePerformanceMonitoring={true}
+        adaptivePerformance={true}
+    
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="electricStorm"
+        enablePerformanceMonitoring={true}
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "firefly-forest",
+        name: "FireflyForest",
+        description: "fireflyForest",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+      animationName="fireflyForest"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+    
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="fireflyForest"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "neon-pulse",
+        name: "NeonPulse",
+        description: "neonPulse",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+      animationName="neonPulse"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+    
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="neonPulse"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "geometric-shapes",
+        name: "GeometricShapes",
+        description: "geometricShapes",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+      animationName="geometricShapes"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+    
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="geometricShapes"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "quantum-field",
+        name: "QuantumField",
+        description: "quantumField",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+      animationName="quantumField"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+    
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="quantumField"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "autumn-leaves",
+        name: "AutumnLeaves",
+        description: "autumnLeaves",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+      animationName="autumnLeaves"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+    
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="autumnLeaves"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "fire-flies",
+        name: "Fireflies",
+        description: "fireflies",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+      animationName="fireflies"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+    
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="fireflies"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "snow-fall",
+        name: "SnowFall",
+        description: "snowfall",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+      animationName="snowFall"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+    
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="snowFall"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "rainbow-waves",
+        name: "RainbowWaves",
+        description: "rainbowWaves",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+      animationName="rainbowWaves"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+    
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="rainbowWaves"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },            {
+        id: "gradientWave",
+        name: "GradientWave",
+        description: "gradientWave",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+      animationName="gradientWave"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+    
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="gradientWave"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },            {
+        id: "floatingBubbles",
+        name: "FloatingBubbles",
+        description: "floatingBubbles",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+      animationName="floatingBubbles"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+    
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="floatingBubbles"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },            {
+        id: "auroraBorealis",
+        name: "AuroraBorealis",
+        description: "auroraBorealis",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+      animationName="auroraBorealis"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+    
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="auroraBorealis"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "dnaHelix",
+        name: "DnaHelix",
+        description: "dnaHelix",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+      animationName="dnaHelix"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+    
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="dnaHelix"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },            {
+        id: "fallingFoodFiesta",
+        name: "FallingFoodFiesta",
+        description: "fallingFoodFiesta",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+      animationName="fallingFoodFiesta"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+    
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="fallingFoodFiesta"
+        interactive={true}
+        interactionConfig={{
+          effect: 'follow',
+          strength: 0.6,
+          radius: 100
+        }}
+        // Automatically optimizes for mobile
+        adaptivePerformance={true}
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "galaxy-spiral",
+        name: "GalaxySpiral",
+        description: "galaxySpiral",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+       animationName="galaxySpiral"
+       speed="0.8"
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+        animationName="galaxySpiral", 
+      opacity: 0.5, 
+      blendMode: 'overlay',
+      speed: 0.8 
+      />
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "cosmic-dust",
+        name: "cosmicDust",
+        description: "cosmicDust",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+      {/* Restrict the animation to this div */}
+      <AnimatedBackground
+       animationName='cosmicDust'
+       opacity="0.5"
+       blendMode='overlay'
+      
+        style={{
+          position: "absolute", // Override the default fixed
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+        }}
+      />
+
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import { AnimatedBackground } from 'animated-backgrounds';
+
+function App() {
+  return (
+    <div>
+      <AnimatedBackground 
+       animation: 'cosmicDust', 
+      opacity: 0.5, 
+      blendMode: 'overlay',
+      speed: 0.8 
+      />
+    </div>
+  );
+}
+
+export default App;`,
       },
       {
         id: "galaxy",
