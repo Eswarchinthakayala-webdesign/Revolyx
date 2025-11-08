@@ -17,6 +17,7 @@ import {
   FolderDown,
   Wallpaper,
   CupSoda,
+  QrCode,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
@@ -42,6 +43,7 @@ export default function Header() {
     { name: "Spinners", icon: Chromium, path: "/spinners" },
     {name:"All Icons",icon:CupSoda,path:"/all-icons?lib=LucideReact"},
     {name:"Designs",icon:Wallpaper,path:"/designs"},
+    {name:"QR Code",icon:QrCode,path:"/qr-code"},
     {name:"Flow Chart",icon:FolderDown,path:"/flow-chart"},
 
   ]; 

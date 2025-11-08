@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import MDEditor from "@uiw/react-md-editor";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,12 @@ import RequiredMd from "../docs/Required.md?raw";
 import ThemingMd from "../docs/Theming.md?raw";
 import ColorsMd from "../docs/Colors.md?raw";
 import ColorsIntroMd from "../docs/ColorsIntro.md?raw";
+import ChartsIntroMd from "../docs/charts-intro.md?raw";
+import ChartsMd from "../docs/charts.md?raw";
+import ChartsThemingMd from "../docs/charts-theming.md?raw";
+
+
+
 import ResponsiveSidebar from "../components/DocSidebar";
 
 /**
@@ -53,6 +60,15 @@ const menuSections = [
       "ColorsIntro",
       "Colors",
       "Themes",
+      
+    ],
+  },
+    {
+    title: "Revolyx Charts",
+    items: [
+      "ChartsIntro",
+      "Charts",
+      "ChartsTheming",
       
     ],
   },
@@ -188,6 +204,9 @@ _“Revolyx brings your visual imagination to life — one icon, one chart, one 
   Themes: ThemingMd,
   ColorsIntro:ColorsIntroMd,
   Colors: ColorsMd,
+  ChartsIntro:ChartsIntroMd,
+  Charts:ChartsMd,
+  ChartsTheming:ChartsThemingMd,
   Checkbox: "# Checkbox\n\nShort placeholder for Checkbox.",
   Dialog: "# Dialog\n\nShort placeholder for Dialog.",
   "Dropdown Menu": "# Dropdown Menu\n\nShort placeholder for Dropdown Menu.",
@@ -220,6 +239,8 @@ const slugId = (s = "") =>
    ----------------------- */
 
 export default function DocsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
 
   /* Left menu state */
@@ -391,6 +412,24 @@ export default function DocsPage() {
     }
   };
 
+   useEffect(() => {
+    const urlTopic = searchParams.get("topic");
+    if (urlTopic && topicContent[urlTopic]) {
+      setActiveLeft(urlTopic);
+      setMarkdown(topicContent[urlTopic]);
+    }
+  }, []);
+
+  /* -----------------------
+     Update URL when topic changes
+  ------------------------ */
+  useEffect(() => {
+    if (!activeLeft) return;
+    setMarkdown(topicContent[activeLeft] || `# ${activeLeft}`);
+    setSearchParams({ topic: activeLeft });
+    window.scrollTo(0, 0);
+  }, [activeLeft]);
+
   /* Measurements and observers setup (ResizeObserver + scroll handlers).
      We set up a ResizeObserver on left, right, content and window resize to re-measure.
   */
@@ -553,7 +592,7 @@ export default function DocsPage() {
               style={{ maxHeight: "72vh", paddingRight: 18 }}
             >
              <div data-color-mode={isDark ? "dark" : "light"}
-            className="prose prose-invert max-w-3xl mx-auto dark:bg-[#0a0a0a] bg-white text-neutral-200  ">
+            className="prose prose-invert sm:max-w-5xl sm:mx-auto dark:bg-[#0a0a0a] bg-white text-neutral-200  ">
                 <div className="wmde-markdown-var"> </div>
                     <MDEditor.Markdown 
                 source={markdown}

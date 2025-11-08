@@ -106,7 +106,7 @@ export default function LandingPage() {
           transition={{ delay: 0.4 }}
           className="flex flex-wrap gap-4 justify-center"
         >
-          <Link to="/get-started">
+          <Link to="/docs?topic=Installation">
             <Button size="lg" className="rounded-full cursor-pointer font-semibold shadow-md">
               Get Started
             </Button>

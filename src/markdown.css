@@ -133,7 +133,7 @@
 /* ---------- LIGHT MODE TABLES (Borderless, Themed) ---------- */
 [data-color-mode="light"] .wmde-markdown table {
   width: 100%;
-  border-collapse: collapse;
+  border:none !important;
   margin: 1.5em 0;
   background-color: #f9fafb;
   border-radius: 12px;
@@ -182,7 +182,8 @@
 .wmde-markdown table {
   display: block;
   width: 100%;
-  overflow-x: auto;
+  overflow-x: auto; 
+  border:none !important;
   border-radius: 10px;
   scrollbar-width: thin;
   scrollbar-color: rgba(100, 100, 100, 0.4) transparent;

@@ -79,6 +79,17 @@ import Checks from "../components/animations/Checks";
 import Chinese from "../components/animations/Chinese";
 import Kencode from "../components/animations/Kencode";
 import GridDesign from "../components/animations/GridDesign";
+import TriangleDesign from "../components/animations/TriangleDesign";
+import PipeDotted from "../components/animations/PipeDotted";
+import ChessBoard from "../components/animations/ChessBoard";
+import SmallDotted from "../components/animations/SmallDotted";
+import NoteBook from "../components/animations/NoteBook";
+import VioletLight from "../components/animations/VioletLight";
+import RainbowBubble from "../components/animations/RainbowBubble";
+import Hexagons from "../components/animations/Hexagons";
+import Loader from "../components/animations/LoadingAnimation";
+import BulePiped from "../components/animations/LoadingAnimation";
+import MacNotebook from "../components/animations/MacNotebook";
 
 
   typeof window !== "undefined" && /Mobi|Android/i.test(navigator.userAgent);
@@ -167,6 +178,268 @@ function App() {
   return (
     <div>
       <Kencode/>
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "PipeDotted",
+        name: "PipeDotted",
+        description: "PipeDotted",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+       <PipeDotted/>
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import styled from 'styled-components';
+
+function App() {
+  return (
+    <div>
+      <PipeDotted/>
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "ChessBoard",
+        name: "ChessBoard",
+        description: "ChessBoard",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+       <ChessBoard/>
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import styled from 'styled-components';
+
+function App() {
+  return (
+    <div>
+      <ChessBoard/>
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "SmallDotted",
+        name: "SmallDotted",
+        description: "SmallDotted",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+       <SmallDotted/>
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import styled from 'styled-components';
+
+function App() {
+  return (
+    <div>
+      <SmallDotted/>
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "NoteBook",
+        name: "NoteBook",
+        description: "NoteBook",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+       <NoteBook/>
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import styled from 'styled-components';
+
+function App() {
+  return (
+    <div>
+      <NoteBook/>
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "VioletLight",
+        name: "VioletLight",
+        description: "VioletLight",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+       <VioletLight/>
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import styled from 'styled-components';
+
+function App() {
+  return (
+    <div>
+      <VioletLight/>
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "RainbowBubble",
+        name: "RainbowBubble",
+        description: "RainbowBubble",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+       <RainbowBubble/>
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import styled from 'styled-components';
+
+function App() {
+  return (
+    <div>
+      <RainbowBubble/>
+    </div>
+  );
+}
+
+export default App;`,
+      },
+            {
+        id: "Hexagons",
+        name: "Hexagons",
+        description: "Hexagons",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+       <Hexagons/>
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import styled from 'styled-components';
+
+function App() {
+  return (
+    <div>
+      <Hexagons/>
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "BulePiped",
+        name: "BulePiped",
+        description: "BulePiped",
+        render: (key) => (
+
+  <div className="relative  w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+       <BulePiped/>
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import styled from 'styled-components';
+
+function App() {
+  return (
+    <div>
+      <BulePiped/>
+    </div>
+  );
+}
+
+export default App;`,
+      },
+                  {
+        id: "MacNotebook",
+        name: "MacNotebook",
+        description: "MacNotebook",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+       <MacNotebook/>
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import styled from 'styled-components';
+
+function App() {
+  return (
+    <div>
+      <MacNotebook/>
+    </div>
+  );
+}
+
+export default App;`,
+      },
+
+
+                  {
+        id: "triangle-design",
+        name: "TriangleDesign",
+        description: "TriangleDesign",
+        render: (key) => (
+
+  <div className="relative w-full h-full overflow-hidden border border-zinc-700 rounded-lg">
+       <TriangleDesign/>
+   
+    </div>
+     
+
+        ),
+        code: `import React from 'react';
+import styled from 'styled-components';
+
+function App() {
+  return (
+    <div>
+      <TriangleDesign/>
     </div>
   );
 }
