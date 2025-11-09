@@ -12,6 +12,7 @@ import FlowchartPage from './pages/FlowchartPage'
 import AllIconsPage from './pages/AlliconsPage'
 import Documentation from './pages/Documention'
 import QRGeneratorPage from './pages/QRMakerPage'
+import ResourcePage from './pages/ResourcePage'
 const router=createBrowserRouter([
   {
 
@@ -60,6 +61,10 @@ const router=createBrowserRouter([
         {
         path:"/qr-code",
         element:<QRGeneratorPage/>
+      },
+         {
+        path:"/resources",
+        element:<ResourcePage/>
       },
      
     ]
