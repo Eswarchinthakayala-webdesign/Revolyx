@@ -17,6 +17,12 @@ import {
   ChevronDown,
   LucideMessageCircleQuestionMark,
   LockKeyholeOpen,
+  Info,
+  ExternalLink,
+  FileSearch,
+  Bookmark,
+  Download,
+  ArrowUpRight,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -30,6 +36,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { showToast } from "../lib/ToastHelper";
 
 /* ------------------ palettes (kept from original) ------------------ */
 const COLOR_THEMES = {
@@ -113,30 +120,65 @@ function extractJsonArrayFromText(text) {
 
 /* ------------------ AI call helper (returns raw text) ------------------ */
 async function generateResourcesWithAI(prompt) {
-  const key = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!key) throw new Error("Missing VITE_GEMINI_API_KEY");
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`;
+//   const key = import.meta.env.VITE_GEMINI_API_KEY;
+//   if (!key) throw new Error("Missing VITE_GEMINI_API_KEY");
+//   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`;
 
-  const body = {
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: prompt }],
-      },
+//   const body = {
+//     contents: [
+//       {
+//         role: "user",
+//         parts: [{ text: prompt }],
+//       },
+//     ],
+//   };
+
+//   const r = await fetch(endpoint, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify(body),
+//   });
+
+//   if (!r.ok) {
+//     const text = await r.text();
+//     throw new Error(`Gemini failed: ${r.status} ${r.statusText} ${text}`);
+//   }
+//   const data = await r.json();
+  const data={
+    "candidates": [
+        {
+            "content": {
+                "parts": [
+                    {
+                        "text": "```json\n[\n  {\n    \"title\": \"Top Backend Testing Tools for 2025: A Comprehensive Guide\",\n    \"url\": \"https://www.example.com/backend-testing-2025\",\n    \"summary\": \"An in-depth look at the leading backend testing tools, covering API testing, database testing, and performance testing. Includes comparisons of features, pricing, and ease of use, focusing on trends expected to dominate in 2025 like AI integration and cloud-native solutions.\",\n    \"tags\": [\"backend testing\", \"api testing\", \"database testing\", \"performance testing\", \"automation\", \"2025\", \"tool comparison\"],\n    \"source\": \"web\"\n  },\n  {\n    \"title\": \"REST-assured: Simplifying REST API Testing\",\n    \"url\": \"https://rest-assured.io/\",\n    \"summary\": \"REST-assured is a Java library that simplifies the testing of REST APIs. It provides a domain-specific language (DSL) that makes it easy to write concise and readable tests. While an older tool, continuous updates and community adoption ensures continued relevance.\",\n    \"tags\": [\"api testing\", \"rest api\", \"java\", \"automation\", \"bdd\", \"rest-assured\"],\n    \"source\": \"web\"\n  },\n  {\n    \"title\": \"Postman: API Development and Testing Platform\",\n    \"url\": \"https://www.postman.com/\",\n    \"summary\": \"Postman is a popular platform for API development, testing, and documentation. Its user-friendly interface and collaboration features make it a valuable tool for backend testing in 2025. Expecting enhanced collaboration and AI-driven test generation features.\",\n    \"tags\": [\"api testing\", \"collaboration\", \"documentation\", \"automation\", \"postman\"],\n    \"source\": \"web\"\n  },\n  {\n    \"title\": \"JUnit: Unit Testing Framework for Java\",\n    \"url\": \"https://junit.org/junit5/\",\n    \"summary\": \"JUnit is a widely used unit testing framework for Java. It provides annotations and assertions for writing and running unit tests. Remains foundational for backend unit testing within Java-based systems. Expecting better integration with cloud-native and microservices architectures.\",\n    \"tags\": [\"unit testing\", \"java\", \"testing framework\", \"junit\", \"backend testing\"],\n    \"source\": \"web\"\n  },\n  {\n    \"title\": \"Testcontainers: Integration Testing with Docker\",\n    \"url\": \"https://www.testcontainers.org/\",\n    \"summary\": \"Testcontainers provides lightweight, throwaway instances of common databases, message brokers, and other dependencies for integration testing. Useful for testing microservices and cloud-native applications. Expect improved support for ephemeral environments.\",\n    \"tags\": [\"integration testing\", \"docker\", \"containers\", \"microservices\", \"database testing\", \"testcontainers\"],\n    \"source\": \"web\"\n  },\n  {\n    \"title\": \"SoapUI: Functional Testing for SOAP and REST APIs\",\n    \"url\": \"https://www.soapui.org/\",\n    \"summary\": \"SoapUI is a headless functional testing tool for SOAP and REST APIs. While SOAP is diminishing, it's still relevant in some enterprise environments, ensuring SoapUI remains a viable option. Focus is shifting towards REST improvements and enhanced API virtualization.\",\n    \"tags\": [\"api testing\", \"soap\", \"rest api\", \"functional testing\", \"soapui\"],\n    \"source\": \"web\"\n  },\n  {\n    \"title\": \"Karate DSL: API Test Automation Framework\",\n    \"url\": \"https://karatelabs.github.io/karate/\",\n    \"summary\": \"Karate DSL is an open-source API test automation framework built on top of Cucumber. It's easy to learn and use, making it a good choice for teams that are new to API testing. Expecting increased adoption due to its simplicity and growing community support.\",\n    \"tags\": [\"api testing\", \"automation\", \"cucumber\", \"bdd\", \"karate dsl\"],\n    \"source\": \"web\"\n  },\n  {\n    \"title\": \"Gatling: Load Testing Tool\",\n    \"url\": \"https://gatling.io/\",\n    \"summary\": \"Gatling is a powerful load testing tool designed for high-load scenarios. It's a good choice for ensuring that your backend can handle the expected traffic in 2025. Expecting integrations with observability platforms and AI-driven test scenario generation.\",\n    \"tags\": [\"load testing\", \"performance testing\", \"gatling\", \"scalability\"],\n    \"source\": \"web\"\n  }\n]\n```"
+                    }
+                ],
+                "role": "model"
+            },
+            "finishReason": "STOP",
+            "avgLogprobs": -0.26467131075327177
+        }
     ],
-  };
-
-  const r = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  if (!r.ok) {
-    const text = await r.text();
-    throw new Error(`Gemini failed: ${r.status} ${r.statusText} ${text}`);
-  }
-  const data = await r.json();
+    "usageMetadata": {
+        "promptTokenCount": 87,
+        "candidatesTokenCount": 1022,
+        "totalTokenCount": 1109,
+        "promptTokensDetails": [
+            {
+                "modality": "TEXT",
+                "tokenCount": 87
+            }
+        ],
+        "candidatesTokensDetails": [
+            {
+                "modality": "TEXT",
+                "tokenCount": 1022
+            }
+        ]
+    },
+    "modelVersion": "gemini-2.0-flash-exp",
+    "responseId": "Ul8QaertJqKjjuMP79Tt4AM"
+}
 
   const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
   return txt;
@@ -253,14 +295,14 @@ export default function ResourcesFinderPage() {
           persistSavedResources(next);
           return next;
         });
-        toast.success("Search saved locally");
+        showToast("success","Search saved locally");
       } else {
-        if (results.length > 0) toast.success(`Found ${results.length} resources`);
-        else toast("No results");
+        if (results.length > 0) showToast("success",`Found ${results.length} resources`);
+        else showToast("info","No results");
       }
     } catch (err) {
       console.error("performSearch error", err);
-      toast.error(err?.message || "Search failed");
+      showToast("error",err?.message || "Search failed");
       setResources([]);
     } finally {
       setLoading(false);
@@ -307,7 +349,7 @@ export default function ResourcesFinderPage() {
       persistSavedResources(next);
       return next;
     });
-    toast.success("Saved resource");
+    showToast("success","Saved resource");
   }, []);
  
   useEffect(() => {
@@ -324,7 +366,7 @@ export default function ResourcesFinderPage() {
       persistSavedResources(next);
       return next;
     });
-    toast.success("Removed");
+    showToast("success","Removed");
   }, []);
 
   const openResource = (res) => {
@@ -340,12 +382,12 @@ export default function ResourcesFinderPage() {
     a.download = `${name}-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Downloaded JSON");
+    showToast("success","Downloaded JSON");
   }, []);
 
   /* simple loader component */
   function LoaderInline() {
-    return <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />;
+    return <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />;
   }
 
   /* UI */
@@ -390,9 +432,9 @@ export default function ResourcesFinderPage() {
           </Sheet>
 
           <div className="hidden lg:flex items-center gap-2">
-            <Button variant="outline" onClick={() => { setQuery(""); setResources([]); toast("Cleared search"); }}><Filter /></Button>
+            <Button variant="outline" onClick={() => { setQuery(""); setResources([]); showToast("success","Cleared search"); }}><Filter /></Button>
             <Button variant="secondary" onClick={() => { setDialogOpen(true); setAiPrompt(""); }}><Sparkles className="w-4 h-4 mr-1" /> Generate</Button>
-            <Button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("URL copied"); }}>Share</Button>
+            <Button onClick={() => { navigator.clipboard.writeText(window.location.href); showToast("success","URL copied"); }}>Share</Button>
           </div>
         </div>
       </header>
@@ -457,114 +499,288 @@ export default function ResourcesFinderPage() {
         {/* right content */}
         <section className="lg:col-span-3 space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <Card className="lg:col-span-2 bg-white/60 dark:bg-black/60">
-              <CardHeader className="flex items-center justify-between">
-                <CardTitle className="flex gap-2 items-center"> <LucideMessageCircleQuestionMark className="w-4 h-4"/> Results</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{filteredResources.length}</Badge>
-                  <div className="text-xs opacity-70">{query || "Recommendations"}</div>
-                </div>
-              </CardHeader>
+<Card className="lg:col-span-2 bg-white/60 dark:bg-black/60 backdrop-blur-sm border border-border/50 shadow-sm transition-all">
+  <CardHeader className="flex items-center justify-between pb-3">
+    <CardTitle className="flex items-center gap-2 text-base font-semibold">
+      <LucideMessageCircleQuestionMark className="w-5 h-5 text-primary" />
+      Results
+    </CardTitle>
+    <div className="flex items-center gap-3">
+      <Badge variant="secondary" className="px-2 py-0.5 text-xs">
+        {filteredResources.length}
+      </Badge>
+      <span className="text-xs text-muted-foreground font-medium">
+        {query || "Recommendations"}
+      </span>
+    </div>
+  </CardHeader>
 
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <motion.div animate={{ rotate: 360 }} transition={{ loop: Infinity, duration: 1.2 }} className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-400 to-pink-400 flex items-center justify-center">
-                      <Loader2 className="w-6 h-6 text-white animate-spin" />
-                    </motion.div>
-                  </div>
-                ) : (
-                  <ScrollArea className="space-y-4 h-100">
-                    {Object.entries(grouped).length === 0 && <div className="text-sm opacity-60">No results</div>}
-                    {Object.entries(grouped).map(([letter, list]) => (
-                      <div key={letter}>
-                        <div className="text-xs font-semibold text-zinc-400 mb-2">{letter}</div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {list.map(res => (
-                            <div key={res.id} className="p-3 border rounded flex items-start gap-3 hover:shadow-sm transition">
-                              <div className="flex-1">
-                                <div className="flex items-center justify-between">
-                                  <div className="font-medium">{res.title}</div>
-                                  <div className="text-xs opacity-60">{(res.tags || []).slice(0, 2).join(", ")}</div>
-                                </div>
-                                <div className="text-sm opacity-80 mt-1">{res.description}</div>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Button className="cursor-pointer" size="sm" onClick={() => openResource(res)}>Open</Button>
-                                  <Button className="cursor-pointer" size="sm" variant="ghost" onClick={() => saveResource(res)}><Save /></Button>
-                                  <Button className="cursor-pointer" size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(res.url || res.title || ""); toast.success("Copied link"); }}><Copy /></Button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+  <CardContent>
+    {loading ? (
+      <div className="flex flex-col items-center justify-center py-12">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+          className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-400 to-pink-400 flex items-center justify-center shadow-lg"
+        >
+          <Loader2 className="w-6 h-6 text-white animate-spin" />
+        </motion.div>
+        <p className="mt-4 text-sm text-muted-foreground">Fetching resources...</p>
+      </div>
+    ) : (
+      <ScrollArea className="h-[70vh] pr-3 space-y-5">
+        {Object.entries(grouped).length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground space-y-2">
+            <LucideMessageCircleQuestionMark className="w-8 h-8 opacity-60" />
+            <p className="text-sm font-medium">No results found</p>
+            <p className="text-xs opacity-70">Try refining your query or check spelling.</p>
+          </div>
+        ) : (
+          Object.entries(grouped).map(([letter, list]) => (
+            <div key={letter} className="space-y-3">
+              <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
+                {letter}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {list.map((res) => (
+                  <div
+                    key={res.id}
+                    className="p-4 rounded-lg border border-border/40 hover:border-primary/40 hover:shadow-md transition-all duration-200 bg-muted/10 hover:bg-muted/20"
+                  >
+                    <div className="flex items-start flex-col justify-between">
+                      <div className="font-medium text-sm w-full truncate">{res.title}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {(res.tags || []).slice(0, 2).join(", ")}
                       </div>
-                    ))}
-                  </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground mt-2 line-clamp-3">
+                      {res.description || "No description available."}
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-3">
+                      <Button
+                        size="sm"
+                        className="cursor-pointer flex items-center gap-1"
+                        onClick={() => openResource(res)}
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Open
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="cursor-pointer flex items-center gap-1"
+                        onClick={() => saveResource(res)}
+                      >
+                        <Save className="w-4 h-4" />
+                        Save
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="cursor-pointer flex items-center gap-1"
+                        onClick={() => {
+                          navigator.clipboard.writeText(res.url || res.title || "");
+                        showToast("success","Copied link to clipboard!");
+                        }}
+                      >
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </ScrollArea>
+    )}
+  </CardContent>
+</Card>
 
             {/* side preview + saved */}
             <div className="space-y-4">
               <Card className="bg-white/60 dark:bg-black/60">
                 <CardHeader><CardTitle>Preview</CardTitle></CardHeader>
-                <CardContent>
-                  {selectedResource ? (
-                    <div>
-                      <div className="font-semibold">{selectedResource.title}</div>
-                      <div className="text-xs opacity-60 mb-2 break-words">{selectedResource.url}</div>
-                      <div className="text-sm mb-3">{selectedResource.description}</div>
-                      <div className="flex gap-2">
-                        <Button className="cursor-pointer" onClick={() => saveResource(selectedResource)}>Save</Button>
-                        <Button className="cursor-pointer" variant="outline" onClick={() => { window.open(selectedResource.url, "_blank"); }}>Open</Button>
-                        <Button className="cursor-pointer" variant="ghost" onClick={() => downloadJson(selectedResource, selectedResource.title || "resource")}>JSON</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm opacity-60">Select a result to preview details.</div>
-                  )}
-                </CardContent>
+                <CardContent className="p-6 space-y-4">
+  {selectedResource ? (
+    <div className="space-y-3">
+      {/* Header Section */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold flex items-center  gap-2">
+          <FileSearch className="" />
+          {selectedResource.title}
+        </h3>
+      </div>
+
+      {/* URL Section */}
+      <p className="text-xs text-muted-foreground truncate hover:underline cursor-pointer"
+         onClick={() => window.open(selectedResource.url, "_blank")}>
+        {selectedResource.url}
+      </p>
+
+      {/* Description */}
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        {selectedResource.description}
+      </p>
+
+      {/* Actions */}
+      <div className="flex flex-wrap gap-2 pt-2">
+        <Button 
+          className="flex cursor-pointer items-center gap-2" 
+          onClick={() => saveResource(selectedResource)}
+        >
+          <Bookmark className="w-4 h-4" /> Save
+        </Button>
+
+        <Button 
+          variant="outline" 
+          className="flex cursor-pointer items-center gap-2"
+          onClick={() => window.open(selectedResource.url, "_blank")}
+        >
+          <ExternalLink className="w-4 h-4" /> Open
+        </Button>
+
+        <Button 
+          variant="ghost" 
+          className="flex cursor-pointer items-center gap-2"
+          onClick={() => downloadJson(selectedResource, selectedResource.title || "resource")}
+        >
+          <Download className="w-4 h-4" /> JSON
+        </Button>
+      </div>
+    </div>
+  ) : (
+    <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground space-y-3">
+      <Info className="w-10 h-10 text-primary/70" />
+      <p className="text-base font-medium">No resource selected</p>
+      <p className="text-sm text-muted-foreground">
+        Select a resource from the list to preview its details here.
+      </p>
+    </div>
+  )}
+</CardContent>
               </Card>
 
-              <Card className="bg-white/60 dark:bg-black/60">
-                <CardHeader className="flex items-center justify-between"><CardTitle>Saved</CardTitle><Badge variant="secondary">{saved.length}</Badge></CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-[40vh]">
-                    <div className="space-y-2">
-                      {saved.length === 0 && <div className="text-sm opacity-60">No saved resources</div>}
-                      {saved.map(s => (
-                        <div key={s.id} className="flex items-start gap-3 p-2 border rounded">
-                          <div className="flex-1">
-                            <div className="font-medium text-sm">{s.title}</div>
-                           {s.thumbnail?.text || s.description || "No description"}
-                          </div>
-                          <div className="flex flex-col gap-4 p-4">
-                           <button className="cursor-pointer h-4 w-5 p-2"  onClick={() => openResource(s)}><LockKeyholeOpen /></button>
-                <button className="cursor-pointer h-5 w-5 text-red-500 hover:text-red-400 p-2"   onClick={() => removeSaved(s.id)}><Trash2 /></button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
+             <Card className="bg-white/60 dark:bg-black/60 backdrop-blur-sm border border-border/50 shadow-sm transition-colors">
+  <CardHeader className="flex items-center justify-between pb-3">
+    <CardTitle className="text-base font-semibold flex items-center gap-2">
+      <Bookmark className="w-4 h-4 text-primary" />
+      Saved Resources
+    </CardTitle>
+    <Badge variant="secondary" className="px-2 py-0.5 text-xs">
+      {saved.length}
+    </Badge>
+  </CardHeader>
+
+  <CardContent className="px-2">
+    <ScrollArea className="h-[40vh] ">
+      <div className="space-y-2 pr-4">
+        {saved.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground space-y-2">
+            <Bookmark className="w-8 h-8 opacity-60" />
+            <p className="text-sm font-medium">No saved resources yet</p>
+            <p className="text-xs opacity-70">Save your favorite items to access them quickly.</p>
+          </div>
+        ) : (
+          saved.map((s) => (
+            <div
+              key={s.id}
+              className="flex items-start justify-between p-3 rounded-lg border dark:border-zinc-800 hover:bg-muted/30 transition-colors"
+            >
+              {/* Left content */}
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm truncate">{s.title}</div>
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                  {s.thumbnail?.text || s.description || "No description"}
+                </p>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center flex-col gap-2 ml-2 pr-2">
+                <button
+                  className="p-2 cursor-pointer rounded-md hover:bg-primary/10 transition-colors"
+                  title="Open Resource"
+                  onClick={() => openResource(s)}
+                >
+                  <ExternalLink className="w-4 h-4 text-primary" />
+                </button>
+                <button
+                  className="p-2 cursor-pointer rounded-md hover:bg-red-500/10 transition-colors"
+                  title="Remove"
+                  onClick={() => removeSaved(s.id)}
+                >
+                  <Trash2 className="w-4 h-4 text-red-500" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </ScrollArea>
+  </CardContent>
+</Card>
             </div>
           </div>
 
           {/* more suggestions grid */}
-          <Card className="bg-white/60 dark:bg-black/60">
-            <CardHeader><CardTitle>More Suggestions</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                {(resources || []).slice(0, 12).map(r => (
-                  <motion.button key={r.id} whileHover={{ scale: 1.02 }} className="p-3 border rounded-2xl cursor-pointer flex flex-col items-start gap-2 text-left" onClick={() => openResource(r)}>
-                    <div className="font-medium text-sm">{r.title}</div>
-                    <div className="text-xs opacity-60 break-words">{(r.description || "").slice(0, 140)}</div>
-                  </motion.button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+
+
+<Card className="bg-gradient-to-br from-white/70 to-white/30 dark:from-zinc-900/60 dark:to-zinc-800/30 backdrop-blur-xl border border-border/40 shadow-lg hover:shadow-primary/10 transition-all">
+  <CardHeader className="flex items-center justify-between pb-3">
+    <CardTitle className="flex items-center gap-2 text-base font-semibold">
+      <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+      More Suggestions
+    </CardTitle>
+  </CardHeader>
+
+  <CardContent>
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4  gap-3">
+      {(resources || []).slice(0, 12).map((r, index) => (
+        <motion.button
+          key={r.id}
+          whileHover={{
+            scale: 1.05,
+            boxShadow: "0px 0px 12px rgba(99,102,241,0.4)",
+          }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 250, damping: 15 }}
+          className="group relative p-4 border border-zinc-800/20 dark:border-zinc-100/20 rounded-2xl cursor-pointer flex flex-col justify-between text-left bg-white/50 dark:bg-zinc-900/40 hover:border-primary/50 hover:bg-white/70 dark:hover:bg-zinc-900/60 transition-all duration-300 overflow-hidden"
+          onClick={() => openResource(r)}
+        >
+          {/* Glow backdrop */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-pink-500/10 opacity-0 group-hover:opacity-100 blur-xl transition duration-500" />
+
+          {/* Content */}
+          <div className="relative z-10 space-y-2">
+            <div className="font-semibold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+              {r.title}
+            </div>
+            <div className="text-xs text-muted-foreground/80 leading-snug line-clamp-3">
+              {(r.description || "").slice(0, 140) || "No description available"}
+            </div>
+          </div>
+
+          {/* Hover icon */}
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            whileHover={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="absolute bottom-3 right-3 text-primary/70 group-hover:text-primary"
+          >
+            <ArrowUpRight className="w-4 h-4" />
+          </motion.div>
+        </motion.button>
+      ))}
+    </div>
+  </CardContent>
+</Card>
+
         </section>
       </main>
 

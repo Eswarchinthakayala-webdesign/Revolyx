@@ -13,6 +13,7 @@ import AllIconsPage from './pages/AlliconsPage'
 import Documentation from './pages/Documention'
 import QRGeneratorPage from './pages/QRMakerPage'
 import ResourcePage from './pages/ResourcePage'
+import CodeSnippetGenerator from './pages/CodeSnippetGenerator'
 const router=createBrowserRouter([
   {
 
@@ -66,7 +67,10 @@ const router=createBrowserRouter([
         path:"/resources",
         element:<ResourcePage/>
       },
-     
+         {
+        path:"/code-snippet",
+        element:<CodeSnippetGenerator/>
+      },
     ]
   }
 

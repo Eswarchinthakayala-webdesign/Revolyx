@@ -1,158 +1,213 @@
 "use client";
+
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useTheme } from "@/components/theme-provider";
 import { Link } from "react-router-dom";
-import { Sparkles, Code2, Layers, Zap, Shield, Globe, HeartHandshake } from "lucide-react";
+import {
+  Cpu,
+  Layers,
+  Network,
+  QrCode,
+  Sparkles,
+  Database,
+  Code2,
+  Workflow,
+  LineChart,
+  Loader2,
+  Star,
+  Home,
+  ChartAreaIcon,
+  Palette,
+  CupSoda,
+  Wallpaper,
+  ListCheckIcon,
+  FolderDown,
+  Chromium,
+} from "lucide-react";
+import { useState } from "react";
+
+/**
+ * 🚀 LandingPage – Professional hero + feature showcase + FAQ section
+ * + Interactive explore modal for quick navigation
+ */
 
 export default function LandingPage() {
   const { theme } = useTheme();
+  const [open, setOpen] = useState(false);
 
   const features = [
     {
-      icon: Code2,
-      title: "Modern Development",
-      desc: "Built with React, Tailwind, and Shadcn for seamless performance and design.",
+      icon: Palette,
+      title: "All-in-One Design System",
+      desc: "Seamlessly access icons, colors, gradients, and UI backgrounds in one unified platform.",
     },
     {
-      icon: Sparkles,
-      title: "Beautiful Design System",
-      desc: "Consistent components and motion-based interactions that feel alive.",
+      icon: LineChart,
+      title: "Charts & Data Visuals",
+      desc: "Create and customize professional-level charts and dashboards effortlessly.",
+    },
+    {
+      icon: Workflow,
+      title: "Flowchart & Diagram Builder",
+      desc: "Design logic flows and processes visually — export them as clean, scalable SVGs.",
+    },
+    {
+      icon: QrCode,
+      title: "QR & Code Generators",
+      desc: "Generate dynamic, theme-based QR codes that adapt to your palette instantly.",
     },
     {
       icon: Layers,
-      title: "Modular Architecture",
-      desc: "Easily extend or customize sections without breaking your workflow.",
+      title: "Animated Backgrounds",
+      desc: "Choose from pixel, prism, or fluid effects to power immersive experiences.",
     },
     {
-      icon: Zap,
-      title: "Lightning Fast",
-      desc: "Optimized loading and minimal bundle size for top-tier performance.",
+      icon: Database,
+      title: "Smart Resource Finder",
+      desc: "Search and save modern developer tools, libraries, and UI snippets instantly.",
     },
-    {
-      icon: Shield,
-      title: "Secure & Reliable",
-      desc: "Clean and secure codebase following the best practices.",
-    },
-    {
-      icon: Globe,
-      title: "Responsive & Global",
-      desc: "Perfectly scales from small screens to ultrawide monitors.",
-    },
+  ];
+
+  const navItems = [
+    { name: "Home", icon: Home, path: "/" },
+    { name: "Colors", icon: Palette, path: "/colors" },
+    { name: "Charts", icon: ChartAreaIcon, path: "/charts" },
+    { name: "Spinners", icon: Chromium, path: "/spinners" },
+    { name: "All Icons", icon: CupSoda, path: "/all-icons?lib=LucideReact" },
+    { name: "Designs", icon: Wallpaper, path: "/designs" },
+    { name: "QR Code", icon: QrCode, path: "/qr-code" },
+    { name: "Resources", icon: ListCheckIcon, path: "/resources" },
+    { name: "Flow Chart", icon: FolderDown, path: "/flow-chart" },
   ];
 
   const faqs = [
     {
       q: "What is Revolyx?",
-      a: "Revolyx is a modern developer platform offering elegant tools and UI components to build next-gen interfaces.",
+      a: "Revolyx is a modern design and development platform offering tools for icons, flowcharts, backgrounds, QR codes, and more — all in one place.",
     },
     {
-      q: "Is it open source?",
-      a: "Yes, Revolyx follows an open-source mindset, with components you can freely adapt and modify.",
+      q: "Can I use these tools for free?",
+      a: "Yes. All core tools are available for free. Some advanced templates may include optional premium features.",
     },
     {
-      q: "Which technologies are used?",
-      a: "It’s powered by React, Tailwind CSS, Framer Motion, and Shadcn/UI for perfect synergy.",
+      q: "Which technologies power Revolyx?",
+      a: "It’s built with React, Tailwind, Framer Motion, and Shadcn/UI — ensuring blazing-fast, smooth experiences.",
     },
     {
-      q: "Can I use it in my project?",
-      a: "Absolutely. You can clone and integrate it into your own apps with minimal setup.",
+      q: "Does it support themes and palettes?",
+      a: "Absolutely. Every component is color-aware and supports live palette customization.",
     },
     {
-      q: "Does it support dark mode?",
-      a: "Yes, it includes full dark/light theme synchronization using Tailwind’s dark class and ThemeProvider.",
-    },
-    {
-      q: "Is it mobile-friendly?",
-      a: "It’s fully responsive, adapting layouts and typography for all device sizes.",
-    },
-    {
-      q: "How can I contribute?",
-      a: "You can fork the repository, create pull requests, or suggest new ideas in the community section.",
+      q: "Is Revolyx responsive?",
+      a: "Yes. It’s built with full responsiveness in mind for mobile, tablet, and desktop.",
     },
   ];
 
   return (
-    <div
-    >
-      
+    <div className="min-h-screen text-zinc-900 dark:text-zinc-100 transition-colors">
       {/* === Hero Section === */}
-      <section className="flex flex-col items-center justify-center text-center px-6 py-28">
-        <motion.h1
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6"
-        >
-          Build the Future with{" "}
-          <span className="bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
-            Revolyx
-          </span>
-        </motion.h1>
+      <section className="flex flex-col items-center justify-center text-center px-6 py-28 relative overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="absolute inset-0 bg-gradient-to-br from-zinc-200/40 to-transparent dark:from-white/5 dark:to-black/50 pointer-events-none"
+        />
+
+       <motion.h1 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6" > Build the Future with{" "} <span className="bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent"> Revolyx </span> </motion.h1>
+
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mb-10"
+          className="text-lg md:text-xl text-zinc-600 dark:text-zinc-300 max-w-2xl mb-10 relative z-10"
         >
-          A modern design system and developer platform built for creativity,
-          precision, and scalability.
+          Revolyx brings design, development, and creativity together in one seamless workspace
         </motion.p>
 
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="flex flex-wrap gap-4 justify-center"
+          className="flex flex-wrap items-center gap-4 justify-center"
         >
-          <Link to="/docs?topic=Installation">
-            <Button size="lg" className="rounded-full cursor-pointer font-semibold shadow-md">
-              Get Started
-            </Button>
-          </Link>
+           <Button
+           
+            variant="outline"
+            className="rounded-full h-10  cursor-pointer border-zinc-400 dark:border-zinc-600 font-semibold"
+            onClick={() => setOpen(true)}
+          >
+          Explore for Free
+          </Button>
           <Link to="/docs">
-            <Button
-              size="lg"
-              variant="outline"
-              className="rounded-full cursor-pointer border-gray-400 dark:border-gray-600 font-semibold"
-            >
+            <Button  className="rounded-full cursor-pointer font-semibold shadow-md">
               View Docs
             </Button>
           </Link>
+         
         </motion.div>
       </section>
 
-      {/* === Features Section === */}
-      <section className="px-6 py-16 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-        {features.map(({ icon: Icon, title, desc }) => (
-          <motion.div
-            key={title}
-            whileHover={{ scale: 1.03 }}
-            className="p-6 rounded-2xl border border-gray-300 dark:border-white/10 bg-white/60 dark:bg-black/40 backdrop-blur-lg shadow-sm"
-          >
-            <Icon className="mb-3 h-8 w-8 text-gray-800 dark:text-gray-100" />
-            <h3 className="font-semibold text-xl mb-2">{title}</h3>
-            <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
-              {desc}
-            </p>
-          </motion.div>
-        ))}
+      {/* === Features Grid Section === */}
+      <section className="px-6 py-20 max-w-7xl mx-auto">
+        <motion.h2
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-3xl md:text-4xl font-bold text-center mb-14 bg-gradient-to-r from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent"
+        >
+          Unified Tools for Creative Developers
+        </motion.h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {features.map(({ icon: Icon, title, desc }) => (
+            <motion.div
+              key={title}
+              whileHover={{ scale: 1.04, y: -3 }}
+              transition={{ type: "spring", stiffness: 200 }}
+              className="relative overflow-hidden border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white/60 dark:bg-zinc-900/40 backdrop-blur-md shadow-sm hover:shadow-lg"
+            >
+              <Icon className="mb-4 h-8 w-8 text-zinc-800 dark:text-zinc-100" />
+              <h3 className="font-semibold text-lg mb-2">{title}</h3>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                {desc}
+              </p>
+            </motion.div>
+          ))}
+        </div>
       </section>
 
       {/* === FAQ Section === */}
-      <section className="px-6 py-20 max-w-7xl mx-auto">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 bg-gradient-to-r from-gray-800 to-gray-500 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+      <section className="px-6 py-24 max-w-5xl mx-auto">
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 bg-gradient-to-r from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">
           Frequently Asked Questions
         </h2>
 
         <Accordion type="single" collapsible className="space-y-4">
           {faqs.map(({ q, a }, i) => (
-            <AccordionItem key={i} value={`item-${i}`} className="border-b border-gray-300 dark:border-white/10">
-              <AccordionTrigger className="text-lg font-medium hover:text-gray-800 dark:hover:text-white">
+            <AccordionItem
+              key={i}
+              value={`faq-${i}`}
+              className="border-b border-zinc-300 dark:border-zinc-800"
+            >
+              <AccordionTrigger className="text-lg font-medium hover:text-zinc-800 dark:hover:text-zinc-100">
                 {q}
               </AccordionTrigger>
-              <AccordionContent className="text-gray-600 dark:text-gray-400 leading-relaxed">
+              <AccordionContent className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
                 {a}
               </AccordionContent>
             </AccordionItem>
@@ -160,7 +215,37 @@ export default function LandingPage() {
         </Accordion>
       </section>
 
-     
+      {/* === Explore Modal === */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-300 dark:border-zinc-700 rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold bg-gradient-to-r from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">
+              Explore Revolyx Tools
+            </DialogTitle>
+            <DialogDescription className="text-center text-sm text-zinc-600 dark:text-zinc-400 mb-6">
+              Select a category to start exploring
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {navItems
+              .filter((n) => n.name !== "Home")
+              .map(({ name, icon: Icon, path }) => (
+                <Link
+                  key={name}
+                  to={path}
+                  onClick={() => setOpen(false)}
+                  className="group border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 text-center flex flex-col items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+                >
+                  <motion.div whileHover={{ rotate: 5, scale: 1.1 }}>
+                    <Icon className="w-7 h-7 mb-2 text-zinc-800 dark:text-zinc-100 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 transition" />
+                  </motion.div>
+                  <span className="text-sm font-medium">{name}</span>
+                </Link>
+              ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
