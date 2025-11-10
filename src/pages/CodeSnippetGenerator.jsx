@@ -938,8 +938,9 @@ export default function RevolyxSnippetPage() {
               background: "transparent",
               fontSize: 14,
               fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', monospace",
-              whiteSpace: "pre",
               minWidth: "min-content",
+              whiteSpace: "pre-wrap", 
+              wordBreak: "break-word",
             }}
           >
             {code.trim() || "// Write your snippet here..."}

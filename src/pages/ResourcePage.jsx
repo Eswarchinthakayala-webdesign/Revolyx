@@ -23,6 +23,7 @@ import {
   Bookmark,
   Download,
   ArrowUpRight,
+  LoaderPinwheelIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -276,10 +277,26 @@ export default function ResourcesFinderPage() {
   }, [GEMINI_KEY, localSearch, paletteKey, subIdx]);
 
   /* auto-run on debouncedQuery when query typed */
-  useEffect(() => {
-    if (!debouncedQuery) return;
-    performSearch(debouncedQuery, { saveSearch: false }).catch(() => {});
-  }, [debouncedQuery, performSearch]);
+//   useEffect(() => {
+//     if (!debouncedQuery) return;
+//     performSearch(debouncedQuery, { saveSearch: false }).catch(() => {});
+//   }, [debouncedQuery, performSearch]);
+
+ /* Remove or comment out this part:
+useEffect(() => {
+  if (!debouncedQuery) return;
+  performSearch(debouncedQuery, { saveSearch: false }).catch(() => {});
+}, [debouncedQuery, performSearch]);
+*/
+
+/* ✅ New manual trigger: only when pressing Enter or Search button */
+const handleSearch = useCallback(() => {
+  if (!query.trim()) {
+    showToast("error", "Please enter a search term first");
+    return;
+  }
+  performSearch(query, { saveSearch: autoSave });
+}, [query, autoSave, performSearch]);
 
   /* derived: tags available and filtered list */
   const tagsAvailable = useMemo(() => {
@@ -417,9 +434,17 @@ export default function ResourcesFinderPage() {
                   <Input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSearch();
+                    }}
                     placeholder="Search topics, libraries, articles..."
                     className="pl-10"
-                  />
+                    />
+
+                    {/* <Button onClick={handleSearch} className="flex-1 cursor-pointer">
+                    {loading ? <LoaderPinwheelIcon /> : <SearchIcon className="w-4 h-4 mr-2" />} Search
+                    </Button> */}
+
                 </div>
 
       
