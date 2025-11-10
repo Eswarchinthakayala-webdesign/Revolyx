@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Switch } from "@/components/ui/switch";
 import { showToast } from "../lib/ToastHelper";
 import { Save, Download, Expand, FileCode, Trash2,  X, Maximize2,Loader2, Minimize2, ImageDown, Sparkles, FileDown, Search } from "lucide-react";
+import { useTheme } from "../components/theme-provider";
 
 /*
   Notes:
@@ -302,6 +303,7 @@ export default function RevolyxSnippetPage() {
           language={language}
           style={prismThemes[themeName] || prismThemes.oneDark}
           customStyle={{ margin: 0, padding: "8px", height: "100%" }}
+          className="no-scrollbar"
         >
           {sample}
         </SyntaxHighlighter>
@@ -894,68 +896,114 @@ export default function RevolyxSnippetPage() {
   );
 }
 
- function SnippetCard({ title, filename, code, language, prismTheme, palette, bg }) {
+ function SnippetCard({
+  title = "Untitled Snippet",
+  filename = "example.js",
+  code = "// Write your snippet here...",
+  language = "javascript",
+  prismTheme,
+  palette,
+  bg,
+}) {
+  const { theme } = useTheme();
+
   return (
-    <div
-      className="mx-auto w-fit max-w-full md:max-w-[1000px] rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl transition-all duration-300 hover:shadow-zinc-500/20"
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="mx-auto w-full max-w-[95vw] sm:max-w-[700px] md:max-w-[900px] lg:max-w-[1000px]
+      rounded-2xl overflow-hidden border
+      bg-white/70 dark:bg-zinc-900/70 
+      border-zinc-200 dark:border-zinc-800
+      shadow-lg hover:shadow-xl hover:border-zinc-300 dark:hover:border-zinc-700
+      transition-all duration-300 backdrop-blur-xl"
       style={{
-        background: `linear-gradient(180deg, ${transparentize(bg || "#111", 0.04)} 0%, ${transparentize(bg || "#111", 0.08)} 100%)`,
+        background: `linear-gradient(180deg, 
+          ${transparentize(bg || "#111", 0.04)} 0%, 
+          ${transparentize(bg || "#111", 0.08)} 100%)`,
       }}
     >
       {/* Header */}
-      <div className="p-3 border-b border-white/10 bg-white dark:bg-zinc-900/60 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
+      <div className="p-3 sm:p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
             <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
           </div>
-          <div className="flex flex-col leading-tight">
-            <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{title}</div>
-            <div className="text-xs text-zinc-500">{filename}</div>
+
+          <div className="flex flex-col truncate">
+            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate max-w-[160px] sm:max-w-[220px]">
+              {title}
+            </div>
+            <div className="text-xs text-zinc-500 truncate">{filename}</div>
           </div>
         </div>
-        <div className="text-xs text-zinc-400 uppercase tracking-wide">{language}</div>
+
+        <div className="text-xs text-zinc-500 uppercase tracking-wide">
+          {language}
+        </div>
       </div>
 
       {/* Code Block */}
       <div
-        className="p-4 overflow-x-auto"
+        className="p-3 sm:p-4 relative group rounded-b-2xl"
         style={{
-          background: bg || "linear-gradient(to bottom right, #0d0d0d, #1a1a1a)",
+          background:
+            bg ||
+            (theme === "dark"
+              ? "linear-gradient(to bottom right, #0d0d0d, #1a1a1a)"
+              : "linear-gradient(to bottom right, #fafafa, #f4f4f5)"),
         }}
       >
-        <div className="inline-block text-left">
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300 pointer-events-none bg-gradient-to-br from-zinc-500/30 to-transparent" />
+
+        <div className="w-full overflow-hidden">
           <SyntaxHighlighter
             language={language}
-            style={prismTheme || prismThemes.oneDark}
-            showLineNumbers
+            style={prismTheme || (theme === "dark" ? oneDark : oneLight)}
+          
+            wrapLines
             wrapLongLines
             customStyle={{
               margin: 0,
-              padding: "16px",
+              padding: "1rem",
               borderRadius: "0.5rem",
               background: "transparent",
-              fontSize: 14,
-              fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', monospace",
-              minWidth: "min-content",
-              whiteSpace: "pre-wrap", 
+              fontSize: "0.9rem",
+              fontFamily:
+                "ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', monospace",
+              lineHeight: 1.6,
+              whiteSpace: "pre-wrap",
               wordBreak: "break-word",
+              overflowWrap: "anywhere",
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+            codeTagProps={{
+              style: {
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                overflowWrap: "anywhere",
+              },
             }}
           >
-            {code.trim() || "// Write your snippet here..."}
+            {code.trim()}
           </SyntaxHighlighter>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="p-3 border-t border-white/10 flex items-center justify-between text-xs  text-zinc-500 dark:text-zinc-400 bg-white/60 dark:bg-zinc-900/60">
+      <div className="p-3 sm:p-4 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs text-zinc-600 dark:text-zinc-400 bg-white/60 dark:bg-zinc-900/60">
         <div>Revolyx • {new Date().toLocaleDateString()}</div>
-        <div>Theme Preview</div>
+        <div className="italic text-zinc-500 dark:text-zinc-400">Theme Preview</div>
       </div>
-    </div>
+    </motion.div>
   );
 }
+
+
 
 
 /* ---------- small utility to blend/transparentize hex color ---------- */
