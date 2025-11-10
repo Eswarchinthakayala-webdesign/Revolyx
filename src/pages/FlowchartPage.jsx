@@ -302,7 +302,7 @@ useEffect(() => {
 
   // AI generation calling Gemini — optional and requires a valid env var in Vite
   async function generateWithAI(prompt) {
-    const key = import.meta.env.VITE_GEMINI_API_KEYY;
+    const key = import.meta.env.VITE_GEMINI_API_KEY;
     if (!key) {
       showToast("error","Missing Gemini API key (VITE_GEMINI_API_KEY)",2000,"");
       return;
@@ -313,7 +313,7 @@ useEffect(() => {
     }
     setAiLoading(true);
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

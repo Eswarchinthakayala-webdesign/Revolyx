@@ -120,65 +120,31 @@ function extractJsonArrayFromText(text) {
 
 /* ------------------ AI call helper (returns raw text) ------------------ */
 async function generateResourcesWithAI(prompt) {
-//   const key = import.meta.env.VITE_GEMINI_API_KEY;
-//   if (!key) throw new Error("Missing VITE_GEMINI_API_KEY");
-//   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`;
+  const key = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!key) throw new Error("Missing VITE_GEMINI_API_KEY");
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
 
-//   const body = {
-//     contents: [
-//       {
-//         role: "user",
-//         parts: [{ text: prompt }],
-//       },
-//     ],
-//   };
-
-//   const r = await fetch(endpoint, {
-//     method: "POST",
-//     headers: { "Content-Type": "application/json" },
-//     body: JSON.stringify(body),
-//   });
-
-//   if (!r.ok) {
-//     const text = await r.text();
-//     throw new Error(`Gemini failed: ${r.status} ${r.statusText} ${text}`);
-//   }
-//   const data = await r.json();
-  const data={
-    "candidates": [
-        {
-            "content": {
-                "parts": [
-                    {
-                        "text": "```json\n[\n  {\n    \"title\": \"Top Backend Testing Tools for 2025: A Comprehensive Guide\",\n    \"url\": \"https://www.example.com/backend-testing-2025\",\n    \"summary\": \"An in-depth look at the leading backend testing tools, covering API testing, database testing, and performance testing. Includes comparisons of features, pricing, and ease of use, focusing on trends expected to dominate in 2025 like AI integration and cloud-native solutions.\",\n    \"tags\": [\"backend testing\", \"api testing\", \"database testing\", \"performance testing\", \"automation\", \"2025\", \"tool comparison\"],\n    \"source\": \"web\"\n  },\n  {\n    \"title\": \"REST-assured: Simplifying REST API Testing\",\n    \"url\": \"https://rest-assured.io/\",\n    \"summary\": \"REST-assured is a Java library that simplifies the testing of REST APIs. It provides a domain-specific language (DSL) that makes it easy to write concise and readable tests. While an older tool, continuous updates and community adoption ensures continued relevance.\",\n    \"tags\": [\"api testing\", \"rest api\", \"java\", \"automation\", \"bdd\", \"rest-assured\"],\n    \"source\": \"web\"\n  },\n  {\n    \"title\": \"Postman: API Development and Testing Platform\",\n    \"url\": \"https://www.postman.com/\",\n    \"summary\": \"Postman is a popular platform for API development, testing, and documentation. Its user-friendly interface and collaboration features make it a valuable tool for backend testing in 2025. Expecting enhanced collaboration and AI-driven test generation features.\",\n    \"tags\": [\"api testing\", \"collaboration\", \"documentation\", \"automation\", \"postman\"],\n    \"source\": \"web\"\n  },\n  {\n    \"title\": \"JUnit: Unit Testing Framework for Java\",\n    \"url\": \"https://junit.org/junit5/\",\n    \"summary\": \"JUnit is a widely used unit testing framework for Java. It provides annotations and assertions for writing and running unit tests. Remains foundational for backend unit testing within Java-based systems. Expecting better integration with cloud-native and microservices architectures.\",\n    \"tags\": [\"unit testing\", \"java\", \"testing framework\", \"junit\", \"backend testing\"],\n    \"source\": \"web\"\n  },\n  {\n    \"title\": \"Testcontainers: Integration Testing with Docker\",\n    \"url\": \"https://www.testcontainers.org/\",\n    \"summary\": \"Testcontainers provides lightweight, throwaway instances of common databases, message brokers, and other dependencies for integration testing. Useful for testing microservices and cloud-native applications. Expect improved support for ephemeral environments.\",\n    \"tags\": [\"integration testing\", \"docker\", \"containers\", \"microservices\", \"database testing\", \"testcontainers\"],\n    \"source\": \"web\"\n  },\n  {\n    \"title\": \"SoapUI: Functional Testing for SOAP and REST APIs\",\n    \"url\": \"https://www.soapui.org/\",\n    \"summary\": \"SoapUI is a headless functional testing tool for SOAP and REST APIs. While SOAP is diminishing, it's still relevant in some enterprise environments, ensuring SoapUI remains a viable option. Focus is shifting towards REST improvements and enhanced API virtualization.\",\n    \"tags\": [\"api testing\", \"soap\", \"rest api\", \"functional testing\", \"soapui\"],\n    \"source\": \"web\"\n  },\n  {\n    \"title\": \"Karate DSL: API Test Automation Framework\",\n    \"url\": \"https://karatelabs.github.io/karate/\",\n    \"summary\": \"Karate DSL is an open-source API test automation framework built on top of Cucumber. It's easy to learn and use, making it a good choice for teams that are new to API testing. Expecting increased adoption due to its simplicity and growing community support.\",\n    \"tags\": [\"api testing\", \"automation\", \"cucumber\", \"bdd\", \"karate dsl\"],\n    \"source\": \"web\"\n  },\n  {\n    \"title\": \"Gatling: Load Testing Tool\",\n    \"url\": \"https://gatling.io/\",\n    \"summary\": \"Gatling is a powerful load testing tool designed for high-load scenarios. It's a good choice for ensuring that your backend can handle the expected traffic in 2025. Expecting integrations with observability platforms and AI-driven test scenario generation.\",\n    \"tags\": [\"load testing\", \"performance testing\", \"gatling\", \"scalability\"],\n    \"source\": \"web\"\n  }\n]\n```"
-                    }
-                ],
-                "role": "model"
-            },
-            "finishReason": "STOP",
-            "avgLogprobs": -0.26467131075327177
-        }
+  const body = {
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: prompt }],
+      },
     ],
-    "usageMetadata": {
-        "promptTokenCount": 87,
-        "candidatesTokenCount": 1022,
-        "totalTokenCount": 1109,
-        "promptTokensDetails": [
-            {
-                "modality": "TEXT",
-                "tokenCount": 87
-            }
-        ],
-        "candidatesTokensDetails": [
-            {
-                "modality": "TEXT",
-                "tokenCount": 1022
-            }
-        ]
-    },
-    "modelVersion": "gemini-2.0-flash-exp",
-    "responseId": "Ul8QaertJqKjjuMP79Tt4AM"
-}
+  };
+
+  const r = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`Gemini failed: ${r.status} ${r.statusText} ${text}`);
+  }
+  const data = await r.json();
+
 
   const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
   return txt;
