@@ -18,6 +18,7 @@ import {
   Sparkles,
   Code2,
   LucideFootprints,
+  Dessert,
 } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
 import { useTheme } from "@/components/theme-provider";
@@ -46,6 +47,7 @@ export default function Header() {
     { name: "Flow Chart", icon: FolderDown, path: "/flow-chart" },
       { name: "Fonts", icon: LucideFootprints, path: "/fonts" },
       { name: "Code Snippet", icon: Code2, path: "/code-snippet" },
+      {name:"Neumorphism",icon:Dessert,path:"/neumorphism"}
   ];
 
   const mainNav = navItems.slice(0, 3); // First 3 visible in bottom bar

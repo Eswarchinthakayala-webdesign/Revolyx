@@ -133,6 +133,9 @@ export default function FontsPage() {
   const [isDarkPreview, setIsDarkPreview] = useState(false);
   const [loadingFont, setLoadingFont] = useState(false);
   const [fullScreen, setFullScreen] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
 
   // saved fonts (localStorage)
   const [saved, setSaved] = useState(() => {
@@ -161,16 +164,20 @@ export default function FontsPage() {
   const subColor = palette[subIdx % palette.length];
 
   // search / filtered families
-  const filteredFamilies = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return families;
-    return families.filter((f) => {
-      if (f.family.toLowerCase().includes(q)) return true;
-      if ((f.category || "").toLowerCase().includes(q)) return true;
-      if ((f.tags || []).some((t) => (t.name || "").toLowerCase().includes(q))) return true;
-      return false;
-    });
-  }, [families, query]);
+const filteredFamilies = useMemo(() => {
+  const q = debouncedQuery.trim().toLowerCase();
+  if (!q) return families;
+
+  return families.filter((f) => {
+    const family = f.family?.toLowerCase() || "";
+    const category = f.category?.toLowerCase() || "";
+    const tags = (f.tags || []).some((t) =>
+      (t.name || "").toLowerCase().includes(q)
+    );
+    return family.includes(q) || category.includes(q) || tags;
+  });
+}, [families, debouncedQuery]);
+
 
   // when selected family changes: populate variants & set default variant
   useEffect(() => {
@@ -214,6 +221,15 @@ export default function FontsPage() {
     }
     preloadAll();
   }, [familyObj]);
+  
+
+  useEffect(() => {
+  const handler = setTimeout(() => {
+    setDebouncedQuery(query);
+  }, 200); // delay typing response slightly
+
+  return () => clearTimeout(handler);
+}, [query]);
 
   // ensure selected variant has a font-face injected (this is more of a safety in case a specific variant key doesn't map)
   useEffect(() => {
@@ -360,39 +376,112 @@ export default function FontsPage() {
           <p className="text-sm opacity-70 mt-1">Inspired from the google fonts</p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" className="lg:hidden"><MenuIcon /></Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-[320px] p-2">
-              <div className="p-2">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="font-medium">Families</div>
-                </div>
-                 <Input placeholder="Search families" value={query} onChange={(e) => setQuery(e.target.value)} />
-                <ScrollArea className="h-[70vh]">
-                  <div className="flex flex-col gap-2">
-                    {filteredFamilies.map((f) => (
-                      <button key={f.family} onClick={() => { setSelectedFamily(f.family); setSheetOpen(false); }} className={clsx("text-left p-2 rounded-md", f.family === selectedFamily ? "bg-indigo-50 dark:bg-zinc-800" : "hover:bg-muted")}>
-                        <div className="font-medium">{f.family}</div>
-                        <div className="text-xs opacity-60">{f.category}</div>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            </SheetContent>
-          </Sheet>
-
-          <div className="flex items-center gap-2 border rounded-md px-2 py-1 bg-white dark:bg-zinc-900">
-            <SearchIcon className="w-4 h-4 opacity-60" />
-            <Input placeholder="Search families" value={query} onChange={(e) => setQuery(e.target.value)} className="border-0 shadow-none" />
-          </div>
-
-          <Button className='cursor-pointer' onClick={() => copyShareLink()}><LinkIcon className="w-4 h-4" />  <span className="hidden lg:flex">Share</span></Button>
-          <Button className='cursor-pointer' onClick={copyEmbed}><Copy className="w-4 h-4" /><span className="hidden lg:flex">Embed</span></Button>
+        <div className="flex items-center gap-2 relative">
+  {/* Mobile Drawer */}
+  <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+    <SheetTrigger asChild>
+      <Button variant="ghost" className="lg:hidden"><MenuIcon /></Button>
+    </SheetTrigger>
+    <SheetContent side="left" className="w-[320px] p-2">
+      <div className="p-2">
+        <div className="flex items-center justify-between mb-3">
+          <div className="font-medium">Families</div>
         </div>
+        <Input
+          placeholder="Search families"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <ScrollArea className="h-[70vh]">
+          <div className="flex flex-col gap-2">
+            {filteredFamilies.map((f) => (
+              <button
+                key={f.family}
+                onClick={() => {
+                  setSelectedFamily(f.family);
+                  setSheetOpen(false);
+                }}
+                className={clsx(
+                  "text-left p-2 rounded-md",
+                  f.family === selectedFamily
+                    ? "bg-indigo-50 dark:bg-zinc-800"
+                    : "hover:bg-muted"
+                )}
+              >
+                <div className="font-medium">{f.family}</div>
+                <div className="text-xs opacity-60">{f.category}</div>
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
+      </div>
+    </SheetContent>
+  </Sheet>
+
+  {/* 🔍 Search Bar with Suggestions */}
+  <div className="relative w-full max-w-sm">
+    <div className="flex items-center gap-2 border rounded-md px-2 py-1 bg-white dark:bg-zinc-900">
+      <SearchIcon className="w-4 h-4 opacity-60" />
+      <Input
+        placeholder="Search families"
+        value={query}
+        onFocus={() => setShowSuggestions(true)}
+        onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+        onChange={(e) => setQuery(e.target.value)}
+        className="border-0 shadow-none"
+      />
+    </div>
+
+    {/* 🧠 Suggestion Dropdown */}
+    {showSuggestions && query.trim() && (
+      <motion.div
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -6 }}
+        transition={{ duration: 0.2 }}
+        className="absolute z-50 mt-1 w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-md overflow-hidden"
+      >
+       {filteredFamilies
+  .filter((f) => f.family.toLowerCase().includes(query.toLowerCase()))
+  .slice(0, 10)
+  .map((f) => (
+    <button
+      key={f.family}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        setSelectedFamily(f.family);
+        setQuery(f.family);
+        setShowSuggestions(false);
+      }}
+      className="w-full text-left cursor-pointer
+       px-3 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+    >
+      <div className="font-medium">{f.family}</div>
+      <div className="text-xs opacity-60">{f.category}</div>
+    </button>
+  ))}
+
+
+        {filteredFamilies.filter((f) =>
+          f.family.toLowerCase().includes(query.toLowerCase())
+        ).length === 0 && (
+          <div className="p-2 text-sm opacity-70 text-center">
+            No results found
+          </div>
+        )}
+      </motion.div>
+    )}
+  </div>
+
+  {/* 🔗 Share / Embed Buttons */}
+  <Button className="cursor-pointer" onClick={() => copyShareLink()}>
+    <LinkIcon className="w-4 h-4" /> <span className="hidden lg:flex">Share</span>
+  </Button>
+  <Button className="cursor-pointer" onClick={copyEmbed}>
+    <Copy className="w-4 h-4" /> <span className="hidden lg:flex">Embed</span>
+  </Button>
+</div>
+
       </header>
 
       <main className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -419,33 +508,7 @@ export default function FontsPage() {
                   </ScrollArea>
                 </div>
                 <Separator />
-                <div className="flex items-center flex-wrap gap-4 justify-between">
-                  <div className="text-xs opacity-60">Palette</div>
-                  <div className="flex items-center  gap-2">
-                    <Select value={paletteKey} onValueChange={(v) => setPaletteKey(v)} >
-                      <SelectTrigger className="w-35 cursor-pointer"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.keys(COLOR_THEMES).map((k) => (
-                          <SelectItem className="cursor-pointer" key={k} value={k}>
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 rounded-sm" style={{ background: `linear-gradient(90deg, ${COLOR_THEMES[k].join(",")})` }} />
-                              <div className="text-sm">{k}</div>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <div className="flex gap-1">
-                      {palette.map((c, i) => (
-                        <button key={c} title={c} onClick={() => { setSubIdx(i); setTextColor(c); }} className={clsx("w-6 h-6 cursor-pointer rounded-md border", subIdx === i ? "ring-2 ring-zinc-300" : "hover:scale-105")} style={{ background: c }} />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <Switch checked={isDarkPreview} className="cursor-pointer" onCheckedChange={setIsDarkPreview} />
-                  <div className="text-xs opacity-70">Dark preview</div>
-                </div>
+           
                 <Separator />
                 <div className="flex gap-2">
                   <Button className="cursor-pointer" variant="secondary" onClick={() => { setQuery(""); setSelectedFamily(families[0]?.family || ""); }}>Reset</Button>
@@ -528,7 +591,7 @@ export default function FontsPage() {
                     <div>
                       <Label className="text-xs">Size</Label>
                       <div className="flex items-center gap-2">
-                        <Slider className="cursor-pointer" value={[fontSize]} onValueChange={(val) => setFontSize(val[0])} min={12} max={65} step={1} />
+                        <Slider className="cursor-pointer" value={[fontSize]} onValueChange={(val) => setFontSize(val[0])} min={12} max={60} step={1} />
                         <div className="w-12 text-right">{fontSize}px</div>
                       </div>
                     </div>
@@ -537,6 +600,34 @@ export default function FontsPage() {
                       <Label className="text-xs">Sample text</Label>
                       <Input value={sampleText} onChange={(e) => setSampleText(e.target.value)} />
                     </div>
+                    
+                <div className="flex items-center gap-2 mt-2">
+                  <Switch checked={isDarkPreview} className="cursor-pointer" onCheckedChange={setIsDarkPreview} />
+                  <div className="text-xs opacity-70">Dark preview</div>
+                </div>
+                         <div className="flex items-center flex-wrap gap-4 justify-between">
+                  <div className="text-xs opacity-60">Palette</div>
+                  <div className="flex items-center  gap-2">
+                    <Select value={paletteKey} onValueChange={(v) => setPaletteKey(v)} >
+                      <SelectTrigger className="w-35 cursor-pointer"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(COLOR_THEMES).map((k) => (
+                          <SelectItem className="cursor-pointer" key={k} value={k}>
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 rounded-sm" style={{ background: `linear-gradient(90deg, ${COLOR_THEMES[k].join(",")})` }} />
+                              <div className="text-sm">{k}</div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-1">
+                      {palette.map((c, i) => (
+                        <button key={c} title={c} onClick={() => { setSubIdx(i); setTextColor(c); }} className={clsx("w-6 h-6 cursor-pointer rounded-md border", subIdx === i ? "ring-2 ring-zinc-300" : "hover:scale-105")} style={{ background: c }} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
                   </div>
                 </CardContent>
               </Card>

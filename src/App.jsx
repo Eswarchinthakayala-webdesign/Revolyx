@@ -15,6 +15,7 @@ import QRGeneratorPage from './pages/QRMakerPage'
 import ResourcePage from './pages/ResourcePage'
 import CodeSnippetGenerator from './pages/CodeSnippetGenerator'
 import RevolyxFontsPage from './pages/FontsPage'
+import NeumorphismDesignPage from './pages/NeoMorphismPage'
 const router=createBrowserRouter([
   {
 
@@ -75,6 +76,10 @@ const router=createBrowserRouter([
            {
         path:"/fonts",
         element:<RevolyxFontsPage/>
+      },
+           {
+        path:"/neumorphism",
+        element:<NeumorphismDesignPage/>
       },
     ]
   }
