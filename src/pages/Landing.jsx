@@ -37,6 +37,7 @@ import {
   ListCheckIcon,
   FolderDown,
   Chromium,
+  LucideFootprints,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -92,6 +93,8 @@ export default function LandingPage() {
     { name: "QR Code", icon: QrCode, path: "/qr-code" },
     { name: "Resources", icon: ListCheckIcon, path: "/resources" },
     { name: "Flow Chart", icon: FolderDown, path: "/flow-chart" },
+      { name: "Fonts", icon: LucideFootprints, path: "/fonts" },
+      { name: "Code Snippet", icon: Code2, path: "/code-snippet" },
   ];
 
   const faqs = [
@@ -227,23 +230,32 @@ export default function LandingPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {navItems
-              .filter((n) => n.name !== "Home")
-              .map(({ name, icon: Icon, path }) => (
-                <Link
-                  key={name}
-                  to={path}
-                  onClick={() => setOpen(false)}
-                  className="group border border-zinc-200 dark:border-zinc-700 rounded-xl p-4 text-center flex flex-col items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
-                >
-                  <motion.div whileHover={{ rotate: 5, scale: 1.1 }}>
-                    <Icon className="w-7 h-7 mb-2 text-zinc-800 dark:text-zinc-100 group-hover:text-zinc-500 dark:group-hover:text-zinc-400 transition" />
-                  </motion.div>
-                  <span className="text-sm font-medium">{name}</span>
-                </Link>
-              ))}
-          </div>
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 p-2 sm:p-4">
+  {navItems
+    .filter((n) => n.name !== "Home")
+    .map(({ name, icon: Icon, path }) => (
+      <Link
+        key={name}
+        to={path}
+        onClick={() => setOpen(false)}
+        className="group flex flex-col items-center justify-center rounded-2xl p-4 sm:p-5 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm hover:shadow-md hover:scale-[1.03] active:scale-[0.98] transition-all duration-300"
+      >
+        <motion.div
+          whileHover={{ y: -2 }}
+          transition={{ type: "spring", stiffness: 260, damping: 18 }}
+          className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-700 shadow-inner group-hover:shadow group-hover:from-primary/10 group-hover:to-primary/20 transition-all"
+        >
+          <Icon className="w-6 h-6 text-zinc-800 dark:text-zinc-100 group-hover:text-primary transition-colors" />
+          <div className="absolute inset-0 rounded-xl bg-white/5 dark:bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </motion.div>
+
+        <span className="mt-2 text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 flex items-center truncate group-hover:text-primary transition-colors">
+          {name}
+        </span>
+      </Link>
+    ))}
+</div>
+
         </DialogContent>
       </Dialog>
     </div>

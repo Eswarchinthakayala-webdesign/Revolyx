@@ -14,6 +14,7 @@ import Documentation from './pages/Documention'
 import QRGeneratorPage from './pages/QRMakerPage'
 import ResourcePage from './pages/ResourcePage'
 import CodeSnippetGenerator from './pages/CodeSnippetGenerator'
+import RevolyxFontsPage from './pages/FontsPage'
 const router=createBrowserRouter([
   {
 
@@ -70,6 +71,10 @@ const router=createBrowserRouter([
          {
         path:"/code-snippet",
         element:<CodeSnippetGenerator/>
+      },
+           {
+        path:"/fonts",
+        element:<RevolyxFontsPage/>
       },
     ]
   }

@@ -17,6 +17,7 @@ import {
   MoreHorizontal,
   Sparkles,
   Code2,
+  LucideFootprints,
 } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
 import { useTheme } from "@/components/theme-provider";
@@ -43,6 +44,7 @@ export default function Header() {
     { name: "QR Code", icon: QrCode, path: "/qr-code" },
     { name: "Resources", icon: ListCheckIcon, path: "/resources" },
     { name: "Flow Chart", icon: FolderDown, path: "/flow-chart" },
+      { name: "Fonts", icon: LucideFootprints, path: "/fonts" },
       { name: "Code Snippet", icon: Code2, path: "/code-snippet" },
   ];
 
