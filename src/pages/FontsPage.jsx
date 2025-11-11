@@ -528,7 +528,7 @@ export default function FontsPage() {
                     <div>
                       <Label className="text-xs">Size</Label>
                       <div className="flex items-center gap-2">
-                        <Slider className="cursor-pointer" value={[fontSize]} onValueChange={(val) => setFontSize(val[0])} min={12} max={80} step={1} />
+                        <Slider className="cursor-pointer" value={[fontSize]} onValueChange={(val) => setFontSize(val[0])} min={12} max={65} step={1} />
                         <div className="w-12 text-right">{fontSize}px</div>
                       </div>
                     </div>
