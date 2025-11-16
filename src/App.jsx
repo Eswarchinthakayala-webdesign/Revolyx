@@ -16,6 +16,27 @@ import ResourcePage from './pages/ResourcePage'
 import CodeSnippetGenerator from './pages/CodeSnippetGenerator'
 import RevolyxFontsPage from './pages/FontsPage'
 import NeumorphismDesignPage from './pages/NeoMorphismPage'
+import APIPage from './pages/APIPage'
+import IpaApiPage from './APIDemoPage/Ipapipage'
+import RandomUserPage from './APIDemoPage/GitHubUserApiPage'
+import DogApiPage from './APIDemoPage/DogApiPage'
+import CatFactPage from './APIDemoPage/CatFactPage'
+import QuotablePage from './APIDemoPage/QuotablePage'
+import PicsumPage from './APIDemoPage/PicsumPage'
+import GitHubUserPage from './APIDemoPage/GitHubUserPage'
+import WeatherApiPage from './APIDemoPage/WeatherApiPage'
+import ProgrammingJokePage from './APIDemoPage/ProgrammingJokePage'
+import MealApiPage from './APIDemoPage/MealApiPage'
+import CountriesPage from './APIDemoPage/CountriesPage'
+import NewsApiPage from './APIDemoPage/NewsApiPage'
+import CryptoPricesPage from './APIDemoPage/CryptoPricesPage'
+import OmdbMoviePage from './APIDemoPage/OmdbMoviePage'
+import AdviceApiPage from './APIDemoPage/AdviceApiPage'
+import ActivityPage from './APIDemoPage/ActivityPage'
+import ChuckNorrisPage from './APIDemoPage/ChuckNorrisPage'
+import HarryPotterPage from './APIDemoPage/HarryPotterPage'
+import SpaceXLatestPage from './APIDemoPage/SpaceXLatestPage'
+import PublicApisPage from './APIDemoPage/PublicApisPage'
 const router=createBrowserRouter([
   {
 
@@ -81,6 +102,90 @@ const router=createBrowserRouter([
         path:"/neumorphism",
         element:<NeumorphismDesignPage/>
       },
+      {
+        path:"/apis",
+        element:<APIPage/>
+      },
+      {
+        path:"/apis/ipapi",
+        element:<IpaApiPage/>
+      },
+      {
+        path:"/apis/randomuser",
+        element:<RandomUserPage/>
+      },
+      {
+        path:"/apis/dog",
+        element:<DogApiPage/>
+      },
+      {
+        path:'/apis/catfact',
+        element:<CatFactPage/>
+      },
+      {
+        path:"/apis/quotes",
+        element:<QuotablePage/>
+      },
+      {
+        path:"/apis/picsum",
+        element:<PicsumPage/>
+      },
+      {
+        path:"/apis/github",
+        element:<GitHubUserPage/>
+      },
+      {
+        path:"/apis/weather",
+        element:<WeatherApiPage/>
+      },
+      {
+        path:"/apis/joke",
+        element:<ProgrammingJokePage/>
+      },
+      {
+        path:"/apis/meal",
+        element:<MealApiPage/>
+      },
+      {
+        path:"/apis/country",
+        element:<CountriesPage/>
+      },
+      {
+        path:"/apis/news",
+        element:<NewsApiPage/>
+      },
+      {
+        path:"/apis/crypto",
+        element:<CryptoPricesPage/>
+      },
+      {
+        path:"/apis/movie",
+        element:<OmdbMoviePage/>
+      },
+      {
+        path:"/apis/advice",
+        element:<AdviceApiPage/>
+      },
+      {
+        path:"/apis/activity",
+        element:<ActivityPage/>
+      },
+      {
+        path:"/apis/chucknorris",
+        element:<ChuckNorrisPage/>
+      },
+      {
+        path:"/apis/harrypotter",
+        element:<HarryPotterPage/>
+      },
+      {
+        path:"/apis/spacex",
+        element:<SpaceXLatestPage/>
+      },
+      {
+        path:"/apis/publicapis",
+        element:<PublicApisPage/>
+      }
     ]
   }
 

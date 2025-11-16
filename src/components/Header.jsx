@@ -12,10 +12,9 @@ import {
   QrCode,
   ListCheckIcon,
   CupSoda,
+  MoreVertical,
   Menu,
   X,
-  MoreHorizontal,
-  Sparkles,
   Code2,
   LucideFootprints,
   Dessert,
@@ -45,13 +44,19 @@ export default function Header() {
     { name: "QR Code", icon: QrCode, path: "/qr-code" },
     { name: "Resources", icon: ListCheckIcon, path: "/resources" },
     { name: "Flow Chart", icon: FolderDown, path: "/flow-chart" },
-      { name: "Fonts", icon: LucideFootprints, path: "/fonts" },
-      { name: "Code Snippet", icon: Code2, path: "/code-snippet" },
-      {name:"Neumorphism",icon:Dessert,path:"/neumorphism"}
+    { name: "Fonts", icon: LucideFootprints, path: "/fonts" },
+    { name: "Code Snippet", icon: Code2, path: "/code-snippet" },
+    { name: "Neumorphism", icon: Dessert, path: "/neumorphism" },
+    { name: "APIs", icon: Dessert, path: "/apis" },
   ];
 
-  const mainNav = navItems.slice(0, 3); // First 3 visible in bottom bar
-  const moreNav = navItems.slice(3); // Remaining in “More”
+  // Desktop shows FIRST 5 → rest inside "More"
+  const desktopMain = navItems.slice(0, 5);
+  const desktopMore = navItems.slice(5);
+
+  // Mobile bottom bar → first 3 only
+  const mobileMain = navItems.slice(0, 3);
+  const mobileMore = navItems.slice(3);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
@@ -64,11 +69,11 @@ export default function Header() {
 
   return (
     <>
-      {/* === Sticky Header === */}
+      {/* ================= Sticky Header ================= */}
       <motion.header
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.4 }}
         className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b transition-all duration-300 ${
           isScrolled
             ? "bg-white/70 dark:bg-black/70 border-border shadow-sm"
@@ -76,7 +81,7 @@ export default function Header() {
         }`}
       >
         <div className="max-w-8xl mx-auto flex items-center justify-between px-5 py-3">
-          {/* === Logo === */}
+          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 select-none">
             <motion.h1
               whileHover={{ scale: 1.05 }}
@@ -91,13 +96,13 @@ export default function Header() {
             </motion.h1>
           </Link>
 
-          {/* === Desktop Nav === */}
-          <nav className="hidden lg:flex items-center gap-6">
-            {navItems.map(({ name, icon: Icon, path }) => (
+          {/* ================= Desktop Navigation ================= */}
+          <nav className="hidden lg:flex items-center gap-6 relative">
+            {desktopMain.map(({ name, icon: Icon, path }) => (
               <Link
                 key={name}
                 to={path}
-                className={`flex items-center gap-2 text-sm transition-colors hover:text-primary ${isActive(
+                className={`flex items-center gap-2 text-sm transition hover:text-primary ${isActive(
                   path
                 )} text-gray-600 dark:text-gray-300`}
               >
@@ -105,14 +110,49 @@ export default function Header() {
                 {name}
               </Link>
             ))}
+
+            {/* More (Desktop) */}
+            <div className="relative">
+              <button
+                onClick={() => setIsMoreOpen(!isMoreOpen)}
+                className="flex items-center gap-1 cursor-pointer text-gray-600 dark:text-gray-300 hover:text-primary transition"
+              >
+                <MoreVertical  size={20} />
+                <span className="text-sm">More</span>
+              </button>
+
+              <AnimatePresence>
+                {isMoreOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 mt-3 w-56 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-border/40 rounded-xl shadow-xl p-3 grid grid-cols-1 gap-2 z-50"
+                  >
+                    {desktopMore.map(({ name, icon: Icon, path }) => (
+                      <Link
+                        key={name}
+                        to={path}
+                        onClick={() => setIsMoreOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-primary/10 dark:hover:bg-primary/20 transition"
+                      >
+                        <Icon size={16} className="text-primary" />
+                        <span className="text-sm">{name}</span>
+                      </Link>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </nav>
 
-          {/* === Right Controls === */}
+          {/* Right Controls */}
           <div className="flex items-center gap-3">
             <ModeToggle />
             <button
               onClick={() => setIsMenuOpen(true)}
-              className="lg:hidden text-gray-700 dark:text-gray-200 hover:text-primary transition"
+              className="lg:hidden text-gray-700 dark:text-gray-200 hover:text-primary"
             >
               <Menu size={24} />
             </button>
@@ -120,105 +160,90 @@ export default function Header() {
         </div>
       </motion.header>
 
-      {/* === Overlay Menu (Mobile “App Grid” Style) === */}
+      {/* ================= Mobile Full Screen Menu ================= */}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
-            key="menu"
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.25 }}
+            exit={{ opacity: 0, scale: 0.95 }}
             className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xl flex items-center justify-center"
           >
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 20, opacity: 0 }}
-              transition={{ delay: 0.05 }}
-              className="bg-white/80 dark:bg-zinc-900/80 rounded-3xl p-6 grid grid-cols-3 gap-6 max-w-sm mx-auto shadow-2xl"
-            >
+            <div className="relative bg-white/80 dark:bg-zinc-900/80 rounded-3xl p-6 grid grid-cols-3 gap-6 max-w-sm mx-auto shadow-2xl">
               {navItems.map(({ name, icon: Icon, path }) => (
                 <Link
                   key={name}
                   to={path}
                   onClick={() => setIsMenuOpen(false)}
-                  className="flex flex-col items-center justify-center text-center hover:scale-105 transition-transform"
+                  className="flex flex-col items-center text-center hover:scale-105 transition"
                 >
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-pink-500/10 hover:from-primary/20 hover:to-pink-500/20 transition-all">
+                  <div className="p-3 rounded-xl bg-primary/10 hover:bg-primary/20 transition">
                     <Icon className="w-6 h-6 text-primary" />
                   </div>
-                  <span className="text-xs mt-2 text-gray-700 dark:text-gray-300">
-                    {name}
-                  </span>
+                  <span className="text-xs mt-2">{name}</span>
                 </Link>
               ))}
+
               <button
                 onClick={() => setIsMenuOpen(false)}
-                className="absolute top-5 right-5 text-gray-600 dark:text-gray-300 hover:text-primary"
+                className="absolute top-5 right-5 text-gray-700 dark:text-gray-300"
               >
                 <X size={24} />
               </button>
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* === Mobile Bottom Bar === */}
+      {/* ================= Mobile Bottom Bar ================= */}
       <motion.nav
         initial={{ opacity: 0, y: 25 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
         className="fixed bottom-0 left-0 right-0 z-40 border-t border-border backdrop-blur-xl bg-white/80 dark:bg-black/80 flex justify-around items-center py-3 lg:hidden"
       >
-        {mainNav.map(({ name, icon: Icon, path }) => (
+        {mobileMain.map(({ name, icon: Icon, path }) => (
           <Link
             key={name}
             to={path}
             className={`flex flex-col items-center ${
-              location.pathname === path
-                ? "text-primary"
-                : "text-gray-500 dark:text-gray-400 hover:text-primary"
+              location.pathname === path ? "text-primary" : "text-gray-400"
             }`}
           >
             <Icon size={22} />
-            <span className="text-[11px] mt-1">{name}</span>
+            <span className="text-[11px]">{name}</span>
           </Link>
         ))}
 
-        {/* More Option */}
+        {/* More Button */}
         <button
           onClick={() => setIsMoreOpen(!isMoreOpen)}
-          className="flex flex-col items-center text-gray-500 dark:text-gray-400 hover:text-primary transition"
+          className="flex flex-col items-center text-gray-400 hover:text-primary transition"
         >
-          <MoreHorizontal size={22} />
-          <span className="text-[11px] mt-1">More</span>
+          <MoreVertical size={22} />
+          <span className="text-[11px]">More</span>
         </button>
 
-        {/* Floating More Box */}
+        {/* Floating More Panel */}
         <AnimatePresence>
           {isMoreOpen && (
             <motion.div
-              key="more"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 15 }}
-              transition={{ duration: 0.25 }}
-              className="absolute bottom-16 right-3 bg-white/90 dark:bg-zinc-900/90 border border-border/40 rounded-2xl shadow-2xl p-4 grid grid-cols-3 gap-4 backdrop-blur-lg"
+              className="absolute bottom-16 right-3 bg-white/90 dark:bg-zinc-900/90 border rounded-xl shadow-lg p-4 grid grid-cols-3 gap-4"
             >
-              {moreNav.map(({ name, icon: Icon, path }) => (
+              {mobileMore.map(({ name, icon: Icon, path }) => (
                 <Link
                   key={name}
                   to={path}
                   onClick={() => setIsMoreOpen(false)}
-                  className="flex flex-col items-center text-center hover:scale-105 transition-transform"
+                  className="flex flex-col items-center hover:scale-105 transition"
                 >
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-pink-500/10 hover:from-primary/20 hover:to-pink-500/20 transition-all">
+                  <div className="p-2 bg-primary/10 rounded-xl">
                     <Icon className="w-5 h-5 text-primary" />
                   </div>
-                  <span className="text-[10px] mt-1 text-gray-700 dark:text-gray-300">
-                    {name}
-                  </span>
+                  <span className="text-[10px] mt-1">{name}</span>
                 </Link>
               ))}
             </motion.div>
@@ -226,7 +251,7 @@ export default function Header() {
         </AnimatePresence>
       </motion.nav>
 
-      {/* Padding for Header */}
+      {/* header spacing */}
       <div className="h-16 md:h-20"></div>
     </>
   );
