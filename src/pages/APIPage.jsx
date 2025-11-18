@@ -1,140 +1,108 @@
 // src/pages/ApisPage.jsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
+import { motion, AnimatePresence } from "framer-motion";
 import { Toaster, toast } from "sonner";
+
 import {
   Search,
-  Star,
-  StarOff,
-  Code,
+  List,
+  Layers,
+  Atom,
+  Globe,
+  Image as ImageIcon,
+  Code as CodeIcon,
+  ChevronDown,
   Link as LinkIcon,
   ExternalLink,
-  List,
-  Image as ImageIcon,
-  ChevronDown,
+  Menu,
+  X,
+  Copy,
+  Sparkles,
+  ChevronRight
 } from "lucide-react";
 
-/* Syntax Highlighter */
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-
-/* SHADCN UI */
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Select, SelectTrigger, SelectContent, SelectValue, SelectItem } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { useTheme } from "@/components/theme-provider";
 import { Link } from "react-router-dom";
+ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 
-/* ------------------------------------------------------------------------------------------
-   API ITEMS (You can replace preview images when real screenshots are ready)
------------------------------------------------------------------------------------------- */
-
+/* ---------------------------
+   API DATA
+   --------------------------- */
 const APIS = [
   {
     id: "ipapi",
-    name: "IPAPI - IP Info",
+    name: "IPAPI",
+    title: "IPAPI — IP Geolocation",
     category: "Utility",
     endpoint: "https://ipapi.co/json",
-    description: "Get geolocation & ISP info for the user's IP.",
-    image: "/api_previews/ipapi.png",
+    description: "Fast IP geolocation and ISP data for any IPv4/IPv6.",
     code: `fetch("https://ipapi.co/json").then(r => r.json()).then(console.log);`,
   },
   {
     id: "randomuser",
-    name: "Random User Generator",
+    name: "RandomUser",
+    title: "Random User Generator",
     category: "Utility",
     endpoint: "https://randomuser.me/api/",
-    description: "Generate random user data including image, email & more.",
-    image: "/api_previews/randomuser.png",
+    description: "Generate realistic random user profiles (images, email, location).",
     code: `fetch("https://randomuser.me/api/").then(r => r.json()).then(console.log);`,
   },
   {
     id: "dog",
-    name: "Dog CEO - Random Dog",
+    name: "Dog CEO",
+    title: "Dog CEO — Random Dog",
     category: "Fun",
     endpoint: "https://dog.ceo/api/breeds/image/random",
-    description: "Generate a random dog image.",
-    image: "/api_previews/dog.png",
+    description: "Random dog image endpoint — great for placeholders & fun apps.",
     code: `fetch("https://dog.ceo/api/breeds/image/random").then(r => r.json()).then(console.log);`,
   },
   {
     id: "catfact",
-    name: "Cat Fact API",
+    name: "CatFact",
+    title: "Cat Fact",
     category: "Fun",
     endpoint: "https://catfact.ninja/fact",
-    description: "Returns a random cat fact.",
-    image: "/api_previews/catfact.png",
+    description: "Fetch a random cat fact for playful UI elements.",
     code: `fetch("https://catfact.ninja/fact").then(r => r.json()).then(console.log);`,
   },
   {
-    id: "quotes",
-    name: "Quotable - Random Quote",
-    category: "Fun",
-    endpoint: "https://api.quotable.io/random",
-    description: "Returns a random quote with the author.",
-    image: "/api_previews/quotes.png",
-    code: `fetch("https://api.quotable.io/random").then(r => r.json()).then(console.log);`,
+    id: "meal",
+    name: "MealDB",
+    title: "Random Meal",
+    category: "Food",
+    endpoint: "https://www.themealdb.com/api/json/v1/1/random.php",
+    description: "Random meal with ingredient list and instructions.",
+    code: `fetch("https://www.themealdb.com/api/json/v1/1/random.php").then(r => r.json()).then(console.log);`,
   },
   {
-    id: "picsum",
-    name: "Picsum Image API",
-    category: "Media",
-    endpoint: "https://picsum.photos/300/200",
-    description: "Generates random high-quality placeholder images.",
-    image: "/api_previews/picsum.png",
-    code: `fetch("https://picsum.photos/300/200")`,
+    id: "country",
+    name: "RestCountries",
+    title: "Country Details",
+    category: "Geo",
+    endpoint: "https://restcountries.com/v3.1/name/india",
+    description: "Country info including capital, population, currencies.",
+    code: `fetch("https://restcountries.com/v3.1/name/india").then(r => r.json()).then(console.log);`,
   },
   {
-  id: "meal",
-  name: "Random Meal",
-  category: "Food",
-  endpoint: "https://www.themealdb.com/api/json/v1/1/random.php",
-  description: "Fetch a random meal with details from TheMealDB.",
-  image: "/api_previews/meal.png",
-  code: `fetch("https://www.themealdb.com/api/json/v1/1/random.php")
-    .then(res => res.json())
-    .then(data => console.log(data.meals[0].strMeal));`,
-}
-,
-  
-{
-  id: "country",
-  name: "Country Details",
-  category: "Geo",
-  endpoint: "https://restcountries.com/v3.1/name/india",
-  description: "Fetch country details such as capital, population, region, and more.",
-  image: "/api_previews/country.png",
-  code: `fetch("https://restcountries.com/v3.1/name/india")
-    .then(res => res.json())
-    .then(data => console.log(data[0].capital));`,
-}
-,{
     id: "github",
-    name: "GitHub User Details",
+    name: "GitHub API",
+    title: "GitHub — User Details",
     category: "Dev",
     endpoint: "https://api.github.com/users/octocat",
-    description: "Fetch public GitHub profile information.",
-    image: "/api_previews/github.png",
+    description: "Public user data: repos, followers, profile information.",
     code: `fetch("https://api.github.com/users/octocat").then(r => r.json()).then(console.log);`,
   },
   {
-  id: "weather",
-  name: "Weather (OpenWeatherMap)",
-  category: "Utilities",
-  endpoint: "https://api.openweathermap.org/data/2.5/weather?q=London&appid=YOUR_API_KEY&units=metric",
-  description: "Fetch real-time weather details for any city using OpenWeatherMap.",
-  image: "/api_previews/weather.png",
-  code: `fetch("https://api.openweathermap.org/data/2.5/weather?q=London&appid=YOUR_API_KEY&units=metric")
-    .then(res => res.json())
-    .then(console.log);`,
-},
-{
   id: "joke",
   name: "Programming Joke",
   category: "Fun",
@@ -251,302 +219,1049 @@ const APIS = [
     .then(console.log);`,
 }
 ,
+{
+  id: "googlebooks",
+  name: "Google Books Search",
+  category: "Books",
+  endpoint: "https://www.googleapis.com/books/v1/volumes?q=harry+potter",
+  description: "Fetch book details by searching titles, authors, and descriptions using Google Books API.",
+  image: "/api_previews/googlebooks.png",
+  code: `fetch("https://www.googleapis.com/books/v1/volumes?q=harry+potter")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "dictionary",
+  name: "English Word Meaning",
+  category: "Education",
+  endpoint: "https://api.dictionaryapi.dev/api/v2/entries/en/hello",
+  description: "Fetch definitions, phonetics, and usage examples for English words.",
+  image: "/api_previews/dictionary.png",
+  code: `fetch("https://api.dictionaryapi.dev/api/v2/entries/en/hello")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "itunes",
+  name: "iTunes Music Search",
+  category: "Music",
+  endpoint: "https://itunes.apple.com/search?term=drake&limit=5",
+  description: "Search for songs, albums, and artists using the iTunes Search API.",
+  image: "/api_previews/itunes.png",
+  code: `fetch("https://itunes.apple.com/search?term=drake&limit=5")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "rawg",
+  name: "Video Games List",
+  category: "Games",
+  endpoint: "https://api.rawg.io/api/games?key=YOUR_API_KEY",
+  description: "Fetch a list of video games with details such as ratings, genres, and platforms.",
+  image: "/api_previews/rawg.png",
+  code: `fetch("https://api.rawg.io/api/games?key=YOUR_API_KEY")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "artic",
+  name: "Art Institute of Chicago Artworks",
+  category: "Art",
+  endpoint: "https://api.artic.edu/api/v1/artworks",
+  description: "Fetch artwork details including title, artist, image, and museum information from the Art Institute of Chicago.",
+  image: "/api_previews/artic.png",
+  code: `fetch("https://api.artic.edu/api/v1/artworks")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "nasa_apod",
+  name: "NASA Astronomy Picture",
+  category: "Space",
+  endpoint: "https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY",
+  description: "Fetch NASA’s Astronomy Picture of the Day with title, explanation, and media.",
+  image: "/api_previews/nasa_apod.png",
+  code: `fetch("https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "kanye",
+  name: "Kanye West Quote",
+  category: "Fun",
+  endpoint: "https://api.kanye.rest/",
+  description: "Fetch a random Kanye West quote.",
+  image: "/api_previews/kanye.png",
+  code: `fetch("https://api.kanye.rest/")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "superhero",
+  name: "Superhero Details (Batman)",
+  category: "Entertainment",
+  endpoint: "https://www.superheroapi.com/api.php/10159442934712314/batman",
+  description: "Fetch superhero details such as power stats, biography, appearance, and more.",
+  image: "/api_previews/superhero.png",
+  code: `fetch("https://www.superheroapi.com/api.php/10159442934712314/batman")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "dnd_spells",
+  name: "D&D 5e Spells",
+  category: "Games",
+  endpoint: "https://www.dnd5eapi.co/api/spells",
+  description: "Fetch a list of Dungeons & Dragons 5th Edition spells with names and indexes.",
+  image: "/api_previews/dnd_spells.png",
+  code: `fetch("https://www.dnd5eapi.co/api/spells")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "hackernews",
+  name: "Hacker News Top Stories",
+  category: "Tech",
+  endpoint: "https://hacker-news.firebaseio.com/v0/topstories.json",
+  description: "Fetch a list of top story IDs from Hacker News.",
+  image: "/api_previews/hackernews.png",
+  code: `fetch("https://hacker-news.firebaseio.com/v0/topstories.json")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "perenual",
+  name: "Plant Species List",
+  category: "Nature",
+  endpoint: "https://perenual.com/api/species-list?key=YOUR_API_KEY",
+  description: "Fetch a list of plant species including images, common names, and scientific names.",
+  image: "/api_previews/perenual.png",
+  code: `fetch("https://perenual.com/api/species-list?key=YOUR_API_KEY")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "randomfox",
+  name: "Random Fox Image",
+  category: "Animals",
+  endpoint: "https://randomfox.ca/floof/",
+  description: "Fetch a random cute fox image.",
+  image: "/api_previews/randomfox.png",
+  code: `fetch("https://randomfox.ca/floof/")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "agify",
+  name: "Age Prediction",
+  category: "AI",
+  endpoint: "https://api.agify.io/?name=michael",
+  description: "Predict the age of a person based on their first name using Agify.io. No API key required.",
+  image: "/api_previews/agify.png",
+  code: `fetch("https://api.agify.io/?name=michael")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "genderize",
+  name: "Gender Prediction",
+  category: "AI",
+  endpoint: "https://api.genderize.io/?name=emma",
+  description: "Predict the gender associated with a given first name. No API key required.",
+  image: "/api_previews/genderize.png",
+  code: `fetch("https://api.genderize.io/?name=emma")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "nationalize",
+  name: "Nationality Prediction",
+  category: "AI",
+  endpoint: "https://api.nationalize.io/?name=michael",
+  description: "Predict the nationality probabilities for a given name. No API key required.",
+  image: "/api_previews/nationalize.png",
+  code: `fetch("https://api.nationalize.io/?name=michael")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "geodb_graphql",
+  name: "GeoDB Cities (GraphQL)",
+  category: "Geolocation",
+  endpoint: "http://geodb-free-service.wirefreethought.com/graphql",
+  description: "Query global city, country, and region data using GraphQL. No API key required.",
+  image: "/api_previews/geodb_graphql.png",
+  code: `fetch("http://geodb-free-service.wirefreethought.com/graphql", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      query: \`
+        {
+          cities(limit: 5, namePrefix: "del") {
+            id
+            name
+            country {
+              name
+            }
+            region {
+              name
+            }
+          }
+        }
+      \`,
+    }),
+  })
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "quickchart",
+  name: "QuickChart",
+  category: "Images",
+  endpoint: "https://quickchart.io/chart",
+  description: "Generate chart images (PNG) from Chart.js configuration. No API key required.",
+  image: "/api_previews/quickchart.png",
+  code: `fetch("https://quickchart.io/chart", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chart: {
+        type: "bar",
+        data: {
+          labels: ["Red", "Blue", "Yellow"],
+          datasets: [{
+            label: "Votes",
+            data: [12, 19, 3]
+          }]
+        }
+      }
+    }),
+  })
+    .then(res => res.blob())
+    .then(img => console.log("Chart image blob:", img));`,
+}
+,
+{
+  id: "gravatar",
+  name: "Gravatar User Avatar",
+  category: "Profile",
+  endpoint: "https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50",
+  description: "Fetch a user's global avatar using their MD5-hashed email. No API key required.",
+  image: "/api_previews/gravatar.png",
+  code: `// Replace with MD5 hash of any email
+fetch("https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50")
+  .then(res => res.blob())
+  .then(console.log);`,
+},
+{
+  id: "dicebear",
+  name: "DiceBear Avatar Generator",
+  category: "Design",
+  endpoint: "https://api.dicebear.com/7.x/bottts/svg?seed=John",
+  description: "Generate unique SVG avatars using styles like bottts, avataaars, initials, and more. No API key required.",
+  image: "/api_previews/dicebear.png",
+  code: `fetch("https://api.dicebear.com/7.x/bottts/svg?seed=John")
+    .then(res => res.text())
+    .then(console.log);`,
+},
+{
+  id: "cocktaildb",
+  name: "Cocktail Recipes",
+  category: "Food & Drinks",
+  endpoint: "https://www.thecocktaildb.com/api/json/v1/1/random.php",
+  description: "Fetch random cocktail drink recipes with ingredients, instructions, and images. No API key required.",
+  image: "/api_previews/cocktaildb.png",
+  code: `fetch("https://www.thecocktaildb.com/api/json/v1/1/random.php")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "openfoodfacts",
+  name: "Food Nutrition Data",
+  category: "Food",
+  endpoint: "https://world.openfoodfacts.org/api/v0/product/737628064502.json",
+  description: "Fetch nutrition facts, ingredients, and product details from the OpenFoodFacts database. No API key required.",
+  image: "/api_previews/openfoodfacts.png",
+  code: `fetch("https://world.openfoodfacts.org/api/v0/product/737628064502.json")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "periodic_table",
+  name: "Periodic Table Elements",
+  category: "Science",
+  endpoint: "https://neelpatel05.pythonanywhere.com",
+  description: "Fetch detailed information about all elements in the periodic table. No API key required.",
+  image: "/api_previews/periodic_table.png",
+  code: `fetch("https://neelpatel05.pythonanywhere.com")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "deckofcards",
+  name: "Deck of Cards",
+  category: "Games",
+  endpoint: "https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1",
+  description: "Generate and shuffle card decks, draw cards, reshuffle, and more. No API key required.",
+  image: "/api_previews/deckofcards.png",
+  code: `fetch("https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "pokemon",
+  name: "Pokémon Details",
+  category: "Games",
+  endpoint: "https://pokeapi.co/api/v2/pokemon/pikachu",
+  description: "Fetch detailed Pokémon data such as stats, abilities, moves, types, and sprites. No API key required.",
+  image: "/api_previews/pokemon.png",
+  code: `fetch("https://pokeapi.co/api/v2/pokemon/pikachu")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "openmeteo",
+  name: "Open-Meteo Weather",
+  category: "Weather",
+  endpoint: "https://api.open-meteo.com/v1/forecast?latitude=51.5&longitude=-0.12&hourly=temperature_2m",
+  description: "Scientific weather forecasts including temperature, wind, precipitation, and more. No API key required.",
+  image: "/api_previews/openmeteo.png",
+  code: `fetch("https://api.open-meteo.com/v1/forecast?latitude=51.5&longitude=-0.12&hourly=temperature_2m")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "jikan",
+  name: "Jikan Anime Search",
+  category: "Entertainment",
+  endpoint: "https://api.jikan.moe/v4/anime?q=naruto",
+  description: "Search anime details using the unofficial MyAnimeList API (Jikan). No API key required.",
+  image: "/api_previews/jikan.png",
+  code: `fetch("https://api.jikan.moe/v4/anime?q=naruto")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "rickmorty",
+  name: "Rick & Morty Characters",
+  category: "Entertainment",
+  endpoint: "https://rickandmortyapi.com/api/character",
+  description: "Fetch characters from the Rick & Morty universe. No API key required.",
+  image: "/api_previews/rickmorty.png",
+  code: `fetch("https://rickandmortyapi.com/api/character")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+
+{
+  id: "freetogame",
+  name: "Free-to-Play Games List",
+  category: "Games",
+  endpoint: "https://www.freetogame.com/api/games",
+  description: "Fetch a list of free-to-play PC games including genre, platform, developer, and more. No API key required.",
+  image: "/api_previews/freetogame.png",
+  code: `fetch("https://www.freetogame.com/api/games")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "opendota",
+  name: "OpenDota Stats",
+  category: "Games",
+  endpoint: "https://api.opendota.com/api/heroStats",
+  description: "Fetch detailed Dota 2 hero statistics, match data, player rankings, and more. No API key required.",
+  image: "/api_previews/opendota.png",
+  code: `fetch("https://api.opendota.com/api/heroStats")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "chesscom_player",
+  name: "Chess.com Player Profile",
+  category: "Games",
+  endpoint: "https://api.chess.com/pub/player/magnuscarlsen",
+  description: "Fetch public Chess.com player profile details such as username, status, and avatar. No API key required.",
+  image: "/api_previews/chesscom.png",
+  code: `fetch("https://api.chess.com/pub/player/magnuscarlsen")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "ipl_dataset",
+  name: "IPL Cricket Dataset",
+  category: "Sports",
+  endpoint: "https://github.com/ritesh-ojha/IPL-DATASET/tree/main/json",
+  description: "Access IPL cricket match data, player stats, teams, and scorecards in JSON format hosted on GitHub.",
+  image: "/api_previews/ipl_dataset.png",
+  code: `fetch("https://raw.githubusercontent.com/ritesh-ojha/IPL-DATASET/main/json/ipl_2022.json")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "xenocanto",
+  name: "Bird Recordings (Xeno-Canto v3)",
+  category: "Nature",
+  endpoint: "https://xeno-canto.org/api/3/recordings?query=bird&key=YOUR_API_KEY",
+  description: "Fetch bird sound recordings from Xeno-canto (v3 API — requires personal key).",
+  image: "/api_previews/xenocanto.png",
+  code: `fetch("https://xeno-canto.org/api/3/recordings?query=bird&key=YOUR_API_KEY")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "nekosbest",
+  name: "NekosBest Anime GIFs",
+  category: "Entertainment",
+  endpoint: "https://nekos.best/api/v2/neko",
+  description: "Fetch neko images and anime role-playing GIFs. No API key required.",
+  image: "/api_previews/nekosbest.png",
+  code: `fetch("https://nekos.best/api/v2/neko")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "colormind",
+  name: "Color Scheme Generator",
+  category: "Design",
+  endpoint: "http://colormind.io/api/",
+  description: "Generate color palettes using Colormind's AI-powered color scheme generator. No API key required.",
+  image: "/api_previews/colormind.png",
+  code: `fetch("http://colormind.io/api/", {
+      method: "POST",
+      body: JSON.stringify({ model: "default" })
+    })
+    .then(res => res.json())
+    .then(console.log);`,
+},
+
+{
+  id: "emojihub",
+  name: "EmojiHub Categories",
+  category: "Fun",
+  endpoint: "https://emojihub.yurace.pro/api/all",
+  description: "Fetch emojis by categories, groups, and more. No API key required.",
+  image: "/api_previews/emojihub.png",
+  code: `fetch("https://emojihub.yurace.pro/api/all")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "iconhorse",
+  name: "Website Favicon Fetcher",
+  category: "Utilities",
+  endpoint: "https://icon.horse/icon/google.com",
+  description: "Fetch favicons for any website with automatic fallbacks. No API key required.",
+  image: "/api_previews/iconhorse.png",
+  code: `fetch("https://icon.horse/icon/google.com")
+    .then(res => res.blob())
+    .then(console.log);`,
+},
+{
+  id: "gita_telugu_odia",
+  name: "Bhagavad Gita (Telugu & Odia)",
+  category: "Spiritual",
+  endpoint: "https://bhagavadgitaapi.in/slok/1/1/tel.json",
+  description: "Fetch Bhagavad Gita verses in Telugu and Odia languages. No API key required.",
+  image: "/api_previews/gita.png",
+  code: `fetch("https://bhagavadgitaapi.in/slok/1/1/tel.json")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "bible",
+  name: "Bible API",
+  category: "Religion",
+  endpoint: "https://bible-api.com/john%203:16",
+  description: "Fetch Bible verses in multiple translations and languages. No API key required.",
+  image: "/api_previews/bible.png",
+  code: `fetch("https://bible-api.com/john%203:16")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+
+{
+  id: "xcolors",
+  name: "xColors – Color Generator & Converter",
+  category: "Design",
+  endpoint: "https://x-colors.yurace.pro/api/random",
+  description: "Generate random colors, convert between formats (HEX, RGB, HSL), and explore color palettes. No API key required.",
+  image: "/api_previews/xcolors.png",
+  code: `fetch("https://x-colors.yurace.pro/api/random")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "poetrydb",
+  name: "Poetry Database",
+  category: "Literature",
+  endpoint: "https://poetrydb.org/author/Shakespeare",
+  description: "Fetch poems from a vast poetry collection by author, title, or random. No API key required.",
+  image: "/api_previews/poetrydb.png",
+  code: `fetch("https://poetrydb.org/author/Shakespeare")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "openlibrary",
+  name: "Open Library Books",
+  category: "Books",
+  endpoint: "https://openlibrary.org/search.json?q=harry+potter",
+  description: "Fetch book data, authors, editions, and cover images from Open Library. No API key required.",
+  image: "/api_previews/openlibrary.png",
+  code: `fetch("https://openlibrary.org/search.json?q=harry+potter")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "quran_api",
+  name: "Quran REST API",
+  category: "Religion",
+  endpoint: "https://api.alquran.cloud/v1/quran/en.asad",
+  description: "Fetch Quran text in multiple languages with chapters, verses, and metadata. No API key required.",
+  image: "/api_previews/quran.png",
+  code: `fetch("https://api.alquran.cloud/v1/quran/en.asad")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+
+,
+{
+  id: "gbif",
+  name: "Global Biodiversity Data",
+  category: "Nature",
+  endpoint: "https://api.gbif.org/v1/species",
+  description: "Access global biodiversity data, species information, taxonomy, and occurrence records. No API key required.",
+  image: "/api_previews/gbif.png",
+  code: `fetch("https://api.gbif.org/v1/species")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "idigbio",
+  name: "iDigBio Museum Specimens",
+  category: "Science",
+  endpoint: "https://api.idigbio.org/v2/search/records",
+  description: "Access millions of biodiversity and museum specimen records from institutions around the world. No API key required.",
+  image: "/api_previews/idigbio.png",
+  code: `fetch("https://api.idigbio.org/v2/search/records")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "indian_mutual_fund",
+  name: "Indian Mutual Fund History",
+  category: "Finance",
+  endpoint: "https://api.mfapi.in/mf/119551",
+  description: "Fetch complete historical NAV data for Indian Mutual Funds. No API key required.",
+  image: "/api_previews/mutualfund.png",
+  code: `fetch("https://api.mfapi.in/mf/119551")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "openbrewery",
+  name: "Open Brewery DB",
+  category: "Food & Drinks",
+  endpoint: "https://api.openbrewerydb.org/v1/breweries",
+  description: "Fetch data about breweries, cideries, brewpubs, and craft beer bottle shops. No API key required.",
+  image: "/api_previews/openbrewery.png",
+  code: `fetch("https://api.openbrewerydb.org/v1/breweries")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "fruityvice",
+  name: "Fruityvice Fruit Data",
+  category: "Food",
+  endpoint: "https://www.fruityvice.com/api/fruit/all",
+  description: "Fetch nutritional and general data about a wide variety of fruits. No API key required.",
+  image: "/api_previews/fruityvice.png",
+  code: `fetch("https://www.fruityvice.com/api/fruit/all")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "foodish",
+  name: "Random Food Image",
+  category: "Food",
+  endpoint: "https://foodish-api.com/api/",
+  description: "Fetch a random image of a food dish. No API key required.",
+  image: "/api_previews/foodish.png",
+  code: `fetch("https://foodish-api.com/api/")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "amiibo",
+  name: "Nintendo Amiibo Information",
+  category: "Games",
+  endpoint: "https://amiiboapi.com/api/amiibo/",
+  description: "Fetch detailed information about Nintendo Amiibo figures, including series, character, game appearances, and images. No API key required.",
+  image: "/api_previews/amiibo.png",
+  code: `fetch("https://amiiboapi.com/api/amiibo/")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "disney",
+  name: "Disney Characters",
+  category: "Entertainment",
+  endpoint: "https://api.disneyapi.dev/characters",
+  description: "Fetch detailed information about Disney characters including films, TV shows, and more. No API key required.",
+  image: "/api_previews/disney.png",
+  code: `fetch("https://api.disneyapi.dev/characters")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "naruto_characters",
+  name: "Naruto Characters",
+  category: "Entertainment",
+  endpoint: "https://dattebayo-api.onrender.com/characters",
+  description: "Fetch a list of Naruto characters with detailed information such as clan, rank, and abilities.",
+  image: "/api_previews/naruto_characters.png",
+  code: `fetch("https://dattebayo-api.onrender.com/characters")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+
+
+
+
+
+
+
+
 
 
 
 
 ];
 
-/* URL PARAM SYNC (Keeps API selection in URL) */
-function useUrlParam(param, fallback) {
-  const [value, setValue] = useState(() => {
-    try {
-      const u = new URL(window.location.href);
-      return u.searchParams.get(param) || fallback;
-    } catch {
-      return fallback;
-    }
-  });
+/* Category Icon mapping */
+const CATEGORY_ICON = {
+  Utility: Layers,
+  Fun: Sparkles,
+  Geo: Globe,
+  Food: Atom,
+  Dev: CodeIcon,
+  Media: ImageIcon,
+};
 
-  useEffect(() => {
-    try {
-      const u = new URL(window.location.href);
-      u.searchParams.set(param, value);
-      window.history.replaceState({}, "", `${u.pathname}?${u.searchParams.toString()}`);
-    } catch {}
-  }, [value]);
-
-  return [value, setValue];
+function CategoryIcon({ category, className }) {
+  const Icon = CATEGORY_ICON[category] || Layers;
+  return <Icon className={className} />;
 }
 
-/* ------------------------------------------------------------------------------------------
-   MAIN PAGE COMPONENT
------------------------------------------------------------------------------------------- */
+/* ---------------------------
+   Small helpers / components
+   --------------------------- */
+
+function prettyJSON(obj) {
+  try {
+    return JSON.stringify(obj, null, 2);
+  } catch {
+    return String(obj);
+  }
+}
+
+/* Small reusable Info row */
+function InfoRow({ icon, label, children }) {
+  return (
+    <div className="flex gap-3 items-start">
+      <div className="mt-1 opacity-70">{icon}</div>
+      <div>
+        <div className="text-xs opacity-60">{label}</div>
+        <div className="font-medium">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------
+   Main Page
+   --------------------------- */
 
 export default function ApisPage() {
-  const [selectedId, setSelectedId] = useUrlParam("api", APIS[0].id);
+  const { theme } = useTheme?.() ?? { theme: "system" };
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+  // state
+  const [selectedId, setSelectedId] = useState(APIS[0].id);
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [showCode, setShowCode] = useState(false);
+  const [showSuggest, setShowSuggest] = useState(false);
+  const [rawExample, setRawExample] = useState(null);
+  const [loadingInvoke, setLoadingInvoke] = useState(false);
 
-  const selected = APIS.find(a => a.id === selectedId) || APIS[0];
+  const searchRef = useRef(null);
+  const suggestTimer = useRef(null);
 
-  const categories = ["All", ...new Set(APIS.map(a => a.category))];
+  const selected = APIS.find((a) => a.id === selectedId) || APIS[0];
 
-  const filteredAPIs = useMemo(() => {
-    const q = query.toLowerCase();
+  const categories = useMemo(() => ["All", ...Array.from(new Set(APIS.map((p) => p.category)))], []);
 
-    return APIS.filter(a => {
-      const matchQuery =
-        a.name.toLowerCase().includes(q) ||
-        a.description.toLowerCase().includes(q);
-
-      const matchCategory =
-        categoryFilter === "All" || a.category === categoryFilter;
-
-      return matchQuery && matchCategory;
+  // filtered list
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return APIS.filter((a) => {
+      const qMatch = !q || a.name.toLowerCase().includes(q) || a.description.toLowerCase().includes(q);
+      const cMatch = categoryFilter === "All" || a.category === categoryFilter;
+      return qMatch && cMatch;
     });
   }, [query, categoryFilter]);
 
-  /* ------------------------------------------------------------------------------------------
-     SIDEBAR ITEM COMPONENT
-  ------------------------------------------------------------------------------------------ */
-  function SidebarItem({ api }) {
-    return (
-      <motion.div
-        layout
-       
-        onClick={() => setSelectedId(api.id)}
-        className={clsx(
-          "cursor-pointer p-4 rounded-xl mb-4 hover:border-zinc-700 transition-all border bg-white/40 dark:bg-black/40 shadow-sm backdrop-blur",
-          selectedId === api.id
-            ? "border-zinc-500/60 shadow-md"
-            : "hover:shadow-lg"
-        )}
-      >
-        <div className="font-semibold">{api.name}</div>
-        <p className="text-xs opacity-70 mt-1">{api.description}</p>
-        <Badge className="mt-2 bg-blue-500/20 text-blue-600 dark:text-blue-300 dark:bg-blue-500/20">
-          {api.category}
-        </Badge>
-      </motion.div>
-    );
+  // suggestions based on typed text
+  const suggestions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return APIS.filter((a) => a.name.toLowerCase().includes(q) || a.description.toLowerCase().includes(q)).slice(0, 6);
+  }, [query]);
+
+  // related APIs for right panel
+  const related = APIS.filter((a) => a.category === selected.category && a.id !== selected.id).slice(0, 6);
+
+  useEffect(() => {
+    // focus search on load for quick keyboard
+    // comment out if undesired
+    // searchRef.current?.focus();
+  }, []);
+
+  /* ---------------------------
+     Handlers
+     --------------------------- */
+  function onSearchChange(v) {
+    setQuery(v);
+    setShowSuggest(true);
+    if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    suggestTimer.current = setTimeout(() => {
+      // show suggestions (already computed)
+    }, 250);
   }
 
-  /* ------------------------------------------------------------------------------------------
-     MOBILE SIDEBAR (SHEET)
-  ------------------------------------------------------------------------------------------ */
-  function MobileSidebar() {
-    return (
-      <Sheet>
-        <SheetTrigger asChild>
-          <Button variant="outline" className="lg:hidden"><List /></Button>
-        </SheetTrigger>
-
-        <SheetContent side="left" className="w-[300px] p-4">
-          <div className="font-bold text-lg mb-3">Browse APIs</div>
-
-          <Input
-            placeholder="Search..."
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            className="mb-4"
-          />
-
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {categories.map(c => (
-                <SelectItem key={c} value={c}>{c}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <ScrollArea className="mt-4 h-[70vh]">
-            {filteredAPIs.map(api => <SidebarItem api={api} key={api.id} />)}
-          </ScrollArea>
-        </SheetContent>
-      </Sheet>
-    );
+  function selectApi(id) {
+    setSelectedId(id);
+    setShowCode(false);
+    setShowSuggest(false);
+    setRawExample(null);
   }
 
-  /* ------------------------------------------------------------------------------------------
-     RELATED GRID
-  ------------------------------------------------------------------------------------------ */
-  function RelatedGrid() {
-    const items = APIS.filter(a => a.id !== selectedId).slice(0, 6);
-
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {items.map(a => (
-          <motion.div
-            key={a.id}
-            whileHover={{ scale: 1.03 }}
-            className="p-3 border rounded-xl bg-white/40 dark:bg-black/40 backdrop-blur-sm cursor-pointer"
-            onClick={() => setSelectedId(a.id)}
-          >
-            <p className="text-sm font-semibold">{a.name}</p>
-            <p className="text-xs opacity-60">{a.category}</p>
-          </motion.div>
-        ))}
-      </div>
-    );
+  async function tryInvoke(endpoint) {
+    setLoadingInvoke(true);
+    setRawExample(null);
+    try {
+      // Basic GET request; no CORS handling here (may fail in browser for some endpoints)
+      const res = await fetch(endpoint, { method: "GET" });
+      const ct = res.headers.get("content-type") || "";
+      let body;
+      if (ct.includes("application/json")) {
+        body = await res.json();
+      } else {
+        body = await res.text();
+      }
+      setRawExample({ status: res.status, headers: { "content-type": ct }, body });
+      toast.success("Fetched example response");
+    } catch (err) {
+      console.error(err);
+      setRawExample({ error: String(err) });
+      toast.error("Failed to fetch (CORS or network error). See console.");
+    } finally {
+      setLoadingInvoke(false);
+    }
   }
 
-  /* ------------------------------------------------------------------------------------------
-     PAGE UI
-  ------------------------------------------------------------------------------------------ */
+  function copyEndpoint(ep) {
+    navigator.clipboard.writeText(ep);
+    toast.success("Endpoint copied");
+  }
 
+  /* ---------------------------
+     UI Rendering
+     --------------------------- */
   return (
-    <div className="min-h-screen max-w-8xl mx-auto p-6 dark:bg-black bg-white transition-colors">
-      <Toaster richColors />
+    <div className={clsx("min-h-screen max-w-8xl mx-auto p-6 transition-colors", isDark ? "dark" : "")}>
+      <Toaster />
 
       {/* Header */}
-      <header className="flex justify-between items-start mb-8">
+      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-4xl font-extrabold">
-            
-              Revolyx API Explorer
-         
-          </h1>
-          <p className="opacity-60 mt-1 text-sm">Explore free public APIs with powerful preview tools.</p>
+          <h1 className="text-4xl font-extrabold">Revolyx API Explorer</h1>
+          <p className="text-sm opacity-70 mt-1">Beautiful curated APIs — search, preview, and copy quickly.</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <MobileSidebar />
-
-          <div className="hidden lg:flex items-center gap-2 bg-white/50 dark:bg-black/40 backdrop-blur px-3 py-2 rounded-xl border">
-            <Search className="w-4 h-4 opacity-60" />
+        {/* search + category */}
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className={clsx("flex items-center gap-2 px-3 py-2 rounded-lg border", isDark ? "bg-black/60 border-zinc-800" : "bg-white border-zinc-200")}>
+            <Search className="opacity-60" />
             <Input
-              placeholder="Search APIs..."
+              ref={searchRef}
               value={query}
-              onChange={e => setQuery(e.target.value)}
-              className="border-0 shadow-none bg-transparent"
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search APIs, e.g. 'weather', 'random', 'geo'..."
+              className="border-0 bg-transparent outline-none"
+              onFocus={() => setShowSuggest(true)}
             />
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
+
+<Select value={categoryFilter} onValueChange={setCategoryFilter}>
+  <SelectTrigger className="w-32 border-none bg-transparent focus:ring-0 focus:ring-offset-0 text-sm">
+    <SelectValue placeholder="Category" />
+  </SelectTrigger>
+  <SelectContent>
+    {categories.map((c) => (
+      <SelectItem key={c} value={c} className="cursor-pointer">
+        {c}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+
           </div>
+
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="lg:hidden">
+                <Menu />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[320px] p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-lg font-semibold">APIs</div>
+                <Button variant="ghost" size="sm" onClick={() => { setQuery(""); setCategoryFilter("All"); }}>
+                  Reset
+                </Button>
+              </div>
+
+              <Input value={query} onChange={(e) => onSearchChange(e.target.value)} placeholder="Search..." className="mb-3" />
+
+              <div className="mb-3">
+                <div className="text-xs opacity-60 mb-2">Category</div>
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((c) => (
+                    <Button key={c} variant={c === categoryFilter ? "default" : "ghost"} size="sm" onClick={() => setCategoryFilter(c)}>{c}</Button>
+                  ))}
+                </div>
+              </div>
+
+              <ScrollArea className="h-[60vh]">
+                <div className="space-y-3">
+                  {filtered.map((api) => (
+                    <motion.div key={api.id}  className={clsx("p-3 rounded-lg border cursor-pointer", api.id === selectedId ? "border-zinc-500 bg-zinc-50 dark:bg-zinc-900/30" : "border-zinc-200 dark:border-zinc-700")} onClick={() => { selectApi(api.id); }}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <CategoryIcon category={api.category} className="w-5 h-5 opacity-80" />
+                          <div>
+                            <div className="font-semibold">{api.name}</div>
+                            <div className="text-xs opacity-60">{api.description}</div>
+                          </div>
+                        </div>
+                        <Badge className="text-xs">{api.category}</Badge>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 
-      {/* Layout Grid */}
-      <main className="grid grid-cols-1 lg:grid-cols-4 gap-10">
-        {/* Sidebar */}
-        <aside className="hidden lg:block">
-          <ScrollArea className="h-[80vh] pr-3">
-            {filteredAPIs.map(api => (
-              <SidebarItem className="cursor-pointer" key={api.id} api={api} />
-            ))}
-          </ScrollArea>
-        </aside>
-
-        {/* Main Preview Section */}
-        <section className="col-span-3 space-y-10">
-
-          {/* Preview Card */}
-          <Card className="shadow-xl rounded-2xl overflow-hidden bg-white/70 dark:bg-black/40 backdrop-blur-xl border">
-            {/* Preview image */}
-            <div className="relative bg-gray-200 dark:bg-zinc-900 h-72 flex items-center justify-center">
-              {selected.image ? (
-                <img
-                  src={selected.image}
-                  alt="Preview"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="opacity-40 flex items-center gap-2">
-                  <ImageIcon /> No preview image
+      {/* suggestions dropdown (desktop) */}
+      <AnimatePresence>
+        {showSuggest && suggestions.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className={clsx("absolute left-6 right-6 md:left-[calc(50%_-_360px)] md:right-auto max-w-3xl z-50 rounded-xl overflow-hidden border", isDark ? "bg-black/60 border-zinc-800" : "bg-white border-zinc-200")}>
+            {suggestions.map((s) => (
+              <div key={s.id} className="p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-3" onClick={() => { selectApi(s.id); }}>
+                <CategoryIcon category={s.category} className="w-5 h-5 opacity-80" />
+                <div className="flex-1">
+                  <div className="font-medium">{s.name}</div>
+                  <div className="text-xs opacity-60">{s.category} • {s.description}</div>
                 </div>
-              )}
+                <ChevronRight className="w-4 h-4 opacity-60" />
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main layout */}
+      <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6">
+        {/* Left Sidebar (desktop) */}
+        <aside className="hidden lg:block lg:col-span-3">
+          <Card className={clsx("p-4 rounded-2xl border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
+            <div className="mb-3">
+              <div className="text-sm font-semibold">APIs</div>
+              <div className="text-xs opacity-60">Browse curated endpoints</div>
             </div>
 
-            <CardHeader>
-              <CardTitle className="text-2xl">{selected.name}</CardTitle>
-              <p className="text-sm opacity-70">{selected.description}</p>
-
-              {/* Endpoint */}
-              <div className="mt-3 p-3 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-between border">
-                <span className="text-xs opacity-80">{selected.endpoint}</span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    navigator.clipboard.writeText(selected.endpoint);
-                    toast.success("Endpoint copied");
-                  }}
-                >
-                  <LinkIcon className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardHeader>
-
-            <CardContent className="pt-0">
-              {/* Open / Code */}
-              <div className="flex items-center gap-4 mt-4">
-
-                <Link
-                 to={`/apis/${selected.id}`}
-                 
-                >
-                    <Button className="cursor-pointer">
-                  Open API Page <ExternalLink className="w-4 h-4" />
-                  </Button>
-                </Link>
-
-                <Button
-                  variant="outline"
-                  className="flex cursor-pointer items-center gap-2"
-                  onClick={() => setShowCode(prev => !prev)}
-                >
-                  <Code className="w-4 h-4" />
-                  {showCode ? "Hide Code" : "Show Code"}
-                  <ChevronDown
-                    className={clsx(
-                      "w-4 h-4 transition-transform",
-                      showCode && "rotate-180"
-                    )}
-                  />
-                </Button>
-
-              </div>
-
-              {/* CODE BLOCK (Animated) */}
-              <AnimatePresence>
-                {showCode && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="overflow-hidden mt-4"
-                  >
-                    <SyntaxHighlighter
-                      language="javascript"
-                      style={oneDark}
-                      customStyle={{
-                        borderRadius: 12,
-                        padding: 16,
-                        fontSize: 12,
-                      }}
-                    >
-                      {selected.code}
-                    </SyntaxHighlighter>
+            <ScrollArea className="h-[72vh] pr-2">
+              <div className="space-y-3">
+                {filtered.map((api) => (
+                  <motion.div key={api.id} className={clsx("p-3 rounded-lg border cursor-pointer", api.id === selectedId ? "border-zinc-500 bg-zinc-50 dark:bg-zinc-700/30" : "border-zinc-200 dark:border-zinc-700")} onClick={() => selectApi(api.id)}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <CategoryIcon category={api.category} className="w-5 h-5 opacity-80" />
+                        <div>
+                          <div className="font-semibold">{api.name}</div>
+                          <div className="text-xs opacity-60">{api.description}</div>
+                        </div>
+                      </div>
+                      <Badge className="text-xs">{api.category}</Badge>
+                    </div>
                   </motion.div>
-                )}
-              </AnimatePresence>
+                ))}
+              </div>
+            </ScrollArea>
+          </Card>
+        </aside>
+
+        {/* Main Content */}
+        <section className="lg:col-span-9 space-y-6">
+          {/* Hero header */}
+          <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
+            <div className={clsx("p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/95 border-b border-zinc-200")}>
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg w-14 h-14 flex items-center justify-center bg-zinc-50 dark:bg-zinc-900 border">
+                  <CategoryIcon category={selected.category} className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-extrabold truncate">{selected.name}</h2>
+                  <p className="text-sm opacity-60 mt-1">{selected.description}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* <div className="px-3 py-2 rounded-lg border bg-black/5 dark:bg-white/5 text-sm">
+                  <div className="text-xs opacity-60">Endpoint</div>
+                  <div className="font-mono text-sm">{selected.endpoint}</div>
+                </div> */}
+
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => copyEndpoint(selected.endpoint)}><Copy /></Button>
+                  <Button onClick={() => tryInvoke(selected.endpoint)} disabled={loadingInvoke}>{loadingInvoke ? "Fetching..." : "Try"}</Button>
+                  <Link to={`/apis/${selected.id}`}>
+                    <Button variant="ghost">Open <ExternalLink className="w-4 h-4 inline ml-1" /></Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Content body */}
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left / Primary details */}
+                <div className="lg:col-span-2 space-y-4">
+                  {/* Key info */}
+                  <div className="grid grid-cols-1  gap-4">
+                    <div className="p-4 rounded-lg overflow-y-auto np-scrollbar border">
+                      <InfoRow icon={<LinkIcon />} label="Endpoint">
+                        <div className="font-mono text-sm break-words">{selected.endpoint}</div>
+                      </InfoRow>
+                    </div>
+
+                    <div className="p-4 rounded-lg border">
+                      <InfoRow icon={<CodeIcon />} label="Category">
+                        {selected.category}
+                      </InfoRow>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Description + Use cases */}
+                  <div className="space-y-3">
+                    <div className="text-sm font-semibold">Overview</div>
+                    <div className="text-sm opacity-80 leading-relaxed">{selected.description}</div>
+
+                    <div className="mt-4 text-sm font-semibold">Example Code</div>
+                    <div className={clsx("relative mt-2 rounded-xl p-4 border", isDark ? "bg-black/30 border-zinc-800" : "bg-white/60 border-zinc-200")}>
+                      {/* Floating glass code box */}
+                      <div className={clsx("p-3 rounded-lg shadow-md border", isDark ? "bg-black/60 border-zinc-700" : "bg-white border-zinc-200")}>
+                        <pre className="text-xs overflow-auto" style={{ maxHeight: 240 }}>
+                          <code>{selected.code}</code>
+                        </pre>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right / Compact info */}
+                <aside className="space-y-4">
+                  <Card className="p-4 rounded-lg border">
+                    <div className="text-sm font-semibold mb-2">Quick Info</div>
+                    <div className="space-y-3">
+                      <InfoRow icon={<CategoryIcon category={selected.category} className="w-4 h-4" />} label="Category">
+                        {selected.category}
+                      </InfoRow>
+
+                      <InfoRow icon={<ImageIcon />} label="Preview">
+                        <div className="text-sm font-medium">{selected.name}</div>
+                      </InfoRow>
+
+                      <InfoRow icon={<ExternalLink />} label="Docs / Link">
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => window.open(selected.endpoint, "_blank")}>Open</Button>
+                          <Button variant="ghost" size="sm" onClick={() => toast("No docs provided — use endpoint")}>Docs</Button>
+                        </div>
+                      </InfoRow>
+                    </div>
+                  </Card>
+
+                  <Card className="p-4 rounded-lg border">
+                    <div className="text-sm font-semibold mb-2">Test Console</div>
+                    <div className="text-xs opacity-60 mb-2">Invoke the endpoint (GET) — may fail in-browser due to CORS.</div>
+                    <div className="flex gap-2">
+                      <Button onClick={() => tryInvoke(selected.endpoint)} disabled={loadingInvoke}>{loadingInvoke ? "Running..." : "Invoke"}</Button>
+                      <Button variant="outline" onClick={() => copyEndpoint(selected.endpoint)}><Copy /></Button>
+                    </div>
+
+                    <AnimatePresence>
+                      {rawExample && (
+                        <motion.pre initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="text-xs mt-3 p-3 rounded-md bg-black/90 text-white overflow-auto" style={{ maxHeight: 220 }}>
+                          {prettyJSON(rawExample)}
+                        </motion.pre>
+                      )}
+                    </AnimatePresence>
+                  </Card>
+                </aside>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Related APIs */}
-          <Card className="p-6 bg-white/60 dark:bg-black/40 border backdrop-blur-xl rounded-2xl">
-            <CardTitle className="mb-4">Related APIs</CardTitle>
-            <RelatedGrid />
+          {/* More from this category */}
+          <Card className="p-6 rounded-2xl border bg-white/60 dark:bg-black/40">
+            <CardTitle className="text-lg mb-4">More in <span className="font-semibold">{selected.category}</span></CardTitle>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {related.length === 0 ? <div className="text-sm opacity-60">No related APIs</div> : related.map((r) => (
+                <motion.div key={r.id} whileHover={{ scale: 1.03 }} onClick={() => selectApi(r.id)} className="p-3 rounded-md border cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium">{r.name}</div>
+                      <div className="text-xs opacity-60">{r.description}</div>
+                    </div>
+                    <Badge className="text-xs">{r.category}</Badge>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </Card>
-
         </section>
       </main>
     </div>
