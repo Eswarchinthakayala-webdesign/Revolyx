@@ -369,7 +369,7 @@ const APIS = [
     .then(console.log);`,
 }
 ,
-  id: "weather",
+ { id: "weather",
   name: "Weather (OpenWeatherMap)",
   category: "Utilities",
   endpoint: "https://api.openweathermap.org/data/2.5/weather?q=London&appid=YOUR_API_KEY&units=metric",
