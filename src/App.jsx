@@ -89,6 +89,30 @@ import FoodishPage from './APIDemoPage/FoodishPage'
 import AmiiboPage from './APIDemoPage/AmiiboPage'
 import DisneyCharactersPage from './APIDemoPage/DisneyCharactersPage'
 import NarutoCharactersPage from './APIDemoPage/NarutoCharactersPage'
+import OpenTopoPage from './APIDemoPage/OpenTopoPage'
+import CovidCurrentPage from './APIDemoPage/CovidCurrentPage'
+import OpenWhydPage from './APIDemoPage/OpenWhydPage'
+import SpaceflightNewsPage from './APIDemoPage/SpaceflightNewsPage'
+import UniversitiesPage from './APIDemoPage/UniversitiesPage'
+import NobelPage from './APIDemoPage/NobelPage'
+import GhContribPage from './APIDemoPage/GhContribPage'
+import GithubReadmeStatsPage from './APIDemoPage/GithubReadmeStatsPage'
+import DictumQuotesPage from './APIDemoPage/DictumQuotesPage'
+import ForismaticPage from './APIDemoPage/ForismaticPage'
+import IcanhazDadJokePage from './APIDemoPage/IcanhazDadJokePage'
+import StoicQuotePage from './APIDemoPage/StoicQuotePage'
+import WorldBankPage from './APIDemoPage/WorldBankPage'
+import UsgsEarthquakePage from './APIDemoPage/UsgsEarthquakePage'
+import TLEPage from './APIDemoPage/TLEPage'
+import SunriseSunsetPage from './APIDemoPage/SunriseSunsetPage'
+import IssMapPage from './APIDemoPage/IssMapPage'
+import NASAImagesPage from './APIDemoPage/NASAImagesPage'
+import LaunchLibraryPage from './APIDemoPage/LaunchLibraryPage'
+import ChanApiPage from './APIDemoPage/ChanApiPage'
+import SquigglePage from './APIDemoPage/SquigglePage'
+import MLBRecordsPage from './APIDemoPage/MLBRecordsPage'
+import CityBikesPage from './APIDemoPage/CityBikesPage'
+
 const router=createBrowserRouter([
   {
 
@@ -450,16 +474,105 @@ const router=createBrowserRouter([
        {
         path:"/apis/naruto_characters",
         element:<NarutoCharactersPage/>
+       },
+       {
+        path:"/apis/opentopodata",
+        element:<OpenTopoPage/>
+       },
+       {
+        path:"/apis/covid_current",
+        element:<CovidCurrentPage/>
+       },
+       {
+        path:"/apis/openwhyd",
+        element:<OpenWhydPage/>
+       } ,
+       {
+        path:"/apis/spaceflightnews",
+        element:<SpaceflightNewsPage/>
+       },
+       {
+        path:"/apis/universities",
+        element:<UniversitiesPage/>
+       },
+       {
+        path:"/apis/nobelprize",
+        element:<NobelPage/>
+       },
+       {
+        path:"/apis/github_contributions",
+        element:<GhContribPage/>
+       },
+       {
+        path:"/apis/github_readme_stats",
+        element:<GithubReadmeStatsPage/>
+       },
+       {
+        path:"/apis/dictum",
+        element:<DictumQuotesPage/>
+       },
+       {
+        path:"/apis/forismatic",
+        element:<ForismaticPage/>
+       },
+       {
+        path:"/apis/icanhazdadjoke",
+        element:<IcanhazDadJokePage/>
+       },
+       {
+        path:"/apis/stoicquote",
+        element:<StoicQuotePage/>
+       },
+       {
+        path:"/apis/worldbank",
+        element:<WorldBankPage/>
+       },
+       {
+        path:"/apis/usgs_earthquakes",
+        element:<UsgsEarthquakePage/>
+       },
+       {
+        path:"/apis/tle",
+        element:<TLEPage/>
+       },
+       {
+        path:"/apis/sunrise_sunset",
+        element:<SunriseSunsetPage/>
+       },
+       {
+        path:"/apis/opennotify_iss",
+        element:<IssMapPage/>
+       },
+       {
+        path:"/apis/nasa_images",
+        element:<NASAImagesPage/>
+       },
+       {
+        path:"/apis/launchlibrary",
+        element:<LaunchLibraryPage/>
+       },
+       {
+        path:"/apis/4chan",
+        element:<ChanApiPage/>
+       },
+       {
+        path:"apis/squiggle",
+        element:<SquigglePage/>
+       },
+       {
+        path:"/apis/mlb-records",
+        element:<MLBRecordsPage/>
+       },
+       {
+        path:"/apis/citybikes",
+        element:<CityBikesPage/>
        }
-       
-     
-      
 
-    
-      
 
-     
-    ]
+      
+      
+      ]
+
   }
 
 

@@ -846,6 +846,276 @@ fetch("https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50")
     .then(res => res.json())
     .then(console.log);`,
 },
+{
+  id: "opentopodata",
+  name: "Elevation & Ocean Depth",
+  category: "Geography",
+  endpoint: "https://api.opentopodata.org/v1/test-dataset?locations=51.509865,-0.118092",
+  description: "Fetch elevation or ocean depth for given latitude and longitude coordinates. No API key required.",
+  image: "/api_previews/opentopodata.png",
+  code: `fetch("https://api.opentopodata.org/v1/test-dataset?locations=51.509865,-0.118092")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "covid_current",
+  name: "COVID-19 India Current Data",
+  category: "Health",
+  endpoint: "https://data.covid19india.org/v4/min/data.min.json",
+  description: "Fetch current day numbers across districts and states including confirmed, recovered, and tested.",
+  image: "/api_previews/covid_current.png",
+  code: `fetch("https://data.covid19india.org/v4/min/data.min.json")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "openwhyd",
+  name: "Openwhyd Playlists",
+  category: "Music",
+  endpoint: "https://openwhyd.org/hot",
+  description: "Download and explore curated playlists of streaming tracks from platforms like YouTube, SoundCloud, and more. No API key required.",
+  image: "/api_previews/openwhyd.png",
+  code: `fetch("https://openwhyd.org/hot")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "spaceflightnews",
+  name: "Spaceflight News",
+  category: "Space",
+  endpoint: "https://api.spaceflightnewsapi.net/v4/articles",
+  description: "Fetch the latest spaceflight-related news articles, launches, and updates. No API key required.",
+  image: "/api_previews/spaceflightnews.png",
+  code: `fetch("https://api.spaceflightnewsapi.net/v4/articles")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "universities",
+  name: "World Universities List",
+  category: "Education",
+  endpoint: "https://raw.githubusercontent.com/Hipo/university-domains-list/refs/heads/master/world_universities_and_domains.json",
+  description: "Fetch a complete global list of universities with country, domains, and web pages.",
+  image: "/api_previews/universities.png",
+  code: `fetch("https://raw.githubusercontent.com/Hipo/university-domains-list/refs/heads/master/world_universities_and_domains.json")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "nobelprize",
+  name: "Nobel Prize Open Data",
+  category: "Education",
+  endpoint: "https://api.nobelprize.org/2.1/nobelPrizes",
+  description: "Fetch open data about Nobel Prizes, laureates, categories, and award years. No API key required.",
+  image: "/api_previews/nobelprize.png",
+  code: `fetch("https://api.nobelprize.org/2.1/nobelPrizes")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "github_contributions",
+  name: "GitHub Contribution Chart",
+  category: "Dev",
+  endpoint: "https://ghchart.rshah.org/username",
+  description: "Generate an image of a user's GitHub contribution chart. No API key required.",
+  image: "/api_previews/github_contributions.png",
+  code: `fetch("https://ghchart.rshah.org/username")
+    .then(res => res.blob())
+    .then(img => console.log(img));`,
+},
+{
+  id: "github_readme_stats",
+  name: "GitHub ReadMe Stats",
+  category: "Dev",
+  endpoint: "https://github-readme-stats.vercel.app/api?username=octocat",
+  description: "Generate dynamic stats cards for your GitHub profile README. No API key required.",
+  image: "/api_previews/github_readme_stats.png",
+  code: `fetch("https://github-readme-stats.vercel.app/api?username=octocat")
+    .then(res => res.text())
+    .then(console.log); // returns SVG`,
+},
+{
+  id: "dictum",
+  name: "Dictum Inspiring Quotes",
+  category: "Motivation",
+  endpoint: "https://www.quoterism.com/api/quotes",
+  description: "Access a collection of the most inspiring expressions of mankind. No API key required.",
+  image: "/api_previews/dictum.png",
+  code: `fetch("https://www.quoterism.com/api/quotes")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "forismatic",
+  name: "Inspirational Quote",
+  category: "Motivation",
+  endpoint: "https://api.forismatic.com/api/1.0/?method=getQuote&format=json&lang=en",
+  description: "Fetch a random inspirational quote using the Forismatic API. No API key required.",
+  image: "/api_previews/forismatic.png",
+  code: `fetch("https://api.forismatic.com/api/1.0/?method=getQuote&format=json&lang=en")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "icanhazdadjoke",
+  name: "Random Dad Joke",
+  category: "Fun",
+  endpoint: "https://icanhazdadjoke.com/",
+  description: "Fetch a random dad joke from the largest collection of dad jokes on the internet. No API key required.",
+  image: "/api_previews/icanhazdadjoke.png",
+  code: `fetch("https://icanhazdadjoke.com/", {
+      headers: { "Accept": "application/json" }
+    })
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "stoicquote",
+  name: "Stoic Quote",
+  category: "Motivation",
+  endpoint: "https://stoic.tekloon.net/stoic-quote",
+  description: "Fetch a random stoic philosophy quote with author.",
+  image: "/api_previews/stoicquote.png",
+  code: `fetch("https://stoic.tekloon.net/stoic-quote")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "worldbank",
+  name: "World Bank Global Data",
+  category: "Data",
+  endpoint: "https://api.worldbank.org/v2/country/ind/indicator/SP.POP.TOTL?format=json",
+  description: "Fetch global development, economic, population, and financial data from the World Bank. No API key required.",
+  image: "/api_previews/worldbank.png",
+  code: `fetch("https://api.worldbank.org/v2/country/ind/indicator/SP.POP.TOTL?format=json")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "usgs_earthquakes",
+  name: "USGS Earthquake Data",
+  category: "Geology",
+  endpoint: "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2014-01-01&endtime=2014-01-02",
+  description: "Fetch earthquake event data from the USGS Earthquake Hazards Program within a specified date range.",
+  image: "/api_previews/usgs_earthquakes.png",
+  code: `fetch("https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2014-01-01&endtime=2014-01-02")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "tle",
+  name: "Satellite TLE Data",
+  category: "Space",
+  endpoint: "https://tle.ivanstanojevic.me/api/tle/25544",
+  description: "Fetch Two-Line Element (TLE) orbital data for satellites such as the ISS. No API key required.",
+  image: "/api_previews/tle.png",
+  code: `fetch("https://tle.ivanstanojevic.me/api/tle/25544")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "sunrise_sunset",
+  name: "Sunrise & Sunset Times",
+  category: "Geolocation",
+  endpoint: "https://api.sunrise-sunset.org/json?lat=36.7201600&lng=-4.4203400",
+  description: "Get daily sunrise and sunset times for any latitude and longitude. No API key required.",
+  image: "/api_previews/sunrise_sunset.png",
+  code: `fetch("https://api.sunrise-sunset.org/json?lat=36.7201600&lng=-4.4203400")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "opennotify_iss",
+  name: "ISS Current Location",
+  category: "Space",
+  endpoint: "http://api.open-notify.org/iss-now.json",
+  description: "Fetch the current geographic location of the International Space Station (ISS). No API key required.",
+  image: "/api_previews/opennotify_iss.png",
+  code: `fetch("http://api.open-notify.org/iss-now.json")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "nasa_images",
+  name: "NASA Images & Data",
+  category: "Space",
+  endpoint: "https://images-api.nasa.gov/search?q=earth",
+  description: "Access NASA's public image and video library including space imagery, missions, planets, and astronomy. No API key required.",
+  image: "/api_previews/nasa_images.png",
+  code: `fetch("https://images-api.nasa.gov/search?q=earth")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "launchlibrary",
+  name: "Launch Library 2",
+  category: "Space",
+  endpoint: "https://ll.thespacedevs.com/2.2.0/launch/upcoming/",
+  description: "A public spaceflight database providing information about upcoming and past rocket launches and events. No API key required.",
+  image: "/api_previews/launchlibrary.png",
+  code: `fetch("https://ll.thespacedevs.com/2.2.0/launch/upcoming/")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "4chan",
+  name: "4chan JSON API",
+  category: "Misc",
+  endpoint: "https://a.4cdn.org/boards.json",
+  description: "A public JSON API for retrieving boards, threads, and posts from 4chan. No API key required.",
+  image: "/api_previews/4chan.png",
+  code: `// Fetch all boards
+fetch("https://a.4cdn.org/boards.json")
+  .then(res => res.json())
+  .then(console.log);
+
+// Fetch threads of a specific board (example: 'g' - technology)
+fetch("https://a.4cdn.org/g/threads.json")
+  .then(res => res.json())
+  .then(console.log);`,
+},
+{
+  id: "squiggle",
+  name: "Squiggle",
+  category: "Sports",
+  endpoint: "https://api.squiggle.com.au/",
+  description: "Fixtures, results, team rankings, and match predictions for the Australian Football League (AFL). No API key required.",
+  image: "/api_previews/squiggle.png",
+  code: `fetch("https://api.squiggle.com.au/?q=games;year=2024")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "mlb-records",
+  name: "MLB Records & Stats",
+  category: "Sports",
+  endpoint: "https://statsapi.mlb.com/api/v1/stats",
+  description:
+    "Provides current and historical MLB statistics, records, player data, and game information. No API key required.",
+  image: "/api_previews/mlb.png",
+  code: `fetch("https://statsapi.mlb.com/api/v1/stats?stats=season&group=hitting")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "citybikes",
+  name: "CityBikes",
+  category: "Transport",
+  endpoint: "https://api.citybik.es/v2/networks",
+  description: "A free, public API providing bike-sharing networks and real-time station data from cities around the world. No API key required.",
+  image: "/api_previews/citybikes.png",
+  code: `fetch("https://api.citybik.es/v2/networks")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+
+
+
+
+
+
+
+
 
 
 

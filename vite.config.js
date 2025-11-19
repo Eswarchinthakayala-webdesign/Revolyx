@@ -47,7 +47,56 @@ export default defineConfig({
         secure: true,
         rewrite: (path) => path.replace(/^\/fruityvice/, ""),
       },
-      
+      "/opentopo": {
+        target: "https://api.opentopodata.org",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/opentopo/, ""),
+      },
+       '/api/covid': {
+        target: 'https://data.covid19india.org',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api\/covid/, '')
+      },
+       "/openwhyd": {
+        target: "https://openwhyd.org",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/openwhyd/, "")
+      },
+      "/ghchart": {
+        target: "https://ghchart.rshah.org",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ghchart/, "")
+      },
+      "/dictum": {
+        target: "https://www.quoterism.com",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/dictum/, "")
+      },
+      "/quote": {
+        target: "https://api.forismatic.com/api/1.0",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/quote/, ""),
+      },
+      "/api/stoic": {
+        target: "https://stoic.tekloon.net",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/stoic/, ""),
+      },
+      "/api/iss": {
+        target: "http://api.open-notify.org",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/iss/, "/iss-now.json")
+      },
+      "/chan": {
+        target: "https://a.4cdn.org",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/chan/, "")
+      }
     }
   }
 })
