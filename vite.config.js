@@ -96,7 +96,14 @@ export default defineConfig({
         target: "https://a.4cdn.org",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/chan/, "")
-      }
+      },
+      "/aviation": {
+        target: "https://api.aviationapi.com",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/aviation/, ""),
+      },
+      
     }
   }
 })

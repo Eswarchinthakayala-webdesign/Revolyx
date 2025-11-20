@@ -1107,7 +1107,142 @@ fetch("https://a.4cdn.org/g/threads.json")
   code: `fetch("https://api.citybik.es/v2/networks")
     .then(res => res.json())
     .then(console.log);`,
+},
+{
+  id: "postalpincode",
+  name: "Postal Pin Code (India)",
+  category: "Location",
+  endpoint: "https://api.postalpincode.in/pincode/110001",
+  description: "API for retrieving detailed information about Indian Postal PIN codes, including district, state, and post office details. No API key required.",
+  image: "/api_previews/postalpincode.png",
+  code: `fetch("https://api.postalpincode.in/pincode/110001")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "aviationapi",
+  name: "AviationAPI",
+  category: "Aviation",
+  endpoint: "https://api.aviationapi.com/",
+  description: "Provides FAA aeronautical charts, airport data, publications, and real-time airport weather information. No API key required.",
+  image: "/api_previews/aviationapi.png",
+  code: `fetch("https://api.aviationapi.com/v1/airports?apt=JFK")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "tvmaze",
+  name: "TVMaze",
+  category: "Entertainment",
+  endpoint: "https://api.tvmaze.com/shows",
+  description: "A free TV show and series database providing details like cast, episodes, schedules, networks, and more. No API key required.",
+  image: "/api_previews/tvmaze.png",
+  code: `fetch("https://api.tvmaze.com/shows")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "thronesapi",
+  name: "Thrones API",
+  category: "Entertainment",
+  endpoint: "https://thronesapi.com/api/v2/Characters",
+  description: "Game of Thrones characters API providing detailed character information with imagery. No API key required.",
+  image: "/api_previews/thronesapi.png",
+  code: `fetch("https://thronesapi.com/api/v2/Characters")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "swapi",
+  name: "SWAPI",
+  category: "Entertainment",
+  endpoint: "https://swapi.dev/api/people/1/",
+  description: "The Star Wars API providing data about films, characters, planets, starships, and more. No API key required.",
+  image: "/api_previews/swapi.png",
+  code: `fetch("https://swapi.dev/api/people/1/")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "finalspace",
+  name: "Final Space API",
+  category: "Entertainment",
+  endpoint: "https://finalspaceapi.com/api/v0/",
+  description: "A public API providing data about characters, episodes, locations, and quotes from the Final Space animated series. No API key required.",
+  image: "/api_previews/finalspace.png",
+  code: `fetch("https://finalspaceapi.com/api/v0/character/")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "goldapi",
+  name: "GoldAPI",
+  category: "Finance",
+  endpoint: "https://www.goldapi.io/api/XAU/INR",
+  description: "Real-time gold and precious metal price API. Requires an API key via x-access-token header.",
+  image: "/api_previews/goldapi.png",
+  code: `var myHeaders = new Headers();
+myHeaders.append("x-access-token", "YOUR_API_KEY");
+myHeaders.append("Content-Type", "application/json");
+
+var requestOptions = {
+  method: 'GET',
+  headers: myHeaders,
+  redirect: 'follow'
+};
+
+fetch("https://www.goldapi.io/api/XAU/INR", requestOptions)
+  .then(response => response.json())
+  .then(console.log)
+  .catch(console.error);`
+},
+{
+  id: "goldapi2",
+  name: "Gold API2",
+  category: "Finance",
+  endpoint: "https://api.gold-api.com/price/{symbol}",
+  description: "Provides real-time and historical gold, silver, and metal prices. No API key required for basic endpoints.",
+  image: "/api_previews/goldapi.png",
+  code: `// Get price for a specific metal (e.g., XAU, XAG)
+fetch("https://api.gold-api.com/price/XAU")
+  .then(res => res.json())
+  .then(console.log);
+
+// Get list of supported symbols
+fetch("https://api.gold-api.com/symbols")
+  .then(res => res.json())
+  .then(console.log);`,
+},
+{
+  id: "fdaAnimalVet",
+  name: "FDA Animal & Veterinary",
+  category: "Health",
+  endpoint: "https://api.fda.gov/animalandveterinary/event.json",
+  description: "FDA's database for animal and veterinary adverse events. No API key required.",
+  image: "/api_previews/fda_animalvet.png",
+  code: `fetch("https://api.fda.gov/animalandveterinary/event.json?search=primary_reporter:Veterinarian&limit=5")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "fda_drug_shortages",
+  name: "FDA Drug Shortages",
+  category: "Health",
+  endpoint: "https://api.fda.gov/drug/shortages.json",
+  description: "FDA public API providing real-time information about current drug shortages. No API key required.",
+  image: "/api_previews/fda.png",
+  code: `fetch("https://api.fda.gov/drug/shortages.json?search=dosage_form:\\"Capsule\\"&limit=5")
+    .then(res => res.json())
+    .then(console.log);`,
 }
+
+
+
+
+
+
+
+
 
 
 

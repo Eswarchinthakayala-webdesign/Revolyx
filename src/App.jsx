@@ -112,6 +112,16 @@ import ChanApiPage from './APIDemoPage/ChanApiPage'
 import SquigglePage from './APIDemoPage/SquigglePage'
 import MLBRecordsPage from './APIDemoPage/MLBRecordsPage'
 import CityBikesPage from './APIDemoPage/CityBikesPage'
+import PostalPincodePage from './APIDemoPage/PostalPincodePage'
+import AviationApiPage from './APIDemoPage/AviationApiPage'
+
+import TVMazePage from './APIDemoPage/TVMazePage'
+import ThronesApiPage from './APIDemoPage/ThronesApiPage'
+import SwapiPage from './APIDemoPage/SwapiPage'
+import FinalSpacePage from './APIDemoPage/FinalSpacePage'
+import GoldApiPage from './APIDemoPage/GoldApiPage'
+import GoldApiPage2 from './APIDemoPage/GoldApiPage2'
+import FDAAnimalVetPage from './APIDemoPage/FDAAnimalVetPage'
 
 const router=createBrowserRouter([
   {
@@ -566,10 +576,48 @@ const router=createBrowserRouter([
        {
         path:"/apis/citybikes",
         element:<CityBikesPage/>
-       }
+       },
+       {
+        path:"/apis/postalpincode",
+        element:<PostalPincodePage/>
+       },
+       {
+        path:"/apis/aviationapi",
+        element:<AviationApiPage/>
+       },
+    
+       {
+        path:"/apis/tvmaze",
+        element:<TVMazePage/>
+       },
+       {
+        path:"/apis/thronesapi",
+        element:<ThronesApiPage/>
+       },
+       {
 
-
+       path:"/apis/swapi",
+       element:<SwapiPage/>
       
+      },
+      {
+        path:"/apis/finalspace",
+        element:<FinalSpacePage/>
+      },
+      {
+        path:"/apis/goldapi",
+        element:<GoldApiPage/>
+      },
+      {
+        path:"/apis/goldapi2",
+        element:<GoldApiPage2/>
+      },
+      {
+        path:"/apis/fdaAnimalVet",
+        element:<FDAAnimalVetPage/>
+      },
+      
+
       
       ]
 
