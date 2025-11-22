@@ -509,13 +509,18 @@ const handleSearch = useCallback(() => {
   <CardContent>
     {loading ? (
       <div className="flex flex-col items-center justify-center py-12">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
-          className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-400 to-pink-400 flex items-center justify-center shadow-lg"
-        >
-          <Loader2 className="w-6 h-6 text-white animate-spin" />
-        </motion.div>
+   <motion.div
+  animate={{ rotate: 360 }}
+  transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+  className="
+    w-12 h-12 rounded-full shadow-lg flex items-center justify-center
+    bg-gradient-to-r from-zinc-300 to-black
+    dark:from-zinc-700 dark:to-black
+  "
+>
+  <Loader2 className="w-6 h-6 text-white animate-spin" />
+</motion.div>
+
         <p className="mt-4 text-sm text-muted-foreground">Fetching resources...</p>
       </div>
     ) : (

@@ -69,7 +69,7 @@ import FreeToGamePage from './APIDemoPage/FreeToGamePage'
 import OpenDotaPage from './APIDemoPage/OpenDotaPage'
 import ChessPlayerPage from './APIDemoPage/ChessPlayerPage'
 import IplDatasetPage from './APIDemoPage/IplDatasetPage'
-import XenoCantoPage from './APIDemoPage/XenoCantoPage'
+
 import NekosPage from './APIDemoPage/NekosPage'
 import ColorMindPage from './APIDemoPage/ColorMindPage'
 import EmojiHubPage from './APIDemoPage/EmojiHubPage'
@@ -399,10 +399,7 @@ const router=createBrowserRouter([
         path:"/apis/ipl_dataset",
         element:<IplDatasetPage/>
       },
-      {
-        path:"/apis/xenocanto",
-        element:<XenoCantoPage/>
-      },
+    
       {
         path:"/apis/nekosbest",
         element:<NekosPage/>
@@ -615,8 +612,7 @@ const router=createBrowserRouter([
       {
         path:"/apis/fdaAnimalVet",
         element:<FDAAnimalVetPage/>
-      },
-      
+      }
 
       
       ]

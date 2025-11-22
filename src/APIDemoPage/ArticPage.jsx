@@ -246,7 +246,7 @@ function openImage(art) {
   const iiif_base = rawResp?.config?.iiif_url || rawResp?.config?.iiif_url || "https://www.artic.edu/iiif/2";
 
   return (
-    <div className={clsx("min-h-screen p-6 max-w-9xl mx-auto")}>
+    <div className={clsx("min-h-screen p-6 overflow-hidden max-w-9xl mx-auto")}>
       {/* Header */}
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <div>
@@ -264,8 +264,8 @@ function openImage(art) {
               className="border-0 shadow-none bg-transparent outline-none"
               onFocus={() => setShowSuggest(true)}
             />
-            <Button type="submit" variant="outline" className="px-3">Search</Button>
-            <Button type="button" variant="ghost" onClick={() => { setQuery(""); fetchArtworks({ q: "", page: 1, limit }); }}>Clear</Button>
+             <Button className="cursor-pointer px-3"type="submit" variant="outline" >Search</Button>
+             <Button className="cursor-pointer"type="button" variant="ghost" onClick={() => { setQuery(""); fetchArtworks({ q: "", page: 1, limit }); }}>Clear</Button>
           </form>
         </div>
       </header>
@@ -303,8 +303,8 @@ function openImage(art) {
               <div className="text-xs opacity-60">Page {page}{totalPages ? ` of ${totalPages}` : ""} • {items.length} items</div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => gotoPage(page - 1)} disabled={page <= 1}><ChevronLeft /></Button>
-              <Button variant="outline" onClick={() => gotoPage(page + 1)} disabled={totalPages ? page >= totalPages : false}><ChevronRight /></Button>
+               <Button className="cursor-pointer" variant="outline" onClick={() => gotoPage(page - 1)} disabled={page <= 1}><ChevronLeft /></Button>
+               <Button className="cursor-pointer" variant="outline" onClick={() => gotoPage(page + 1)} disabled={totalPages ? page >= totalPages : false}><ChevronRight /></Button>
               <div className="text-xs opacity-60 hidden sm:block">Limit</div>
             <Select
   value={String(limit)}
@@ -325,7 +325,7 @@ function openImage(art) {
           </div>
 
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardContent>
+            <CardContent className="h-200 overflow-y-auto no-scrollbar">
               {loading ? (
                 <div className="py-20 text-center"><Loader2 className="animate-spin mx-auto" /></div>
               ) : items.length === 0 ? (
@@ -349,7 +349,7 @@ function openImage(art) {
                           <div className="text-xs opacity-60">{art.date_display || art.medium_display || "—"}</div>
                           <div className="mt-2 flex items-center justify-between">
                             <div className="text-xs opacity-60">ID {art.id}</div>
-                            <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); openImage(art); }}><ImageIcon /></Button>
+                             <Button className="cursor-pointer" size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); openImage(art); }}><ImageIcon /></Button>
                           </div>
                         </div>
                       </div>
@@ -369,8 +369,8 @@ function openImage(art) {
               <div className="text-xs opacity-60">Select an artwork to see full metadata</div>
             </div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setShowRaw((s) => !s)}><List /> {showRaw ? "Hide Raw" : "Raw"}</Button>
-              <Button variant="ghost" onClick={() => {
+               <Button className="cursor-pointer" variant="ghost" onClick={() => setShowRaw((s) => !s)}><List /> {showRaw ? "Hide Raw" : "Raw"}</Button>
+               <Button className="cursor-pointer" variant="ghost" onClick={() => {
                 // copy current IIIF image or artwork JSON to clipboard
                 if (currentArtwork) {
                   navigator.clipboard.writeText(prettyJSON(currentArtwork));
@@ -453,8 +453,8 @@ function openImage(art) {
                   </div>
 
                   <div className="mt-4 flex gap-2">
-                    <Button variant="outline" onClick={() => openImage(currentArtwork)}><ImageIcon /> View Image</Button>
-                    <Button variant="outline" onClick={() => {
+                     <Button className="cursor-pointer" variant="outline" onClick={() => openImage(currentArtwork)}><ImageIcon /> View Image</Button>
+                     <Button className="cursor-pointer" variant="outline" onClick={() => {
                       if (currentArtwork.id) window.open(`https://www.artic.edu/artworks/${currentArtwork.id}`, "_blank");
                     }}><ExternalLink /> Open at AIC website</Button>
                   </div>
@@ -477,7 +477,7 @@ function openImage(art) {
             <div className="text-sm font-semibold">API Response (developer)</div>
             <div className="text-xs opacity-60">You can inspect full HTTP response to see additional fields and pagination.</div>
             <div className="mt-2">
-              <Button variant="outline" onClick={() => {
+               <Button className="cursor-pointer" variant="outline" onClick={() => {
                 if (!rawResp) {
                   showToast("info", "No raw response cached yet; perform a search first.");
                   return;
@@ -492,9 +492,9 @@ function openImage(art) {
 
       {/* Image dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-5xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-5xl w-full p-3  rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
-            <DialogTitle>{currentArtwork?.title || "Artwork image"}</DialogTitle>
+            <DialogTitle className="truncate w-100">{currentArtwork?.title || "Artwork image"}</DialogTitle>
           </DialogHeader>
 
           <div style={{ height: "75vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -515,8 +515,8 @@ function openImage(art) {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">Image provided by the Art Institute of Chicago (IIIF)</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
-              <Button variant="outline" onClick={() => {
+               <Button className="cursor-pointer"variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
+               <Button className="cursor-pointer"variant="outline" onClick={() => {
                 if (currentArtwork?.image_id) {
                   const url = buildIIIFUrl(iiif_base, currentArtwork.image_id, 2000);
                   window.open(url, "_blank");

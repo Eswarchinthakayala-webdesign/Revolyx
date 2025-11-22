@@ -1224,17 +1224,7 @@ fetch("https://api.gold-api.com/symbols")
     .then(res => res.json())
     .then(console.log);`,
 },
-{
-  id: "fda_drug_shortages",
-  name: "FDA Drug Shortages",
-  category: "Health",
-  endpoint: "https://api.fda.gov/drug/shortages.json",
-  description: "FDA public API providing real-time information about current drug shortages. No API key required.",
-  image: "/api_previews/fda.png",
-  code: `fetch("https://api.fda.gov/drug/shortages.json?search=dosage_form:\\"Capsule\\"&limit=5")
-    .then(res => res.json())
-    .then(console.log);`,
-}
+
 
 
 

@@ -9,6 +9,7 @@ const AppLayout = () => {
     <div>
 
         <div className='grid-background'></div>
+        
         <main className='min-h-screen max-w-8xl pb-10 sm:pb-1 mx-auto'>
             <Toaster position="bottom-right" />
          <Header/>

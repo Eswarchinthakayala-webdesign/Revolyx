@@ -186,7 +186,7 @@ export default function FinalSpacePage() {
   }
 
   return (
-    <div className={clsx("min-h-screen p-6 max-w-9xl mx-auto")}>
+    <div className={clsx("min-h-screen overflow-hidden p-6 max-w-9xl mx-auto")}>
       {/* Header */}
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <div>
@@ -194,7 +194,7 @@ export default function FinalSpacePage() {
           <p className="mt-1 text-sm opacity-70">Browse characters, episodes, quotes & locations from Final Space API</p>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex items-center flex-wrap gap-3 w-full md:w-auto">
           {/* resource switcher */}
           <div className={clsx("flex items-center gap-2 rounded-lg px-2 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             {RESOURCES.map((r) => (
@@ -202,7 +202,7 @@ export default function FinalSpacePage() {
                 key={r.key}
                 variant={r.key === resource.key ? "default" : "ghost"}
                 onClick={() => setResource(r)}
-                className="px-3 py-1"
+                className="px-3 cursor-pointer py-1"
                 size="sm"
               >
                 {r.label}
@@ -227,14 +227,14 @@ export default function FinalSpacePage() {
               onFocus={() => setShowSuggest(true)}
               className="border-0 shadow-none bg-transparent outline-none"
             />
-            <Button type="button" variant="outline" className="px-3" onClick={() => {
+            <Button type="button" variant="outline" className="px-3 cursor-pointer" onClick={() => {
               setQuery("");
               setSuggestions([]);
               setShowSuggest(false);
             }}>
               Clear
             </Button>
-            <Button type="submit" variant="outline" className="px-3"><Search /></Button>
+            <Button type="submit" variant="outline" className="px-3 cursor-pointer"><Search /></Button>
           </form>
         </div>
       </header>
@@ -270,7 +270,7 @@ export default function FinalSpacePage() {
                 <div className="text-xs opacity-60">Fetched {list.length} items</div>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => { setResource(resource); /* refresh */ setList([]); }}>
+                 <Button className="cursor-pointer"variant="ghost" size="sm" onClick={() => { setResource(resource); /* refresh */ setList([]); }}>
                   <RefreshCw className={loadingList ? "animate-spin" : ""} />
                 </Button>
               </div>
@@ -285,7 +285,7 @@ export default function FinalSpacePage() {
                     <div className="py-6 text-center text-sm opacity-60">No items loaded</div>
                   ) : (
                     list.map((it) => (
-                      <div key={it.id ?? it.name} className={clsx("flex items-center gap-3 w-80 truncate p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/40 cursor-pointer", current?.id === it.id ? "ring-2 ring-indigo-500/30" : "")} onClick={() => selectSuggestion(it)}>
+                      <div key={it.id ?? it.name} className={clsx("flex items-center gap-3 w-80 truncate p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/40 cursor-pointer", current?.id === it.id ? "ring-2 ring-zinc-500/30" : "")} onClick={() => selectSuggestion(it)}>
                         <img src={it.img_url || it.image || it.image_url || ""} alt={it.name || it.title || ""} className="w-12 h-10 object-cover rounded" />
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium w-full truncate">{mainTitleFor(it)}</div>
@@ -304,16 +304,16 @@ export default function FinalSpacePage() {
         {/* center: big detail viewer */}
         <section className="lg:col-span-6 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+            <CardHeader className={clsx("p-5 flex items-center flex-wrap gap-3 justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div>
                 <CardTitle className="text-lg">{mainTitleFor(current)}</CardTitle>
                 <div className="text-xs opacity-60">{current ? `${resource.label} • ${current.id != null ? `#${current.id}` : ""}` : "No item selected"}</div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setRawOpen((s) => !s)}><List /> {rawOpen ? "Hide Raw" : "Raw"}</Button>
-                {imageUrl && <Button variant="ghost" size="sm" onClick={() => setImgDialogOpen(true)}><ImageIcon /> Image</Button>}
-                <Button variant="outline" size="sm" onClick={() => downloadJSON()}><Download /> Download</Button>
+                 <Button className="cursor-pointer"variant="ghost" size="sm" onClick={() => setRawOpen((s) => !s)}><List /> {rawOpen ? "Hide Raw" : "Raw"}</Button>
+                {imageUrl &&  <Button className="cursor-pointer"variant="ghost" size="sm" onClick={() => setImgDialogOpen(true)}><ImageIcon /> Image</Button>}
+                 <Button className="cursor-pointer"variant="outline" size="sm" onClick={() => downloadJSON()}><Download /> Download</Button>
               </div>
             </CardHeader>
 
@@ -337,6 +337,18 @@ export default function FinalSpacePage() {
 
                     <div className="space-y-2 text-sm">
                       {/* show a few highlighted fields */}
+                         {current.gender && (
+                        <div>
+                          <div className="text-xs opacity-60">Gender</div>
+                          <div className="font-medium">{current.gender}</div>
+                        </div>
+                      )}
+                         {current.hair && (
+                        <div>
+                          <div className="text-xs opacity-60">Hair</div>
+                          <div className="font-medium">{current.hair}</div>
+                        </div>
+                      )}
                       {current.status && (
                         <div>
                           <div className="text-xs opacity-60">Status</div>
@@ -366,7 +378,7 @@ export default function FinalSpacePage() {
                       )}
 
                       <div className="mt-4">
-                        <Button variant="outline" onClick={() => openOriginalLink()}><ExternalLink /> Open</Button>
+                         <Button className="cursor-pointer"variant="outline" onClick={() => openOriginalLink()}><ExternalLink /> Open</Button>
                       </div>
                     </div>
                   </div>
@@ -417,18 +429,18 @@ export default function FinalSpacePage() {
               <div className="text-xs opacity-60">Developer tools</div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => downloadListAsJSON()}><Download /></Button>
-              <Button variant="ghost" size="sm" onClick={() => copyJSON()}><Copy /></Button>
+              <Button className="cursor-pointer" variant="ghost" size="sm" onClick={() => downloadListAsJSON()}><Download /></Button>
+               <Button className="cursor-pointer"variant="ghost" size="sm" onClick={() => copyJSON()}><Copy /></Button>
             </div>
           </div>
 
           <Separator />
 
           <div className="space-y-2">
-            <Button variant="outline" className="w-full justify-start" onClick={() => downloadJSON()}><FileText className="mr-2" /> Download item JSON</Button>
-            <Button variant="outline" className="w-full justify-start" onClick={() => { if (imageUrl) setImgDialogOpen(true); else window.alert("No image available"); }}><ImageIcon className="mr-2" /> View image</Button>
-            <Button variant="outline" className="w-full justify-start" onClick={() => { navigator.clipboard.writeText(resource.endpoint); }}><Copy className="mr-2" /> Copy endpoint</Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => { setShowSuggest(false); setQuery(""); }}><SlidersHorizontal className="mr-2" /> Reset search</Button>
+            <Button variant="outline" className="w-full cursor-pointer justify-start" onClick={() => downloadJSON()}><FileText className="mr-2" /> Download item JSON</Button>
+            <Button variant="outline" className="w-full cursor-pointer justify-start" onClick={() => { if (imageUrl) setImgDialogOpen(true); else window.alert("No image available"); }}><ImageIcon className="mr-2" /> View image</Button>
+            <Button variant="outline" className="w-full cursor-pointer justify-start" onClick={() => { navigator.clipboard.writeText(resource.endpoint); }}><Copy className="mr-2" /> Copy endpoint</Button>
+            <Button variant="ghost" className="w-full cursor-pointer justify-start" onClick={() => { setShowSuggest(false); setQuery(""); }}><SlidersHorizontal className="mr-2" /> Reset search</Button>
           </div>
 
           <Separator />
@@ -441,7 +453,7 @@ export default function FinalSpacePage() {
 
       {/* image dialog */}
       <Dialog open={imgDialogOpen} onOpenChange={setImgDialogOpen}>
-        <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-3xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>{mainTitleFor(current)}</DialogTitle>
           </DialogHeader>
@@ -457,8 +469,8 @@ export default function FinalSpacePage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">Image</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setImgDialogOpen(false)}><ChevronLeft /></Button>
-              <Button variant="outline" onClick={() => openOriginalLink()}><ExternalLink /></Button>
+              <Button className="cursor-pointer" variant="ghost" onClick={() => setImgDialogOpen(false)}><ChevronLeft /></Button>
+              <Button className="cursor-pointer" variant="outline" onClick={() => openOriginalLink()}><ExternalLink /></Button>
             </div>
           </DialogFooter>
         </DialogContent>
