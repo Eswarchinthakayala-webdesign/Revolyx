@@ -86,7 +86,7 @@ import MFPage from './APIDemoPage/MFPage'
 import OpenBreweryPage from './APIDemoPage/OpenBreweryPage'
 import FruityvicePage from './APIDemoPage/FruityvicePage'
 import FoodishPage from './APIDemoPage/FoodishPage'
-import AmiiboPage from './APIDemoPage/AmiiboPage'
+
 import DisneyCharactersPage from './APIDemoPage/DisneyCharactersPage'
 import NarutoCharactersPage from './APIDemoPage/NarutoCharactersPage'
 import OpenTopoPage from './APIDemoPage/OpenTopoPage'
@@ -470,10 +470,7 @@ const router=createBrowserRouter([
         path:"/apis/foodish",
         element:<FoodishPage/>
        },
-       {
-        path:"/apis/amiibo",
-        element:<AmiiboPage/>
-       },
+     
        {
         path:"/apis/disney",
         element:<DisneyCharactersPage/>
