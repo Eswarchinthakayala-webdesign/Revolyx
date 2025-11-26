@@ -38,6 +38,9 @@ import {
   FolderDown,
   Chromium,
   LucideFootprints,
+  Server,
+  Type,
+  Dessert,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -83,7 +86,7 @@ export default function LandingPage() {
     },
   ];
 
-  const navItems = [
+   const navItems = [
     { name: "Home", icon: Home, path: "/" },
     { name: "Colors", icon: Palette, path: "/colors" },
     { name: "Charts", icon: ChartAreaIcon, path: "/charts" },
@@ -93,8 +96,10 @@ export default function LandingPage() {
     { name: "QR Code", icon: QrCode, path: "/qr-code" },
     { name: "Resources", icon: ListCheckIcon, path: "/resources" },
     { name: "Flow Chart", icon: FolderDown, path: "/flow-chart" },
-      { name: "Fonts", icon: LucideFootprints, path: "/fonts" },
-      { name: "Code Snippet", icon: Code2, path: "/code-snippet" },
+    { name: "Fonts", icon:  Type, path: "/fonts" },
+    { name: "Code Snippet", icon: Code2, path: "/code-snippet" },
+    { name: "Neumorphism", icon: Dessert, path: "/neumorphism" },
+    { name: "APIs", icon:Server, path: "/apis" },
   ];
 
   const faqs = [

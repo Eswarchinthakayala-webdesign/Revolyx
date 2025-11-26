@@ -6,7 +6,7 @@ import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
-  Copy,
+  Copy as CopyIcon,
   Download,
   Loader2,
   ExternalLink,
@@ -18,6 +18,14 @@ import {
   List,
   Layers,
   Info,
+  Menu,
+  Check,
+  GitBranch,
+  Tag,
+  Users,
+  FileText,
+  Bookmark,
+  ArrowDownCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,6 +36,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useTheme } from "@/components/theme-provider";
 import { showToast } from "../lib/ToastHelper";
+// If your project includes shadcn's Sheet component, import it; otherwise Dialog is used as fallback.
+// Adjust import path if your project differs.
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 import {
   ResponsiveContainer,
@@ -40,18 +57,7 @@ import {
 } from "recharts";
 
 /**
- * DnDSpellsPage.jsx
- *
- * - Uses DnD 5e API:
- *   - list: https://www.dnd5eapi.co/api/spells
- *   - detail: https://www.dnd5eapi.co/api/spells/{index}
- *
- * - Layout and visual style follow the NewsApiPage / Revolyx theme:
- *   - Header with search + animated suggestions
- *   - Main content area shows selected spell details
- *   - Right sidebar shows developer tools, endpoints and quick facts
- *   - Large professional UI, dark/light theme support
- *   - No localStorage saving (per request)
+ * DnDSpellsPage.jsx — improved UI/UX, mobile sheet sidebar, animated copy, better preview layout
  */
 
 // -------------- CONFIG --------------
@@ -62,7 +68,6 @@ const DETAIL_ENDPOINT = (idx) => `https://www.dnd5eapi.co/api/spells/${encodeURI
 const prettyJSON = (o) => JSON.stringify(o, null, 2);
 
 function groupByLevel(spells = []) {
-  // produce array of { level: "0", count: 10 } sorted by level numeric
   const map = {};
   for (const s of spells) {
     const lvl = String(s.level ?? "0");
@@ -80,6 +85,7 @@ export default function DnDSpellsPage() {
     theme === "dark" ||
     (theme === "system" &&
       typeof window !== "undefined" &&
+      window.matchMedia &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   // dataset
@@ -101,11 +107,15 @@ export default function DnDSpellsPage() {
   // UI
   const [showRaw, setShowRaw] = useState(false);
   const [docOpen, setDocOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false); // mobile sidebar
+
+  // copy animation state keyed by action name (e.g., 'list', 'detail', 'json')
+  const [copyState, setCopyState] = useState({}); // { key: boolean }
 
   // chart colors
   const chartFill = isDark ? "#60a5fa" : "#2563eb";
   const gridColor = isDark ? "#17202a" : "#e6e6e6";
-  
+
   const levelCacheRef = useRef({}); // { index: level }
 
   // fetch spells list once
@@ -122,11 +132,9 @@ export default function DnDSpellsPage() {
         }
         const json = await res.json();
         if (!mounted) return;
-        // json.results is array of { index, name, url }
         const results = Array.isArray(json.results) ? json.results : [];
         setSpellsList(results);
         setRawList(json);
-        // preload first spell detail to show default content (first result)
         if (results.length > 0) {
           loadSpellDetail(results[0].index);
         }
@@ -147,7 +155,6 @@ export default function DnDSpellsPage() {
   function doLocalSearch(q) {
     if (!spellsList || !q.trim()) return [];
     const low = q.trim().toLowerCase();
-    // prefix prioritized
     const prefix = [];
     const contains = [];
     for (const s of spellsList) {
@@ -202,7 +209,6 @@ export default function DnDSpellsPage() {
   function handleSearchSubmit(e) {
     e?.preventDefault?.();
     if (!query.trim()) return;
-    // prefer exact match
     const q = query.trim().toLowerCase();
     const exact = (spellsList || []).find((s) => (s.name || "").toLowerCase() === q || s.index === q);
     if (exact) {
@@ -221,22 +227,42 @@ export default function DnDSpellsPage() {
     showToast("info", "No matching spell found");
   }
 
-  // developer utilities
-  function copyEndpointRef() {
-    navigator.clipboard.writeText(LIST_ENDPOINT);
-    showToast("success", "Copied spells list endpoint");
+  // developer utilities with animated copy feedback
+  function animateCopy(key = "default") {
+    setCopyState((s) => ({ ...s, [key]: true }));
+    setTimeout(() => setCopyState((s) => ({ ...s, [key]: false })), 1600);
   }
-  function copyDetailEndpoint(index) {
+
+  async function copyEndpointRef() {
+    try {
+      await navigator.clipboard.writeText(LIST_ENDPOINT);
+      animateCopy("list");
+      showToast("success", "Copied spells list endpoint");
+    } catch (err) {
+      showToast("error", "Clipboard not available");
+    }
+  }
+  async function copyDetailEndpoint(index) {
     if (!index) {
       showToast("info", "No spell selected");
       return;
     }
-    navigator.clipboard.writeText(DETAIL_ENDPOINT(index));
-    showToast("success", "Copied spell detail endpoint");
+    try {
+      await navigator.clipboard.writeText(DETAIL_ENDPOINT(index));
+      animateCopy("detail");
+      showToast("success", "Copied spell detail endpoint");
+    } catch (err) {
+      showToast("error", "Clipboard not available");
+    }
   }
-  function copyJSON(payload) {
-    navigator.clipboard.writeText(prettyJSON(payload || selected || rawList || {}));
-    showToast("success", "Copied JSON");
+  async function copyJSON(payload, key = "json") {
+    try {
+      await navigator.clipboard.writeText(prettyJSON(payload || selected || rawList || {}));
+      animateCopy(key);
+      showToast("success", "Copied JSON");
+    } catch (err) {
+      showToast("error", "Clipboard not available");
+    }
   }
   function downloadJSON(payload, filename = "spells.json") {
     const p = payload || selected || rawList || {};
@@ -249,22 +275,8 @@ export default function DnDSpellsPage() {
     showToast("success", "Downloaded JSON");
   }
 
-  // chart: distribution of spells by level
-  const levelDistribution = useMemo(() => {
-    if (!spellsList) return [];
-    // need levels. spellsList doesn't include level; we can approximate by fetching details for first N? that's heavy.
-    // Instead produce distribution from currently loaded selected (single) + summary fallback: show counts by word "cantrip" vs leveled using detail cache.
-    // To keep professional, we compute distribution by fetching details for first 200 spells in background (non-blocking).
-    // We'll compute a simple in-memory cache for levels as they are fetched.
-    return groupByLevel(spellsListWithLevelCache(spellsList));
-    // Note: spellsListWithLevelCache will be a helper below.
-  }, [spellsList]);
-
-  // We'll maintain a small cache of fetched levels to produce a meaningful chart progressively.
- // { index: level }
+  // chart: distribution of spells by level (uses cached levels where available)
   function spellsListWithLevelCache(list) {
-    // if no cache entries, return original list with level undefined (level = 0)
-    // Map to objects with level property
     return list.map((s) => {
       const lvl = levelCacheRef.current[s.index];
       return { ...s, level: typeof lvl !== "undefined" ? lvl : 0 };
@@ -285,9 +297,7 @@ export default function DnDSpellsPage() {
           if (!res.ok) continue;
           const json = await res.json();
           levelCacheRef.current[idx] = json.level ?? 0;
-          // trigger small state update by setting a shallow copy to force re-render for chart
           setSpellsList((prev) => (prev ? [...prev] : prev));
-          // small delay to avoid hammering CDN
           await new Promise((r) => setTimeout(r, 60));
         } catch (err) {
           // ignore individual failures
@@ -312,33 +322,99 @@ export default function DnDSpellsPage() {
   const subtle = isDark ? "text-zinc-300" : "text-zinc-600";
 
   // On mount, set default selected spell to "acid-arrow" or first item
-const defaultLoadedRef = useRef(false);
+  const defaultLoadedRef = useRef(false);
+  useEffect(() => {
+    if (defaultLoadedRef.current) return;
+    if (!spellsList || spellsList.length === 0) return;
+    const prefer = spellsList.find((s) => s.index === "acid-arrow") || spellsList[0];
+    if (prefer) {
+      defaultLoadedRef.current = true;
+      loadSpellDetail(prefer.index);
+      setQuery(prefer.name);
+    }
+  }, [spellsList]);
 
-useEffect(() => {
-  if (defaultLoadedRef.current) return; // STOP repeated calls
-  if (!spellsList || spellsList.length === 0) return;
-
-  const prefer = spellsList.find((s) => s.index === "acid-arrow") || spellsList[0];
-
-  if (prefer) {
-    defaultLoadedRef.current = true;     // mark as loaded
-    loadSpellDetail(prefer.index);
-    setQuery(prefer.name);
+  // helpers for display
+  function levelLabel(level) {
+    if (typeof level === "undefined" || level === null) return "—";
+    return Number(level) === 0 ? "Cantrip" : `Level ${level}`;
   }
-}, [spellsList]);
 
+  function renderBadge(text, IconComp) {
+    return (
+      <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full border text-xs select-none" style={{ minWidth: 64 }}>
+        {IconComp && <IconComp className="w-3.5 h-3.5 opacity-80" />}
+        <span className="font-medium">{text}</span>
+      </div>
+    );
+  }
 
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
+    <div className={clsx("min-h-screen p-4 md:p-6 pb-10 overflow-hidden max-w-8xl mx-auto")}>
       {/* Header */}
-      <header className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold">Revolyx · D&D 5e Spells</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 max-w-xl">
-            Browse the official D&D 5th Edition spells list. Search, preview full spell details, and inspect API responses. Default spell loaded on first visit.
-          </p>
+      <header className="mb-4 md:mb-6 flex flex-wrap items-start md:items-center justify-between gap-3">
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          {/* Mobile menu / sheet trigger */}
+          <div className="md:hidden">
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+              <SheetTrigger asChild>
+                <button aria-label="Open menu" className="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition cursor-pointer">
+                  <Menu className="w-5 h-5" />
+                </button>
+              </SheetTrigger>
+              <SheetContent className={clsx("w-[320px] p-4", isDark ? "bg-black/90" : "bg-white")}>
+                <SheetHeader>
+                  <SheetTitle className="flex items-center gap-2">
+                    <Layers className="w-5 h-5" />
+                    <span>Menu & Tools</span>
+                  </SheetTitle>
+                </SheetHeader>
+
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <div className="text-sm font-semibold mb-2">Quick Index</div>
+                    <div className="text-sm opacity-70 space-y-1">
+                      <div><strong>Total spells:</strong> {Array.isArray(spellsList) ? spellsList.length : "—"}</div>
+                      <div><strong>Default endpoint:</strong> <code className="opacity-60">/api/spells</code></div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm font-semibold">Developer</div>
+                      <div className="text-xs opacity-60">Tools</div>
+                    </div>
+                    <div className="space-y-2">
+                      <Button className="w-full cursor-pointer" variant="outline" onClick={() => { copyEndpointRef(); }}>
+                        {copyState["list"] ? <Check className="w-4 h-4 mr-2 animate-pulse" /> : <CopyIcon className="w-4 h-4 mr-2" />} Copy List
+                      </Button>
+                      <Button className="w-full cursor-pointer" variant="outline" onClick={() => { copyDetailEndpoint(selected?.index); }}>
+                        {copyState["detail"] ? <Check className="w-4 h-4 mr-2 animate-pulse" /> : <CopyIcon className="w-4 h-4 mr-2" />} Copy Detail
+                      </Button>
+                      <Button className="w-full cursor-pointer" variant="outline" onClick={() => copyJSON(selected, "json_mobile")}>
+                        {copyState["json_mobile"] ? <Check className="w-4 h-4 mr-2 animate-pulse" /> : <CopyIcon className="w-4 h-4 mr-2" />} Copy JSON
+                      </Button>
+                      <Button className="w-full cursor-pointer" variant="outline" onClick={() => downloadJSON(selected, `${(selected?.index || "spell")}.json`)}>
+                        <Download className="w-4 h-4 mr-2" /> Download JSON
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          <div>
+            <h1 className="text-2xl md:text-3xl font-extrabold leading-tight">Revolyx · D&D 5e Spells</h1>
+            <p className="mt-1 text-xs md:text-sm text-muted-foreground max-w-lg">
+              Browse the official D&D 5th Edition spells list — search, preview spell details, inspect API responses. Mobile-first and accessible.
+            </p>
+          </div>
         </div>
 
+        {/* Desktop search + actions */}
         <div className="flex items-center gap-3 w-full md:w-auto">
           <form onSubmit={(e) => { e.preventDefault(); handleSearchSubmit(e); }} className={clsx("relative flex items-center gap-2 w-full md:w-[640px] rounded-lg px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="w-4 h-4 text-gray-500 dark:text-gray-300" />
@@ -355,14 +431,18 @@ useEffect(() => {
             <AnimatePresence>
               {showSuggest && suggestions && suggestions.length > 0 && (
                 <motion.ul
-                  initial={{ opacity: 0, y: -6 }}
+                  initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
+                  exit={{ opacity: 0, y: -8 }}
                   className={clsx("absolute left-2 right-2 top-full mt-2 z-50 rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
                 >
                   {loadingSuggest && <li className="px-4 py-3 text-sm opacity-60">Searching…</li>}
                   {suggestions.map((s) => (
-                    <li key={s.index} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => { loadSpellDetail(s.index); setQuery(s.name); setShowSuggest(false); }}>
+                    <li
+                      key={s.index}
+                      className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer"
+                      onClick={() => { loadSpellDetail(s.index); setQuery(s.name); setShowSuggest(false); }}
+                    >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-md flex items-center justify-center bg-gradient-to-br from-primary/10 to-slate-100 dark:from-primary/20 dark:to-zinc-800">
                           <List className="w-5 h-5" />
@@ -383,140 +463,213 @@ useEffect(() => {
       </header>
 
       {/* Main layout */}
-      <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* Main center like News page */}
+      <main className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Main center */}
         <section className="lg:col-span-9 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", cardBg)}>
-            <CardHeader className={clsx("p-5 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
-              <div>
-                <CardTitle className={clsx(isDark ? "text-zinc-100" : "text-zinc-900")}>Spell Details</CardTitle>
-                <div className="text-xs opacity-70">{selected ? selected.name : "No spell selected"}</div>
+            <CardHeader className={clsx("p-4 md:p-5 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 rounded-md flex items-center justify-center bg-gradient-to-br from-primary/10 to-slate-100 dark:from-primary/20 dark:to-zinc-800">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <CardTitle className={clsx(isDark ? "text-zinc-100" : "text-zinc-900", "text-base md:text-lg")}>
+                    Spell Details
+                  </CardTitle>
+                  <div className="text-xs opacity-60 flex items-center gap-2">
+                    <FileText className="w-3.5 h-3.5" /> {selected ? selected.name : "No spell selected"}
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => copyEndpointRef()}><Copy /></Button>
-                <Button variant="outline" onClick={() => copyDetailEndpoint(selected?.index)}><Copy /></Button>
-                <Button variant="outline" onClick={() => copyJSON(selected || rawList)}><Copy /></Button>
-                <Button variant="outline" onClick={() => downloadJSON(selected || rawList, `${(selected?.index || "spells")}.json`)}><Download /></Button>
-                <Button variant="ghost" onClick={() => setShowRaw((s) => !s)}><Info /> {showRaw ? "Hide Raw" : "Show Raw"}</Button>
+                {/* small action icons (desktop) */}
+                <div className="hidden md:flex items-center gap-2">
+                  {/* <button className="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition cursor-pointer" title="Copy list endpoint" onClick={() => copyEndpointRef()}>
+                    {copyState["list"] ? <Check className="w-4 h-4 text-green-400" /> : <CopyIcon className="w-4 h-4" />}
+                  </button>
+
+                  <button className="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition cursor-pointer" title="Copy detail endpoint" onClick={() => copyDetailEndpoint(selected?.index)}>
+                    {copyState["detail"] ? <Check className="w-4 h-4 text-green-400" /> : <CopyIcon className="w-4 h-4" />}
+                  </button>
+
+                  <button className="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition cursor-pointer" title="Copy JSON" onClick={() => copyJSON(selected, "json")}>
+                    <AnimatePresence mode="wait">
+                      {copyState["json"] ? (
+                        <motion.span key="ok" initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0 }}>
+                          <Check className="w-4 h-4 text-green-400" />
+                        </motion.span>
+                      ) : (
+                        <motion.span key="copy" initial={{ scale: 0.98 }} animate={{ scale: 1 }} exit={{ opacity: 0 }}>
+                          <CopyIcon className="w-4 h-4" />
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </button> */}
+
+                  <button className="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition cursor-pointer" title="Download JSON" onClick={() => downloadJSON(selected || rawList, `${(selected?.index || "spells")}.json`)}>
+                    <Download className="w-4 h-4" />
+                  </button>
+
+                  <button className="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition cursor-pointer flex items-center gap-2" onClick={() => setShowRaw((s) => !s)}>
+                    <Info className="w-4 h-4" /> <span className="text-xs opacity-70">{showRaw ? "Hide Raw" : "Show Raw"}</span>
+                  </button>
+                </div>
+
+                {/* mobile quick actions */}
+                <div className="md:hidden flex items-center gap-2">
+                  <button className="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition cursor-pointer" onClick={() => copyJSON(selected, "json_mobile")}>
+                    {copyState["json_mobile"] ? <Check className="w-4 h-4 text-green-400" /> : <CopyIcon className="w-4 h-4" />}
+                  </button>
+                  <button className="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition cursor-pointer" onClick={() => downloadJSON(selected || rawList, `${(selected?.index || "spells")}.json`)}>
+                    <Download className="w-4 h-4" />
+                  </button>
+                  <button className="p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50 transition cursor-pointer" onClick={() => setDocOpen(true)}>
+                    <ExternalLink className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </CardHeader>
 
-            <CardContent>
-              {spellsList === null || spellsList === undefined ? (
+            <CardContent className="p-4 md:p-6">
+              {/* loading */}
+              {spellsList === null ? (
                 <div className="py-12 text-center"><Loader2 className="animate-spin mx-auto" /></div>
               ) : !selected ? (
                 <div className="py-12 text-center text-sm opacity-60">No spell loaded — use the search or suggestions to pick one.</div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* left: basics */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  {/* LEFT: summary card */}
                   <div className={clsx("p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <div className="mb-3 flex items-start gap-3">
-                      <div className="w-14 h-14 rounded-md flex items-center justify-center bg-gradient-to-br from-primary/10 to-slate-100 dark:from-primary/20 dark:to-zinc-800">
-                        <BookOpen className="w-6 h-6" />
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-md flex items-center justify-center bg-gradient-to-br from-primary/10 to-slate-100 dark:from-primary/20 dark:to-zinc-800">
+                        <Bookmark className="w-5 h-5" />
                       </div>
                       <div>
                         <div className="text-lg font-semibold">{selected.name}</div>
                         <div className="text-xs opacity-60">Index: {selected.index}</div>
-                        <div className="text-xs opacity-60">School: {selected.school?.name || "—"}</div>
+                        <div className="text-xs opacity-60 mt-1">{selected.school?.name || "—"} • {levelLabel(selected.level)}</div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="p-2 rounded-md border">
-                        <div className="text-xs opacity-60">Level</div>
-                        <div className="font-medium">{selected.level === 0 ? "Cantrip" : selected.level}</div>
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <div className="p-2 rounded-md border flex items-center gap-2 cursor-default">
+                        <Clock className="w-4 h-4" /> <div className="text-xs"><div className="opacity-60">Casting</div><div className="font-medium">{selected.casting_time || "—"}</div></div>
                       </div>
 
-                      <div className="p-2 rounded-md border">
-                        <div className="text-xs opacity-60">Casting Time</div>
-                        <div className="font-medium flex items-center gap-2"><Clock className="w-4 h-4" />{selected.casting_time || "—"}</div>
+                      <div className="p-2 rounded-md border flex items-center gap-2 cursor-default">
+                        <MapPin className="w-4 h-4" /> <div className="text-xs"><div className="opacity-60">Range</div><div className="font-medium">{selected.range || "—"}</div></div>
                       </div>
 
-                      <div className="p-2 rounded-md border">
-                        <div className="text-xs opacity-60">Range</div>
-                        <div className="font-medium flex items-center gap-2"><MapPin className="w-4 h-4" />{selected.range || "—"}</div>
+                      <div className="p-2 rounded-md border flex items-center gap-2 cursor-default">
+                        <Zap className="w-4 h-4" /> <div className="text-xs"><div className="opacity-60">Components</div><div className="font-medium">{Array.isArray(selected.components) ? selected.components.join(", ") : (selected.components || "—")}</div></div>
                       </div>
 
-                      <div className="p-2 rounded-md border">
-                        <div className="text-xs opacity-60">Components</div>
-                        <div className="font-medium flex items-center gap-2"><Zap className="w-4 h-4" />{Array.isArray(selected.components) ? selected.components.join(", ") : (selected.components || "—")}</div>
+                      <div className="p-2 rounded-md border flex items-center gap-2 cursor-default">
+                        <Layers className="w-4 h-4" /> <div className="text-xs"><div className="opacity-60">Duration</div><div className="font-medium">{selected.duration || "—"}</div></div>
                       </div>
 
-                      <div className="p-2 rounded-md border">
-                        <div className="text-xs opacity-60">Duration</div>
-                        <div className="font-medium">{selected.duration || "—"}</div>
+                      <div className="p-2 col-span-2 rounded-md border flex items-center gap-2 cursor-default">
+                        <Users className="w-4 h-4" /> <div className="text-xs"><div className="opacity-60">Classes</div><div className="font-medium">{(selected.classes || []).map((c) => c.name).join(", ") || "—"}</div></div>
                       </div>
 
-                      <div className="p-2 rounded-md border">
-                        <div className="text-xs opacity-60">Ritual</div>
-                        <div className="font-medium">{selected.ritual ? "Yes" : "No"}</div>
+                      <div className="p-2 rounded-md border flex items-center gap-2 cursor-default">
+                        <Tag className="w-4 h-4" /> <div className="text-xs"><div className="opacity-60">Ritual</div><div className="font-medium">{selected.ritual ? "Yes" : "No"}</div></div>
                       </div>
                     </div>
 
                     <div className="mt-4 text-sm">
-                      <div className="font-medium mb-1">Classes</div>
-                      <div className="text-xs opacity-70">{(selected.classes || []).map((c) => c.name).join(", ") || "—"}</div>
+                      <div className="text-xs opacity-70">Material</div>
+                      <div className="mt-1 text-xs">{selected.material || "—"}</div>
                     </div>
                   </div>
 
-                  {/* middle: long description, higher visibility */}
-                  <div className={clsx("p-4 rounded-xl border md:col-span-2", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <div className="mb-3 flex items-center justify-between">
-                      <div className="text-sm font-semibold">Description & Effects</div>
-                      <div className="text-xs opacity-60">Detailed info</div>
-                    </div>
+                  {/* MIDDLE & RIGHT: main description & actions */}
+                  <div className="md:col-span-2 space-y-4">
+                    <div className={clsx("p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-sm font-semibold flex items-center gap-2"><FileText className="w-4 h-4" /> Description & Effects</div>
+                            <div className="text-xs opacity-60">Detailed info</div>
+                          </div>
 
-                    <div className="prose max-w-none dark:prose-invert">
-                      {/* The API returns description as 'desc' array and 'higher_level' array */}
-                      {Array.isArray(selected.desc) ? (
-                        selected.desc.map((p, i) => <p key={i} className="text-sm">{p}</p>)
-                      ) : (
-                        <p className="text-sm opacity-60">No description available</p>
-                      )}
+                          <div className="mt-3 space-y-3 prose max-w-none dark:prose-invert">
+                            <ScrollArea style={{ maxHeight: 260 }}>
+                              {Array.isArray(selected.desc) ? selected.desc.map((p, i) => <p key={i} className="text-sm">{p}</p>) : <p className="text-sm opacity-60">No description available</p>}
+                              {selected.higher_level && selected.higher_level.length > 0 && (
+                                <>
+                                  <Separator className="my-3" />
+                                  <div className="text-sm font-medium mb-2 flex items-center gap-2"><ArrowDownCircle className="w-4 h-4" /> At Higher Levels</div>
+                                  {selected.higher_level.map((p, i) => <p key={i} className="text-sm">{p}</p>)}
+                                </>
+                              )}
+                            </ScrollArea>
+                          </div>
+                        </div>
 
-                      {selected.higher_level && selected.higher_level.length > 0 && (
-                        <>
-                          <Separator className="my-4" />
-                          <div className="text-sm font-medium mb-2">At Higher Levels</div>
-                          {selected.higher_level.map((p, i) => <p key={i} className="text-sm">{p}</p>)}
-                        </>
-                      )}
+                        {/* quick action column */}
+                        <div className="hidden lg:flex flex-col items-end gap-2 w-40">
+                          <div className="text-xs opacity-60">Quick Actions</div>
 
-                      <Separator className="my-4" />
+                          <Button className="w-full cursor-pointer" variant="ghost" onClick={() => { copyJSON(selected, "json_side"); }}>
+                            {copyState["json_side"] ? <Check className="w-4 h-4 mr-2 text-green-400" /> : <CopyIcon className="w-4 h-4 mr-2" />} Copy JSON
+                          </Button>
 
-                      <div className="text-sm">
-                        <div className="font-medium">Material (if any)</div>
-                        <div className="text-xs opacity-70">{selected.material || "—"}</div>
-                      </div>
+                          <Button className="w-full cursor-pointer" variant="outline" onClick={() => downloadJSON(selected, `${(selected?.index || "spell")}.json`)}>
+                            <Download className="w-4 h-4 mr-2" /> Download
+                          </Button>
 
-                      <div className="mt-3 text-sm">
-                        <div className="font-medium">School & Details</div>
-                        <div className="text-xs opacity-70">
-                          {selected.school?.name || "—"} • {selected.level === 0 ? "Cantrip" : `Level ${selected.level}`}
+                          <Button className="w-full cursor-pointer" variant="outline" onClick={() => { setDocOpen(true); }}>
+                            <ExternalLink className="w-4 h-4 mr-2" /> API Docs
+                          </Button>
                         </div>
                       </div>
                     </div>
+
+                    {/* RAW panel */}
+                    <AnimatePresence>
+                      {showRaw && (rawDetail || rawList) && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className={clsx("rounded-xl border overflow-hidden", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                          <div className="p-3 border-b text-xs font-medium flex items-center justify-between">
+                            <div className="flex items-center gap-2"><FileText className="w-4 h-4" /> Raw JSON</div>
+                            <div className="text-xs opacity-60">{rawDetail ? "Detail" : "List"}</div>
+                          </div>
+                          <ScrollArea style={{ maxHeight: 260 }}>
+                            <pre className="text-xs whitespace-pre-wrap p-3">{prettyJSON(rawDetail || rawList)}</pre>
+                          </ScrollArea>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               )}
             </CardContent>
 
-            {/* raw JSON */}
-            <AnimatePresence>
-              {showRaw && (rawDetail || rawList) && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={clsx("p-4 border-t", isDark ? "bg-black/30 border-zinc-800" : "bg-white/60 border-zinc-200")}>
-                  <ScrollArea style={{ maxHeight: 360 }}>
-                    <pre className="text-xs whitespace-pre-wrap">{prettyJSON(rawDetail || rawList)}</pre>
-                  </ScrollArea>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Chart & footer area */}
+            <div className={clsx("p-4 border-t", isDark ? "bg-black/30 border-zinc-800" : "bg-white/60 border-zinc-200")}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm font-semibold">Distribution</div>
+                <div className="text-xs opacity-60">By level (partial)</div>
+              </div>
+              <div style={{ width: "100%", height: 160 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData}>
+                    <CartesianGrid stroke={gridColor} strokeDasharray="3 3" />
+                    <XAxis dataKey="level" stroke={isDark ? "#ddd" : "#333"} />
+                    <YAxis stroke={isDark ? "#ddd" : "#333"} allowDecimals={false} />
+                    <ReTooltip contentStyle={{ background: isDark ? "#0b1220" : "#fff", borderColor: gridColor ,borderRadius:"10px"}} />
+                    <Bar dataKey="count" fill={chartFill} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="text-xs opacity-60 mt-2">Chart updates progressively as details are fetched.</div>
+            </div>
           </Card>
         </section>
 
-        {/* Right sidebar: developer tools + quick index list */}
-        <aside className={clsx("lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", cardBg)}>
+        {/* Right sidebar: developer tools + quick index (desktop) */}
+        <aside className={clsx("lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit hidden lg:block", cardBg)}>
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm font-semibold">Quick Index</div>
@@ -534,38 +687,24 @@ useEffect(() => {
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <div className="text-sm font-semibold">Distribution</div>
-              <div className="text-xs opacity-60">By level (partial)</div>
-            </div>
-
-            <div style={{ width: "100%", height: 180 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid stroke={gridColor} strokeDasharray="3 3" />
-                  <XAxis dataKey="level" stroke={isDark ? "#ddd" : "#333"} />
-                  <YAxis stroke={isDark ? "#ddd" : "#333"} allowDecimals={false} />
-                  <ReTooltip contentStyle={{ background: isDark ? "#0b1220" : "#fff", borderColor: gridColor }} />
-                  <Bar dataKey="count" fill={chartFill} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="text-xs opacity-60 mt-2">Chart updates progressively as details are fetched in background to compute accurate levels.</div>
-          </div>
-
-          <Separator />
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
               <div className="text-sm font-semibold">Developer</div>
               <div className="text-xs opacity-60">Tools</div>
             </div>
 
             <div className="space-y-2">
-              <Button variant="outline" onClick={() => copyEndpointRef()}><Copy /> Copy List Endpoint</Button>
-              <Button variant="outline" onClick={() => copyDetailEndpoint(selected?.index)}><Copy /> Copy Detail Endpoint</Button>
-              <Button variant="outline" onClick={() => copyJSON(selected)}><Copy /> Copy JSON</Button>
-              <Button variant="outline" onClick={() => downloadJSON(selected, `${(selected?.index || "spell")}.json`)}><Download /> Download JSON</Button>
-              <Button variant="ghost" onClick={() => setDocOpen(true)}><ExternalLink /> API Docs</Button>
+              <Button className="w-full cursor-pointer" variant="outline" onClick={() => copyEndpointRef()}>
+                {copyState["list"] ? <Check className="w-4 h-4 mr-2 text-green-400" /> : <CopyIcon className="w-4 h-4 mr-2" />} Copy List Endpoint
+              </Button>
+              <Button className="w-full cursor-pointer" variant="outline" onClick={() => copyDetailEndpoint(selected?.index)}>
+                {copyState["detail"] ? <Check className="w-4 h-4 mr-2 text-green-400" /> : <CopyIcon className="w-4 h-4 mr-2" />} Copy Detail Endpoint
+              </Button>
+              <Button className="w-full cursor-pointer" variant="outline" onClick={() => copyJSON(selected)}>
+                {copyState["json"] ? <Check className="w-4 h-4 mr-2 text-green-400" /> : <CopyIcon className="w-4 h-4 mr-2" />} Copy JSON
+              </Button>
+              <Button className="w-full cursor-pointer" variant="outline" onClick={() => downloadJSON(selected, `${(selected?.index || "spell")}.json`)}>
+                <Download className="w-4 h-4 mr-2" /> Download JSON
+              </Button>
+              <Button className="w-full cursor-pointer" variant="ghost" onClick={() => setDocOpen(true)}><ExternalLink /> API Docs</Button>
             </div>
           </div>
 

@@ -15,7 +15,11 @@ import {
   List,
   Eye,
   SunMoon,
-  X
+  X,
+  Check,
+  ArrowDownCircle,
+  FileText,
+  BrushCleaning
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,21 +30,22 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/components/theme-provider";
 import { showToast } from "../lib/ToastHelper";
+// shadcn sheet (mobile sidebar)
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 /**
- * ColorMindPage
- * - POSTs to http://colormind.io/api/ with { model: "default", input: [...] }
- * - Shows a default palette on load
- * - Provides "mood" suggestions which seed the API with one or two colors
+ * ColorMindPage (improved)
  *
- * Notes:
- * - Colormind is HTTP. If your site is HTTPS, you may need a server proxy to avoid mixed content blocks in production.
+ * - Mobile sheet sidebar (10 random + presets)
+ * - Search across presets & random
+ * - Animated copy button: shows tick on success then resets
+ * - Raw response shown only when toggled
+ * - Better responsive layout and cursor:pointer for interactive elements
  */
 
 const API_ENDPOINT = "/api/colormind";
 const DEFAULT_MODEL = "default";
 
-// Some pre-made suggestion presets (searchable). Each suggestion can include a seed color (RGB).
 const PRESET_SUGGESTIONS = [
   { id: "neo", title: "Neo (cyber)", seed: [25, 200, 240] },
   { id: "sunset", title: "Warm Sunset", seed: [245, 90, 70] },
@@ -51,15 +56,20 @@ const PRESET_SUGGESTIONS = [
   { id: "sun", title: "Sunny", seed: [255, 200, 50] },
 ];
 
+function randomSeed() {
+  return [rand255(), rand255(), rand255()];
+}
+function rand255() {
+  return Math.floor(Math.random() * 256);
+}
+
 function rgbToHex([r, g, b]) {
   const toHex = (n) => n.toString(16).padStart(2, "0");
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 }
-
 function rgbToCssRgb([r, g, b]) {
   return `rgb(${r}, ${g}, ${b})`;
 }
-
 function prettyJSON(obj) {
   try {
     return JSON.stringify(obj, null, 2);
@@ -67,9 +77,7 @@ function prettyJSON(obj) {
     return String(obj);
   }
 }
-
 function averageLuminance([r, g, b]) {
-  // Quick perceived luminance (0..255)
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
@@ -77,56 +85,81 @@ export default function ColorMindPage() {
   const { theme } = useTheme?.() ?? { theme: "system" };
   const isDark =
     theme === "dark" ||
-    (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    (theme === "system" && typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   const [query, setQuery] = useState("");
   const [showSuggest, setShowSuggest] = useState(false);
-  const [suggestions, setSuggestions] = useState(PRESET_SUGGESTIONS);
   const [loading, setLoading] = useState(false);
-  const [palette, setPalette] = useState(null); // array of [r,g,b] colors
+  const [palette, setPalette] = useState(null);
   const [rawResp, setRawResp] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedSwatch, setSelectedSwatch] = useState(null);
 
-  const suggestTimer = useRef(null);
+  // UI states
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+  const [showRaw, setShowRaw] = useState(false);
 
-  // On mount: load a default palette
+  // copy animation states
+  const [copiedCss, setCopiedCss] = useState(false);
+  const [copiedHexIndex, setCopiedHexIndex] = useState(null); // index of swatch last copied (for animation)
+  const copyTimers = useRef({});
+
+  // generate a rotating pool of 10 random suggestions (varies every load)
+  const randomPresets = useMemo(() => {
+    const arr = Array.from({ length: 10 }).map((_, i) => ({
+      id: `rand-${i}-${Math.random().toString(36).slice(2, 6)}`,
+      title: `Random ${i + 1}`,
+      seed: randomSeed(),
+    }));
+    return arr;
+  }, []);
+
+  // combined suggestions used for searching/listing
+  const combinedSuggestions = useMemo(() => [...PRESET_SUGGESTIONS, ...randomPresets], [randomPresets]);
+
+  // filtered list for sidebar / dropdown
+  const filteredSuggestions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return combinedSuggestions;
+    return combinedSuggestions.filter((s) => s.title.toLowerCase().includes(q) || s.id.includes(q) || rgbToHex(s.seed).toLowerCase().includes(q));
+  }, [query, combinedSuggestions]);
+
   useEffect(() => {
-    generatePalette(); // default seedless generation
-    // cleanup
+    // initial palette
+    generatePalette();
     return () => {
-      if (suggestTimer.current) clearTimeout(suggestTimer.current);
+      Object.values(copyTimers.current).forEach((t) => clearTimeout(t));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Debounced suggestion filter
-  function onQueryChange(v) {
-    setQuery(v);
-    setShowSuggest(true);
-    if (suggestTimer.current) clearTimeout(suggestTimer.current);
-    suggestTimer.current = setTimeout(() => {
-      const q = v.trim().toLowerCase();
-      if (!q) {
-        setSuggestions(PRESET_SUGGESTIONS);
-        return;
-      }
-      setSuggestions(
-        PRESET_SUGGESTIONS.filter((s) => s.title.toLowerCase().includes(q) || s.id.includes(q))
-      );
-    }, 220);
-  }
+  // palette meta
+  const paletteMeta = useMemo(() => {
+    if (!palette) return [];
+    return palette.map((rgb) => {
+      const hex = rgbToHex(rgb);
+      const rgbCss = rgbToCssRgb(rgb);
+      const lum = averageLuminance(rgb);
+      const textColor = lum > 160 ? "#0b0b0b" : "#ffffff";
+      return { rgb, hex, rgbCss, lum, textColor };
+    });
+  }, [palette]);
 
+  const cssSnippet = useMemo(() => {
+    if (!palette) return "";
+    return palette
+      .map((c, i) => `--color-${i + 1}: ${rgbToHex(c)}; /* ${rgbToCssRgb(c)} */`)
+      .join("\n");
+  }, [palette]);
+
+  // request to Colormind (serverless proxy at /api/colormind)
   async function generatePalette({ seed } = {}) {
-    // seed: optional RGB triple to bias the palette (we place seed at index 0)
     setLoading(true);
     try {
-      const input = Array(5).fill("N"); // "N" means unknown in colormind API
+      const input = Array(5).fill("N");
       if (seed && Array.isArray(seed) && seed.length === 3) {
-        // place seed as first color to bias generation
         input[0] = seed;
       }
-
       const payload = { model: DEFAULT_MODEL, input };
 
       const res = await fetch(API_ENDPOINT, {
@@ -140,9 +173,7 @@ export default function ColorMindPage() {
         setLoading(false);
         return;
       }
-
       const json = await res.json();
-      // Expected shape: { result: [ [r,g,b], ... ] }
       const result = json?.result || null;
       if (result && Array.isArray(result)) {
         setPalette(result);
@@ -159,26 +190,46 @@ export default function ColorMindPage() {
     }
   }
 
-  // suggestion click
   function chooseSuggestion(s) {
     setQuery(s.title);
     setShowSuggest(false);
+    setMobileSheetOpen(false);
     generatePalette({ seed: s.seed });
   }
 
-  function copyPaletteCss() {
+  // copy CSS with animation
+  async function copyPaletteCss() {
     if (!palette) return showToast("info", "No palette to copy");
     const cssVars = palette
       .map((c, i) => `--c${i + 1}: ${rgbToHex(c)}; /* ${rgbToCssRgb(c)} */`)
       .join("\n");
     const css = `:root {\n${cssVars}\n}`;
-    navigator.clipboard.writeText(css);
-    showToast("success", "CSS variables copied");
+    try {
+      await navigator.clipboard.writeText(css);
+      setCopiedCss(true);
+      showToast("success", "CSS variables copied");
+      // reset after 1.6s
+      if (copyTimers.current.css) clearTimeout(copyTimers.current.css);
+      copyTimers.current.css = setTimeout(() => setCopiedCss(false), 1600);
+    } catch {
+      showToast("error", "Copy failed");
+    }
   }
 
-  function copyColorHex(hex) {
-    navigator.clipboard.writeText(hex);
-    showToast("success", `${hex} copied`);
+  // copy single hex with animation indicator for that index
+  async function copyColorHex(hex, index) {
+    try {
+      await navigator.clipboard.writeText(hex);
+      setCopiedHexIndex(index);
+      showToast("success", `${hex} copied`);
+      if (copyTimers.current[`hex-${index}`]) clearTimeout(copyTimers.current[`hex-${index}`]);
+      copyTimers.current[`hex-${index}`] = setTimeout(() => {
+        // only clear if not overwritten
+        setCopiedHexIndex((cur) => (cur === index ? null : cur));
+      }, 1400);
+    } catch {
+      showToast("error", "Copy failed");
+    }
   }
 
   function downloadJSON() {
@@ -195,7 +246,6 @@ export default function ColorMindPage() {
 
   function downloadSwatchesImage() {
     if (!palette) return showToast("info", "No palette to export");
-    // small canvas export
     const canvas = document.createElement("canvas");
     const w = 1200;
     const h = 240;
@@ -218,83 +268,115 @@ export default function ColorMindPage() {
     });
   }
 
-  // derived palette with hex and luminance
-  const paletteMeta = useMemo(() => {
-    if (!palette) return [];
-    return palette.map((rgb) => {
-      const hex = rgbToHex(rgb);
-      const rgbCss = rgbToCssRgb(rgb);
-      const lum = averageLuminance(rgb);
-      const textColor = lum > 160 ? "#0b0b0b" : "#ffffff";
-      return { rgb, hex, rgbCss, lum, textColor };
-    });
-  }, [palette]);
-
-  // build CSS snippet for display
-  const cssSnippet = useMemo(() => {
-    if (!palette) return "";
-    return palette
-      .map((c, i) => `--color-${i + 1}: ${rgbToHex(c)}; /* ${rgbToCssRgb(c)} */`)
-      .join("\n");
-  }, [palette]);
-
-  // Quick Action: show single swatch details (open dialog)
   function openSwatch(i) {
     setSelectedSwatch({ index: i, meta: paletteMeta[i] });
     setDialogOpen(true);
   }
 
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto", isDark ? "bg-black text-zinc-100" : "bg-white text-zinc-900")}>
+    <div className={clsx("min-h-screen p-4 md:p-6 max-w-8xl mx-auto", isDark ? "bg-black text-zinc-100" : "bg-slate-50 text-zinc-900")}>
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+      <header className="flex items-start md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>
-            Chromatic — Color Scheme Generator
-          </h1>
-          <p className="mt-1 text-sm opacity-70">AI-powered palettes using Colormind. Seed or pick a mood, export CSS, PNG or JSON.</p>
+          <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">Chromatic — Color Scheme Generator</h1>
+          <p className="mt-1 text-sm opacity-70">AI palettes using Colormind. Seed or pick a mood, export CSS / PNG / JSON.</p>
         </div>
 
-        {/* Search / suggestions */}
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-3">
+          {/* Mobile sheet trigger */}
+          <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
+            <SheetTrigger asChild>
+               <Button  variant="ghost" className="md:hidden cursor-pointer" aria-label="Open presets">
+                <List />
+              </Button>
+            </SheetTrigger>
+
+            <SheetContent side="right" className=" p-3">
+              <div className={clsx("p-4", isDark ? "bg-black/80" : "bg-white")}>
+                <div className="flex items-center gap-2 mr-3 mb-3">
+                  <Search className="opacity-60" />
+                  <Input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search presets or colors"
+                    className="flex-1"
+                  />
+                   <Button className="cursor-pointer" variant="ghost" onClick={() => { setQuery(""); }}>
+                    <BrushCleaning />
+                  </Button>
+                </div>
+
+                <ScrollArea style={{ height: 420 }}>
+                  <div className="grid gap-2">
+                    {filteredSuggestions.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => chooseSuggestion(s)}
+                        className={clsx("flex items-center gap-3 p-3 rounded-md hover:shadow-sm transition-shadow cursor-pointer", isDark ? "bg-black/20" : "bg-white/80")}
+                      >
+                        <div className="w-12 h-8 rounded-sm flex-shrink-0 border" style={{ background: rgbToHex(s.seed) }} />
+                        <div className="flex-1 text-left">
+                          <div className="font-medium text-sm">{s.title}</div>
+                          <div className="text-xs opacity-60">{rgbToCssRgb(s.seed)}</div>
+                        </div>
+                        <div className="text-xs opacity-60">Seed</div>
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
+                <div className="mt-4 text-xs opacity-60">Tap a preset to generate</div>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Desktop search + generate */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              // If query matches a preset, pick it; otherwise generate seedless
-              const found = PRESET_SUGGESTIONS.find((s) => s.title.toLowerCase() === query.trim().toLowerCase());
+              const found = combinedSuggestions.find((s) => s.title.toLowerCase() === query.trim().toLowerCase());
               if (found) chooseSuggestion(found);
               else generatePalette();
               setShowSuggest(false);
             }}
-            className={clsx("flex items-center gap-2 w-full md:w-[640px] rounded-lg px-2 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}
+            className={clsx("hidden md:flex items-center gap-2 w-[520px] rounded-lg px-3 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}
           >
             <Search className="opacity-60" />
             <Input
-              placeholder="Search presets (e.g. 'sunset', 'ocean') or press Enter to generate"
+              placeholder="Search presets (e.g., 'sunset', '#F5A') or press Enter to generate"
               value={query}
-              onChange={(e) => onQueryChange(e.target.value)}
+              onChange={(e) => { setQuery(e.target.value); setShowSuggest(true); }}
               className="border-0 shadow-none bg-transparent outline-none"
-              onFocus={() => setShowSuggest(true)}
-              aria-label="Search color presets"
             />
-            <Button type="submit" variant="outline" className="px-3">
+            <Button type="submit" variant="outline" className="px-3 cursor-pointer">
               <ArrowRight />
             </Button>
-            <Button type="button" variant="outline" onClick={() => generatePalette()}>
-              <RefreshCw className={loading ? "animate-spin" : ""} />
+            <Button type="button" variant="outline" onClick={() => generatePalette()} className="px-3 cursor-pointer">
+              <RefreshCw className={loading ? "animate-spin" : ""} /> Regenerate
             </Button>
           </form>
+
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => setShowRaw((s) => !s)} className="hidden md:flex cursor-pointer" title="Toggle raw response">
+              <FileText />
+            </Button>
+            
+          </div>
         </div>
       </header>
 
-      {/* suggestions dropdown */}
+      {/* Suggest dropdown (desktop) */}
       <AnimatePresence>
-        {showSuggest && suggestions.length > 0 && (
-          <motion.ul initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
-            {suggestions.map((s) => (
+        {showSuggest && filteredSuggestions.length > 0 && (
+          <motion.ul
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className={clsx("absolute z-50 left-4 right-4 md:left-[calc(50%_-_260px)] md:right-auto max-w-2xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
+          >
+            {filteredSuggestions.slice(0, 8).map((s) => (
               <li key={s.id} onClick={() => chooseSuggestion(s)} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-8 rounded-md overflow-hidden" style={{ background: rgbToHex(s.seed) }} />
+                  <div className="w-12 h-8 rounded-md overflow-hidden border" style={{ background: rgbToHex(s.seed) }} />
                   <div className="flex-1">
                     <div className="font-medium">{s.title}</div>
                     <div className="text-xs opacity-60">Seed: {rgbToCssRgb(s.seed)}</div>
@@ -307,41 +389,48 @@ export default function ColorMindPage() {
         )}
       </AnimatePresence>
 
-      {/* Layout: left (controls) | center (palette) | right (quick actions) */}
+      {/* Main layout */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* Left: Controls & small palette library (2 cols on md) */}
-        <aside className={clsx("lg:col-span-3 space-y-4", isDark ? "bg-black/30 border border-zinc-800 p-4 rounded-2xl" : "bg-white/90 border border-zinc-200 p-4 rounded-2xl")}>
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold">Presets</div>
-              <div className="text-xs opacity-60">Quick seeds</div>
-            </div>
+        {/* Left: Sidebar (desktop only) */}
+        <aside className={clsx("hidden lg:block lg:col-span-3 space-y-4 p-4 rounded-2xl border", isDark ? "bg-black/30 border-zinc-800" : "bg-white/90 border-zinc-200")}>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold">Presets</div>
+            <div className="text-xs opacity-60">10 random + presets</div>
+          </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {PRESET_SUGGESTIONS.map((s) => (
+          <div className="mt-3">
+            <Input placeholder="Search presets" value={query} onChange={(e) => setQuery(e.target.value)} />
+          </div>
+
+          <ScrollArea style={{ height: 380 }} className="mt-3">
+            <div className="grid gap-2">
+              {filteredSuggestions.map((s) => (
                 <button
                   key={s.id}
                   onClick={() => chooseSuggestion(s)}
-                  className={clsx("p-2 rounded-md border flex items-center gap-2 text-sm", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}
+                  className={clsx("p-2 rounded-md border flex items-center gap-3 text-sm cursor-pointer hover:shadow-sm transition", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}
                 >
-                  <div className="w-8 h-6 rounded-sm flex-shrink-0" style={{ background: rgbToHex(s.seed) }} />
-                  <div className="text-xs">{s.title}</div>
+                  <div className="w-10 h-8 rounded-sm flex-shrink-0 border" style={{ background: rgbToHex(s.seed) }} />
+                  <div className="flex-1 text-left">
+                    <div className="font-medium">{s.title}</div>
+                    <div className="text-xs opacity-60">{rgbToCssRgb(s.seed)}</div>
+                  </div>
+                  <div className="text-xs opacity-60">Seed</div>
                 </button>
               ))}
             </div>
-          </div>
+          </ScrollArea>
 
           <Separator />
 
           <div>
-            <div className="text-sm font-semibold">Input seed</div>
-            <div className="text-xs opacity-60 mt-2">Provide a single RGB triplet to bias the generation (example: 34,139,34)</div>
-
-            <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="text-sm font-semibold">Quick seed (manual)</div>
+            <div className="text-xs opacity-60 mt-1">Type `r,g,b` and hit Use</div>
+            <div className="mt-2 grid grid-cols-3 gap-2">
               <input
                 type="text"
                 placeholder="r,g,b"
-                className={clsx("p-2 rounded-md border text-sm", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}
+                className={clsx("p-2 rounded-md border text-sm cursor-text", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     const v = e.target.value.trim();
@@ -355,32 +444,24 @@ export default function ColorMindPage() {
                 }}
               />
               <button
-                className={clsx("col-span-2 p-2 rounded-md border text-sm flex items-center justify-center gap-2", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}
+                className={clsx("col-span-2 p-2 rounded-md border text-sm flex items-center justify-center gap-2 cursor-pointer", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}
                 onClick={() => {
-                  // quick demo seed for manual input field - take query if formatted
                   const v = query.trim();
                   const parts = v.split(",").map((x) => Number(x.trim()));
                   if (parts.length === 3 && parts.every((n) => Number.isInteger(n) && n >= 0 && n <= 255)) {
                     generatePalette({ seed: parts });
                   } else {
-                    showToast("info", "Type a seed into the input as r,g,b then press this button");
+                    showToast("info", "Type a seed into the search as r,g,b then press Use");
                   }
                 }}
               >
-                <Palette /> Use seed
+                <Palette /> Use
               </button>
             </div>
           </div>
-
-          <Separator />
-
-          <div>
-            <div className="text-sm font-semibold">Notes</div>
-            <div className="text-xs opacity-60 mt-2">Colormind is an external service (HTTP). For production and secure origins, proxy the request server-side to avoid mixed-content issues and to cache results.</div>
-          </div>
         </aside>
 
-        {/* Center: Main large palette display */}
+        {/* Center */}
         <section className="lg:col-span-6 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/30 border-zinc-800" : "bg-white/90 border-zinc-200")}>
             <CardHeader className={clsx("p-6 flex items-center justify-between", isDark ? "bg-black/40 border-b border-zinc-800" : "bg-white/95 border-b border-zinc-200")}>
@@ -390,10 +471,10 @@ export default function ColorMindPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="ghost" onClick={() => generatePalette()}>
+                <Button variant="ghost" onClick={() => generatePalette()} className="cursor-pointer">
                   <RefreshCw className={loading ? "animate-spin" : ""} /> Regenerate
                 </Button>
-                <Button variant="outline" onClick={() => setPalette(null)}>Reset</Button>
+                <Button variant="outline" onClick={() => setPalette(null)} className="cursor-pointer">Reset</Button>
               </div>
             </CardHeader>
 
@@ -406,23 +487,48 @@ export default function ColorMindPage() {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
                     {paletteMeta.map((m, i) => (
-                      <div key={i} className="rounded-lg overflow-hidden border">
+                      <div key={i} className="rounded-lg overflow-hidden border cursor-pointer">
                         <button
                           onClick={() => openSwatch(i)}
-                          className="w-full h-36 flex items-center justify-center"
+                          className="w-full h-36 flex items-center cursor-pointer justify-center"
                           style={{ background: m.hex }}
                           aria-label={`Open details for color ${m.hex}`}
                         >
-                          <div className="text-sm font-semibold" style={{ color: m.textColor }}>{m.hex}</div>
+                          <div className="text-sm font-semibold select-none" style={{ color: m.textColor }}>{m.hex}</div>
                         </button>
 
-                        <div className={clsx("p-3", isDark ? "bg-black/20 border-t border-zinc-800" : "bg-white/70 border-t border-zinc-200")}>
-                          <div className="flex items-center justify-between">
-                            <div className="text-xs opacity-70">{m.rgbCss}</div>
-                            <div className="flex items-center gap-2">
-                              <button onClick={() => copyColorHex(m.hex)} className="text-xs opacity-70"><Copy className="w-4 h-4" /></button>
-                              <button onClick={() => { navigator.clipboard.writeText(m.rgbCss); showToast("success", "RGB copied"); }} className="text-xs opacity-70">RGB</button>
-                            </div>
+                        <div className={clsx("p-3 flex items-center flex-col gap-3 justify-between", isDark ? "bg-black/20 border-t border-zinc-800" : "bg-white/70 border-t border-zinc-200")}>
+                          <div className="text-xs opacity-70">{m.rgbCss}</div>
+                          <div className="flex items-center gap-2">
+                            {/* Copy hex with animated tick */}
+                            <motion.button
+                              whileTap={{ scale: 0.96 }}
+                              onClick={() => copyColorHex(m.hex, i)}
+                              className="flex items-center gap-2 text-xs opacity-80 cursor-pointer"
+                              style={{ background: "transparent", border: "none", padding: 0 }}
+                            >
+                              <AnimatePresence>
+                                {copiedHexIndex === i ? (
+                                  <motion.span initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-1">
+                                    <Check className="w-4 h-4" />
+                                    <span className="text-[11px]">Copied</span>
+                                  </motion.span>
+                                ) : (
+                                  <motion.span className="flex gap-1" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0 }}>
+                                    <Copy className="w-4 h-4" />hex
+                                  </motion.span>
+                                )}
+                              </AnimatePresence>
+                            </motion.button>
+                            
+
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(m.rgbCss); showToast("success", "RGB copied"); }}
+                              className="text-xs flex gap-1 opacity-70 cursor-pointer"
+                            >
+                                <Copy className="w-4 h-4" />
+                              RGB
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -441,10 +547,28 @@ export default function ColorMindPage() {
 
                     <div>
                       <div className="text-xs opacity-60">Export</div>
-                      <div className="mt-3 flex gap-2">
-                        <Button variant="outline" onClick={() => copyPaletteCss()}><Copy /> Copy CSS</Button>
-                        <Button variant="outline" onClick={() => downloadJSON()}><Download /> Download JSON</Button>
-                        <Button variant="outline" onClick={() => downloadSwatchesImage()}><Download /> Export PNG</Button>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <motion.button
+                          onClick={copyPaletteCss}
+                          whileTap={{ scale: 0.96 }}
+                          className={clsx("px-3 py-2 rounded-md border flex items-center gap-2 cursor-pointer", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}
+                          style={{ borderStyle: "solid" }}
+                        >
+                          <AnimatePresence>
+                            {copiedCss ? (
+                              <motion.span initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                                <Check className="w-4 h-4" /> Copied
+                              </motion.span>
+                            ) : (
+                              <motion.span initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                                <Copy className="w-4 h-4" /> Copy CSS
+                              </motion.span>
+                            )}
+                          </AnimatePresence>
+                        </motion.button>
+
+                        <Button variant="outline" onClick={downloadJSON} className="cursor-pointer"><Download className="w-4 h-4" /> Download JSON</Button>
+                        <Button variant="outline" onClick={downloadSwatchesImage} className="cursor-pointer"><ArrowDownCircle className="w-4 h-4" /> Export PNG</Button>
                       </div>
                     </div>
                   </div>
@@ -453,13 +577,16 @@ export default function ColorMindPage() {
             </CardContent>
           </Card>
 
-          {/* Raw response viewer */}
+          {/* Raw response viewer toggle */}
           <AnimatePresence>
-            {rawResp && (
+            {showRaw && rawResp && (
               <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
                 <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/90 border-zinc-200")}>
                   <CardHeader className="p-4">
-                    <div className="text-sm font-semibold">Raw Response</div>
+                    <div className="flex items-center justify-between w-full">
+                      <div className="text-sm font-semibold">Raw Response</div>
+                      <div className="text-xs opacity-60">JSON</div>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <pre className="text-xs overflow-auto" style={{ maxHeight: 220 }}>{prettyJSON(rawResp)}</pre>
@@ -470,20 +597,18 @@ export default function ColorMindPage() {
           </AnimatePresence>
         </section>
 
-        {/* Right: Quick actions */}
-        <aside className={clsx("lg:col-span-3 space-y-4", isDark ? "bg-black/30 border border-zinc-800 p-4 rounded-2xl" : "bg-white/90 border border-zinc-200 p-4 rounded-2xl")}>
-          <div>
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold">Quick Actions</div>
-              <div className="text-xs opacity-60">one-click</div>
-            </div>
+        {/* Right: Quick actions (mobile visible as block under center on small screens) */}
+        <aside className={clsx("lg:col-span-3 h-fit space-y-4 p-4 rounded-2xl border", isDark ? "bg-black/30 border-zinc-800" : "bg-white/90 border-zinc-200")}>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold">Quick Actions</div>
+            <div className="text-xs opacity-60">one-click</div>
+          </div>
 
-            <div className="mt-3 flex flex-col gap-2">
-              <Button variant="outline" onClick={() => copyPaletteCss()}><Copy /> Copy CSS</Button>
-              <Button variant="outline" onClick={() => downloadJSON()}><Download /> Download JSON</Button>
-              <Button variant="outline" onClick={() => downloadSwatchesImage()}><Download /> Export PNG</Button>
-              <Button variant="outline" onClick={() => setPalette(null)}><List /> Clear</Button>
-            </div>
+          <div className="mt-3 flex flex-col gap-2">
+            <Button variant="outline" onClick={copyPaletteCss} className="cursor-pointer"><Copy /> Copy CSS</Button>
+            <Button variant="outline" onClick={downloadJSON} className="cursor-pointer"><Download /> Download JSON</Button>
+            <Button variant="outline" onClick={downloadSwatchesImage} className="cursor-pointer"><ArrowDownCircle /> Export PNG</Button>
+            <Button variant="outline" onClick={() => setPalette(null)} className="cursor-pointer"><List /> Clear</Button>
           </div>
 
           <Separator />
@@ -499,30 +624,21 @@ export default function ColorMindPage() {
               <div className={clsx("p-3", isDark ? "bg-black/20" : "bg-white/95")}>
                 <div style={{ color: paletteMeta[1]?.hex || "#555" }} className="text-sm">This is a preview of the body text color</div>
                 <div className="mt-2">
-                  <button className="px-3 py-1 rounded-md border mr-2" style={{ background: paletteMeta[2]?.hex || "#eee", color: paletteMeta[2]?.textColor || "#000" }}>Primary</button>
-                  <button className="px-3 py-1 rounded-md border" style={{ background: paletteMeta[3]?.hex || "#ddd", color: paletteMeta[3]?.textColor || "#000" }}>Secondary</button>
+                  <button className="px-3 py-1 rounded-md border mr-2 cursor-pointer" style={{ background: paletteMeta[2]?.hex || "#eee", color: paletteMeta[2]?.textColor || "#000" }}>Primary</button>
+                  <button className="px-3 py-1 rounded-md border cursor-pointer" style={{ background: paletteMeta[3]?.hex || "#ddd", color: paletteMeta[3]?.textColor || "#000" }}>Secondary</button>
                 </div>
               </div>
             </div>
           </div>
 
-          <Separator />
+          
 
-          <div>
-            <div className="text-sm font-semibold">Theme</div>
-            <div className="mt-3 flex items-center gap-2">
-              <div className="text-xs opacity-60">Dark / Light</div>
-              <div className="ml-auto">
-                <Button variant="outline" onClick={() => { /* toggle handled by theme-provider in app */ }}><SunMoon /></Button>
-              </div>
-            </div>
-          </div>
         </aside>
       </main>
 
       {/* Swatch dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-2xl w-full p-0 rounded-2xl overflow-hidden")}>
+        <DialogContent className={clsx("max-w-2xl w-full p-3 rounded-2xl overflow-hidden")}>
           <DialogHeader>
             <DialogTitle>{selectedSwatch ? selectedSwatch.meta.hex : "Color"}</DialogTitle>
           </DialogHeader>
@@ -543,7 +659,7 @@ export default function ColorMindPage() {
             <div className="text-xs opacity-60 mr-auto">Swatch details</div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => { if (selectedSwatch) navigator.clipboard.writeText(selectedSwatch.meta.hex); showToast("success", "Hex copied"); }}><Copy /></Button>
-              <Button onClick={() => setDialogOpen(false)}><X /></Button>
+               <Button className="cursor-pointer" onClick={() => setDialogOpen(false)}><X /></Button>
             </div>
           </DialogFooter>
         </DialogContent>

@@ -19,7 +19,11 @@ import {
   Percent,
   Award,
   TrendingUp,
-  Zap
+  Zap,
+  Check,
+  ChevronDown,
+  Menu,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -42,7 +46,10 @@ import {
   Area,
 } from "recharts";
 
-/* ---------- Config ---------- */
+/* shadcn-like UI additions (Sheet, ScrollArea) */
+import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
 const ENDPOINT = "/api/covid/v4/min/data.min.json";
 const DEFAULT_SELECTION = "TT";
 const DEBOUNCE_MS = 300;
@@ -66,26 +73,40 @@ function pct(part, total) {
 
 /* ---------- UI subcomponents ---------- */
 function StatCardCompact({ label, value, delta, icon, tone = "neutral" }) {
-  // tone can control icon background, but we keep it simple
   return (
-    <div className="p-3 rounded-lg border flex items-center gap-3 bg-transparent">
-      <div className={clsx("w-10 h-10 rounded-md flex items-center justify-center", tone === "warn" ? "bg-yellow-50 dark:bg-yellow-500" : tone === "good" ? "bg-green-50 dark:bg-green-500" : "bg-zinc-50 dark:bg-zinc-700")}>
+    <div className="p-3 rounded-lg border flex items-center gap-3 bg-transparent shadow-sm">
+      <div
+        className={clsx(
+          "w-10 h-10 rounded-md flex items-center justify-center",
+          tone === "warn"
+            ? "bg-yellow-50 dark:bg-yellow-600"
+            : tone === "good"
+            ? "bg-green-50 dark:bg-green-600"
+            : "bg-zinc-50 dark:bg-zinc-700"
+        )}
+      >
         {icon}
       </div>
       <div className="flex-1">
         <div className="text-xs opacity-60">{label}</div>
-        <div className="text-lg font-semibold">{value !== null ? value.toLocaleString() : "—"}</div>
-        <div className="text-xs opacity-60">{delta !== null ? `Δ ${delta >= 0 ? "+" : ""}${delta}` : ""}</div>
+        <div className="text-lg font-semibold">
+          {value !== null ? value.toLocaleString() : "—"}
+        </div>
+        <div className="text-xs opacity-60">
+          {delta !== null ? `Δ ${delta >= 0 ? "+" : ""}${delta}` : ""}
+        </div>
       </div>
     </div>
   );
 }
 
-/* Progress bar for vaccination coverage */
 function TinyProgress({ pctValue }) {
   return (
     <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
-      <div style={{ width: `${Math.min(100, Math.max(0, pctValue))}%` }} className="h-full bg-gradient-to-r from-green-400 to-green-600" />
+      <div
+        style={{ width: `${Math.min(100, Math.max(0, pctValue))}%` }}
+        className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-700"
+      />
     </div>
   );
 }
@@ -115,6 +136,13 @@ export default function CovidCurrentPage() {
   const [selected, setSelected] = useState({ type: "state", key: DEFAULT_SELECTION });
   const [showRaw, setShowRaw] = useState(false);
 
+  // copy button animated state
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef(null);
+
+  // mobile sheet
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   /* ---------- load dataset ---------- */
   useEffect(() => {
     let mounted = true;
@@ -134,7 +162,9 @@ export default function CovidCurrentPage() {
       }
     }
     load();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   /* ---------- index for search ---------- */
@@ -161,7 +191,9 @@ export default function CovidCurrentPage() {
     try {
       const qq = (q || "").trim().toLowerCase();
       if (!qq) {
-        setSuggestions([]); setLoadingSuggest(false); return;
+        setSuggestions([]);
+        setLoadingSuggest(false);
+        return;
       }
       const out = [];
       for (const s of idx.states) {
@@ -182,8 +214,11 @@ export default function CovidCurrentPage() {
       }).slice(0, 25);
       setSuggestions(filtered);
     } catch (err) {
-      console.error(err); setSuggestions([]);
-    } finally { setLoadingSuggest(false); }
+      console.error(err);
+      setSuggestions([]);
+    } finally {
+      setLoadingSuggest(false);
+    }
   }
 
   function onQueryChange(v) {
@@ -194,13 +229,20 @@ export default function CovidCurrentPage() {
     searchTimer.current = setTimeout(() => buildSuggestions(v), DEBOUNCE_MS);
   }
 
-  useEffect(() => () => { if (searchTimer.current) clearTimeout(searchTimer.current); }, []);
+  useEffect(() => {
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
 
   function pickSuggestion(s) {
     if (!s) return;
     if (s.type === "state") setSelected({ type: "state", key: s.key });
     else setSelected({ type: "district", key: s.key, parent: s.parent });
-    setQuery(""); setSuggestions([]); setShowSuggest(false);
+    setQuery("");
+    setSuggestions([]);
+    setShowSuggest(false);
   }
 
   /* ---------- selected node derived ---------- */
@@ -213,7 +255,6 @@ export default function CovidCurrentPage() {
   }, [data, selected]);
 
   /* ---------- computed metrics & charts ---------- */
-  // Top districts by vaccinated1 or confirmed
   const topDistrictsByVacc1 = useMemo(() => {
     if (!data || !selected) return [];
     const stateCode = selected.type === "state" ? selected.key : selected.parent;
@@ -228,13 +269,10 @@ export default function CovidCurrentPage() {
     return arr;
   }, [data, selected]);
 
-  // delta7 chart: prepare a small dataset with key metrics from selected node's delta7
   const delta7Chart = useMemo(() => {
     if (!selectedNode?.node) return [];
     const n = selectedNode.node;
-    // prefer node.delta7 else aggregate delta fields into a single object
     const delta7 = n.delta7 || {};
-    // pick a few metrics
     const metrics = ["confirmed", "recovered", "deceased", "tested", "vaccinated1", "vaccinated2"];
     const items = metrics.map((m) => ({ name: m, value: safeNum(delta7[m] ?? n.delta?.[m] ?? 0) || 0 }));
     return items;
@@ -255,10 +293,20 @@ export default function CovidCurrentPage() {
   }
 
   /* ---------- quick actions ---------- */
-  function copyEndpoint() {
-    navigator.clipboard.writeText(ENDPOINT);
-    showToast("success", "Endpoint copied");
+  async function copyEndpoint() {
+    try {
+      await navigator.clipboard.writeText(ENDPOINT);
+      setCopied(true);
+      showToast("success", "Endpoint copied");
+      // reset after 1.6s
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 1600);
+    } catch (err) {
+      console.error(err);
+      showToast("error", "Failed to copy");
+    }
   }
+
   function downloadSelectedJSON() {
     const payload = selectedNode?.node || data || {};
     const blob = new Blob([prettyJSON(payload)], { type: "application/json" });
@@ -267,52 +315,139 @@ export default function CovidCurrentPage() {
     a.download = `covid_${selectedNode?.metaKey || "data"}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
+    showToast("success", "Download started");
   }
 
   /* ---------- Rendering ---------- */
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto", isDark ? "bg-black text-zinc-100" : "bg-white text-zinc-900")}>
-      {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+    <div className={clsx("min-h-screen p-4 sm:p-6 max-w-8xl pb-10 overflow-hidden mx-auto", isDark ? "bg-black text-zinc-100" : "bg-gray-50 text-zinc-900")}>
+      {/* Mobile sheet trigger */}
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold">Covid India — Current Snapshot</h1>
-          <p className="mt-1 text-sm opacity-70">Minified official dataset — totals, vaccination coverage, district breakdowns.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold flex items-center gap-3">
+            <BarChart2 className="w-6 h-6 opacity-85" />
+            Covid India 
+          </h1>
+          <div className="text-sm opacity-70 flex items-center gap-2">
+           
+            Minified official dataset — totals, vaccination coverage, district breakdowns.
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <form onSubmit={(e) => e.preventDefault()} className={clsx("flex items-center gap-2 w-full md:w-[640px] rounded-lg px-2 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
+        <div className="flex items-center gap-2">
+          <div className="md:hidden">
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" className="p-2 rounded-md cursor-pointer">
+                  <Menu className="w-5 h-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="p-3">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="font-semibold">Quick menu</div>
+                 
+                </div>
+
+                <ScrollArea className="no-scrollbar" style={{ height: "calc(100vh - 120px)" }}>
+                  <div className="space-y-3">
+                    <Card className="p-3">
+                      <div className="text-sm font-medium">Quick actions</div>
+                      <div className="mt-2 space-y-2">
+                        <Button variant="outline" onClick={copyEndpoint} className="w-full justify-start cursor-pointer">
+                          {copied ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Copy className="w-4 h-4 mr-2" />}
+                          Copy endpoint
+                        </Button>
+                        <Button variant="outline" onClick={downloadSelectedJSON} className="w-full justify-start cursor-pointer">
+                          <Download className="w-4 h-4 mr-2" /> Download selected JSON
+                        </Button>
+                        <Button variant="ghost" onClick={() => setShowRaw((s) => !s)} className="w-full justify-start cursor-pointer">
+                          <List className="w-4 h-4 mr-2" /> {showRaw ? "Hide raw" : "Show raw"}
+                        </Button>
+                        <Button variant="ghost" onClick={() => window.open(ENDPOINT, "_blank")} className="w-full justify-start cursor-pointer">
+                          <ExternalLink className="w-4 h-4 mr-2" /> Open source
+                        </Button>
+                      </div>
+                    </Card>
+
+                    <Card className="p-3">
+                      <div className="text-sm font-medium">Top states</div>
+                      <div className="mt-2 space-y-1">
+                        {data ? (
+                          Object.keys(data)
+                            .map((k) => ({ code: k, confirmed: safeNum(data[k]?.total?.confirmed ?? data[k]?.confirmed) || 0 }))
+                            .sort((a, b) => b.confirmed - a.confirmed)
+                            .slice(0, 10)
+                            .map((s) => (
+                              <div
+                                key={s.code}
+                                onClick={() => { setSelected({ type: "state", key: s.code }); setSheetOpen(false); }}
+                                className="flex items-center justify-between p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/40 cursor-pointer"
+                              >
+                                <div className="font-medium text-sm">{stateDisplayName(s.code)}</div>
+                                <div className="text-xs opacity-60">{s.confirmed.toLocaleString()}</div>
+                              </div>
+                            ))
+                        ) : (
+                          <div className="text-sm opacity-60">Loading…</div>
+                        )}
+                      </div>
+                    </Card>
+
+                    <div className="text-xs opacity-60">Dataset: <a href={ENDPOINT} target="_blank" rel="noreferrer" className="underline">Open JSON</a></div>
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          <form onSubmit={(e) => e.preventDefault()} className={clsx("hidden md:flex items-center gap-2 rounded-lg px-2 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-60" />
-            <Input aria-label="Search states or districts" placeholder="Search (MH, Maharashtra, Mumbai)" value={query} onChange={(e) => onQueryChange(e.target.value)} className="border-0 shadow-none bg-transparent outline-none" onFocus={() => setShowSuggest(true)} />
-            <Button type="button" variant="outline" onClick={() => { setSelected({ type: "state", key: DEFAULT_SELECTION }); setQuery(""); }}>India</Button>
-            <Button type="button" variant="outline" onClick={() => { setQuery(""); setSuggestions([]); setShowSuggest(false); }}>Clear</Button>
+            <Input
+              aria-label="Search states or districts"
+              placeholder="Search (MH, Maharashtra, Mumbai)"
+              value={query}
+              onChange={(e) => onQueryChange(e.target.value)}
+              className="border-0 shadow-none bg-transparent outline-none w-[420px]"
+              onFocus={() => setShowSuggest(true)}
+            />
+            <Button type="button" variant="outline" onClick={() => { setSelected({ type: "state", key: DEFAULT_SELECTION }); setQuery(""); }} className="cursor-pointer">
+              India
+            </Button>
+            <Button type="button" variant="outline" onClick={() => { setQuery(""); setSuggestions([]); setShowSuggest(false); }} className="cursor-pointer">
+              Clear
+            </Button>
           </form>
         </div>
-      </header>
+      </div>
 
-      {/* Suggestions */}
+      {/* Suggestions (absolute dropdown) */}
       <AnimatePresence>
         {showSuggest && suggestions.length > 0 && (
-          <motion.ul initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
-            {loadingSuggest && <li className="p-3 text-sm opacity-60">Searching…</li>}
-            {suggestions.map((s, i) => (
-              <li key={s.display + i} onClick={() => pickSuggestion(s)} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-10"><MapPin className="w-5 h-5 opacity-70" /></div>
-                  <div className="flex-1">
-                    <div className="font-medium">{s.display}</div>
-                    <div className="text-xs opacity-60">{s.type === "state" ? "State" : `District • ${s.parent}`}</div>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </motion.ul>
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={clsx("absolute z-50 left-4 right-4 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
+            <ScrollArea style={{ maxHeight: 320 }}>
+              <ul>
+                {loadingSuggest && <li className="p-3 text-sm opacity-60">Searching…</li>}
+                {suggestions.map((s, i) => (
+                  <li key={s.display + i} onClick={() => pickSuggestion(s)} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10"><MapPin className="w-5 h-5 opacity-70" /></div>
+                      <div className="flex-1">
+                        <div className="font-medium">{s.display}</div>
+                        <div className="text-xs opacity-60">{s.type === "state" ? "State" : `District • ${s.parent}`}</div>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </ScrollArea>
+          </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Layout */}
+      {/* Main grid */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* Left: hints + top states */}
-        <aside className={clsx("lg:col-span-3 space-y-4", isDark ? "bg-black/30 border border-zinc-800 p-4 rounded-2xl" : "bg-white/90 border border-zinc-200 p-4 rounded-2xl")}>
+        {/* Left column (desktop only) */}
+        <aside className={clsx("hidden lg:block lg:col-span-3 space-y-4 p-4 rounded-2xl", isDark ? "bg-black/30 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
           <div>
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold">Quick Hints</div>
@@ -325,11 +460,11 @@ export default function CovidCurrentPage() {
 
           <div>
             <div className="text-sm font-semibold mb-2">Top states (confirmed)</div>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-64 overflow-auto">
               {data ? (
                 Object.keys(data).map((k) => ({ code: k, confirmed: safeNum(data[k]?.total?.confirmed ?? data[k]?.confirmed) || 0 }))
                   .sort((a, b) => b.confirmed - a.confirmed).slice(0, 6).map((s) => (
-                    <div key={s.code} className="p-2 rounded-md border flex items-center justify-between cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/40" onClick={() => setSelected({ type: "state", key: s.code })}>
+                    <div key={s.code} onClick={() => setSelected({ type: "state", key: s.code })} className="p-2 rounded-md border flex items-center justify-between cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/40">
                       <div className="font-medium">{stateDisplayName(s.code)}</div>
                       <div className="text-sm opacity-60">{s.confirmed.toLocaleString()}</div>
                     </div>
@@ -351,19 +486,51 @@ export default function CovidCurrentPage() {
           </div>
         </aside>
 
-        {/* Center: main details */}
+        {/* Center */}
         <section className={clsx("lg:col-span-6", isDark ? "text-zinc-100" : "text-zinc-900")}>
-          <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/30 border-zinc-800" : "bg-white/90 border-zinc-200")}>
+          <Card className={clsx("rounded-2xl overflow-hidden border shadow-sm", isDark ? "bg-black/30 border-zinc-800" : "bg-white/90 border-zinc-200")}>
             <CardHeader className={clsx("p-5 flex items-center justify-between", isDark ? "bg-black/40 border-b border-zinc-800" : "bg-white/95 border-b border-zinc-200")}>
               <div>
-                <h3 className="text-lg font-semibold">{selected.type === "state" ? stateDisplayName(selected.key) : `${selected.key} • ${stateDisplayName(selected.parent)}`}</h3>
-                <div className="text-xs opacity-60">{selected.type === "state" ? `State • ${selected.key}` : `District • ${selected.key}`}</div>
+                <h3 className="text-lg font-semibold flex items-center gap-3">
+                  <BarChart2 className="w-5 h-5 opacity-80" />
+                  {selected.type === "state" ? stateDisplayName(selected.key) : `${selected.key} • ${stateDisplayName(selected.parent)}`}
+                </h3>
+                <div className="text-xs opacity-60 flex items-center gap-2">
+                  <MapPin className="w-3.5 h-3.5 opacity-70" />
+                  {selected.type === "state" ? `State • ${selected.key}` : `District • ${selected.key}`}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="ghost" onClick={() => setShowRaw((s) => !s)}><List /></Button>
-                <Button variant="outline" onClick={() => copyEndpoint()}><Copy /></Button>
-                <Button variant="outline" onClick={() => downloadSelectedJSON()}><Download /></Button>
+                <Button variant="ghost" onClick={() => setShowRaw((s) => !s)} className="p-2 rounded-md cursor-pointer" aria-pressed={showRaw} title="Toggle raw JSON">
+                  <List />
+                </Button>
+
+                <div className="relative">
+                  <Button
+                    variant={copied ? "secondary" : "outline"}
+                    onClick={() => copyEndpoint()}
+                    className="flex items-center gap-2 p-2 rounded-md cursor-pointer"
+                    aria-label="Copy endpoint"
+                  >
+                    <AnimatePresence mode="wait">
+                      {copied ? (
+                        <motion.span key="check" initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }} className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-green-400" />
+                          <span className="text-sm">Copied</span>
+                        </motion.span>
+                      ) : (
+                        <motion.span key="copy" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} className="flex items-center gap-2">
+                          <Copy className="w-4 h-4" />
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </Button>
+                </div>
+
+                <Button variant="outline" onClick={() => downloadSelectedJSON()} className="p-2 rounded-md cursor-pointer" title="Download JSON">
+                  <Download />
+                </Button>
               </div>
             </CardHeader>
 
@@ -391,7 +558,7 @@ export default function CovidCurrentPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-xs opacity-60">Vaccination</div>
-                        <div className="text-sm font-medium">Coverage & recent doses</div>
+                        <div className="text-sm font-medium flex items-center gap-2"><Award className="w-4 h-4" /> Coverage & recent doses</div>
                       </div>
                       <div className="text-xs opacity-60">Last updated: {selectedNode.node?.meta?.date || selectedNode.node?.meta?.last_updated || "—"}</div>
                     </div>
@@ -414,7 +581,7 @@ export default function CovidCurrentPage() {
                         <div className="mt-3">
                           <div className="text-xs opacity-60">Coverage</div>
                           <div className="mt-1">
-                            <TinyProgress pctValue={pct(safeNum(selectedNode.node?.total?.vaccinated1) || 0, selectedNode.node?.meta?.population || (selected.type === "state" ? data?.[selected.key]?.meta?.population : null) || 1) } />
+                            <TinyProgress pctValue={pct(safeNum(selectedNode.node?.total?.vaccinated1) || 0, selectedNode.node?.meta?.population || (selected.type === "state" ? data?.[selected.key]?.meta?.population : null) || 1)} />
                             <div className="mt-1 text-xs opacity-60">{pct(safeNum(selectedNode.node?.total?.vaccinated1) || 0, selectedNode.node?.meta?.population || (selected.type === "state" ? data?.[selected.key]?.meta?.population : null) || 1)}% population (1 dose)</div>
                           </div>
                         </div>
@@ -447,7 +614,7 @@ export default function CovidCurrentPage() {
 
                   <Separator className="my-4" />
 
-                  {/* Charts: top districts vacc & weekly deltas */}
+                  {/* Charts */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-3 rounded-md border">
                       <div className="flex items-center justify-between mb-2">
@@ -463,22 +630,22 @@ export default function CovidCurrentPage() {
                               <CartesianGrid strokeDasharray="3 3" opacity={0.06} />
                               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                               <YAxis tickFormatter={(v) => (v >= 1000 ? `${Math.round(v/1000)}k` : v)} />
-                              <Tooltip formatter={(v) => v?.toLocaleString?.() ?? v}
-                               contentStyle= {{
-                                    backgroundColor: isDark ? "rgba(6,6,8,0.88)" : "rgba(255,255,255,0.98)",
-                                    border: isDark ? "1px solid rgba(113,113,122,0.24)" : "1px solid rgba(220,220,225,0.6)",
-                                    borderRadius: "0.75rem",
-                                    backdropFilter: "blur(8px)",
-                                    boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.5)" : "0 6px 24px rgba(16,24,40,0.06)",
-                                   
-                                    fontSize: "0.875rem",
-                                    padding: "0.5rem 0.75rem",
-                                    }}
-                                      labelStyle={{
-                                
-                                    fontWeight: "500",
-                                    marginBottom: "0.25rem",
-                                }} />
+                              <Tooltip
+                                formatter={(v) => v?.toLocaleString?.() ?? v}
+                                contentStyle={{
+                                  backgroundColor: isDark ? "rgba(6,6,8,0.88)" : "rgba(255,255,255,0.98)",
+                                  border: isDark ? "1px solid rgba(113,113,122,0.24)" : "1px solid rgba(220,220,225,0.6)",
+                                  borderRadius: "0.75rem",
+                                  backdropFilter: "blur(8px)",
+                                  boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.5)" : "0 6px 24px rgba(16,24,40,0.06)",
+                                  fontSize: "0.875rem",
+                                  padding: "0.5rem 0.75rem",
+                                }}
+                                labelStyle={{
+                                  fontWeight: "500",
+                                  marginBottom: "0.25rem",
+                                }}
+                              />
                               <Bar dataKey="vacc1" fill="#2dd4bf" name="1st dose" />
                             </BarChart>
                           </ResponsiveContainer>
@@ -500,22 +667,22 @@ export default function CovidCurrentPage() {
                               <CartesianGrid strokeDasharray="3 3" opacity={0.05} />
                               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                               <YAxis tickFormatter={(v) => (v >= 1000 ? `${Math.round(v/1000)}k` : v)} />
-                              <Tooltip formatter={(v) => v?.toLocaleString?.() ?? v}
-                                  contentStyle= {{
-                                    backgroundColor: isDark ? "rgba(6,6,8,0.88)" : "rgba(255,255,255,0.98)",
-                                    border: isDark ? "1px solid rgba(113,113,122,0.24)" : "1px solid rgba(220,220,225,0.6)",
-                                    borderRadius: "0.75rem",
-                                    backdropFilter: "blur(8px)",
-                                    boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.5)" : "0 6px 24px rgba(16,24,40,0.06)",
-                                   
-                                    fontSize: "0.875rem",
-                                    padding: "0.5rem 0.75rem",
-                                    }}
-                                      labelStyle={{
-                                
-                                    fontWeight: "500",
-                                    marginBottom: "0.25rem",
-                                }} />
+                              <Tooltip
+                                formatter={(v) => v?.toLocaleString?.() ?? v}
+                                contentStyle={{
+                                  backgroundColor: isDark ? "rgba(6,6,8,0.88)" : "rgba(255,255,255,0.98)",
+                                  border: isDark ? "1px solid rgba(113,113,122,0.24)" : "1px solid rgba(220,220,225,0.6)",
+                                  borderRadius: "0.75rem",
+                                  backdropFilter: "blur(8px)",
+                                  boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.5)" : "0 6px 24px rgba(16,24,40,0.06)",
+                                  fontSize: "0.875rem",
+                                  padding: "0.5rem 0.75rem",
+                                }}
+                                labelStyle={{
+                                  fontWeight: "500",
+                                  marginBottom: "0.25rem",
+                                }}
+                              />
                               <Bar dataKey="value" fill="#60a5fa" />
                             </BarChart>
                           </ResponsiveContainer>
@@ -527,6 +694,10 @@ export default function CovidCurrentPage() {
                   <AnimatePresence>
                     {showRaw && (
                       <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="mt-4 p-3 rounded-md border">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-sm font-medium">Raw JSON</div>
+                          <div className="text-xs opacity-60">Preview</div>
+                        </div>
                         <pre className="text-xs overflow-auto" style={{ maxHeight: 320 }}>{prettyJSON(selectedNode.node)}</pre>
                       </motion.div>
                     )}
@@ -537,8 +708,8 @@ export default function CovidCurrentPage() {
           </Card>
         </section>
 
-        {/* Right: quick actions */}
-        <aside className={clsx("lg:col-span-3 space-y-4", isDark ? "bg-black/30 border border-zinc-800 p-4 rounded-2xl" : "bg-white/90 border border-zinc-200 p-4 rounded-2xl")}>
+        {/* Right */}
+        <aside className={clsx("lg:col-span-3 space-y-4 p-4 rounded-2xl", isDark ? "bg-black/30 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
           <div>
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold">Quick actions</div>
@@ -546,10 +717,22 @@ export default function CovidCurrentPage() {
             </div>
 
             <div className="mt-3 space-y-2">
-              <Button variant="outline" onClick={() => copyEndpoint()}><Copy /><span className="ml-2">Copy endpoint</span></Button>
-              <Button variant="outline" onClick={() => downloadSelectedJSON()}><Download /><span className="ml-2">Download selected JSON</span></Button>
-              <Button variant="ghost" onClick={() => setShowRaw((s) => !s)}><List /><span className="ml-2">{showRaw ? "Hide raw" : "Show raw"}</span></Button>
-              <Button variant="ghost" onClick={() => window.open(ENDPOINT, "_blank")}><ExternalLink /><span className="ml-2">Open source</span></Button>
+              <Button variant="outline" onClick={() => copyEndpoint()} className="w-full justify-start cursor-pointer">
+                {copied ? <Check className="w-4 h-4 mr-2 text-green-500" /> : <Copy className="w-4 h-4 mr-2" />}
+                <span>Copy endpoint</span>
+              </Button>
+              <Button variant="outline" onClick={() => downloadSelectedJSON()} className="w-full justify-start cursor-pointer">
+                <Download className="w-4 h-4 mr-2" />
+                <span>Download selected JSON</span>
+              </Button>
+              <Button variant="ghost" onClick={() => setShowRaw((s) => !s)} className="w-full justify-start cursor-pointer">
+                <List className="w-4 h-4 mr-2" />
+                <span>{showRaw ? "Hide raw" : "Show raw"}</span>
+              </Button>
+              <Button variant="ghost" onClick={() => window.open(ENDPOINT, "_blank")} className="w-full justify-start cursor-pointer">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                <span>Open source</span>
+              </Button>
             </div>
           </div>
 
@@ -566,4 +749,3 @@ export default function CovidCurrentPage() {
     </div>
   );
 }
-{}

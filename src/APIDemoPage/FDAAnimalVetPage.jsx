@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  Menu,
   Search,
   ExternalLink,
   Copy,
@@ -20,7 +21,9 @@ import {
   MousePointer,
   ChevronRight,
   ChevronDown,
-  Layers
+  Layers,
+  Grid,
+  Check
 } from "lucide-react";
 
 import {
@@ -39,6 +42,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useTheme } from "@/components/theme-provider";
 import { toast } from "sonner";
 
@@ -46,15 +51,12 @@ import { toast } from "sonner";
 const BASE_ENDPOINT = "https://api.fda.gov/animalandveterinary/event.json";
 
 /* ---------- Utilities ---------- */
-// Pretty-print JSON safely
 const prettyJSON = (obj) => JSON.stringify(obj, null, 2);
 
-// convert YYYYMMDD or YYYYMM to readable string
 function parseFDA_Date(d) {
   if (!d) return null;
   const s = String(d);
   if (/^\d{8}$/.test(s)) {
-    // YYYYMMDD
     const yyyy = s.slice(0, 4);
     const mm = s.slice(4, 6);
     const dd = s.slice(6, 8);
@@ -70,14 +72,13 @@ function parseFDA_Date(d) {
   return s;
 }
 
-// friendly fallback for any data
 function safeText(v) {
   if (v === null || v === undefined) return "—";
   if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
   return "—";
 }
 
-/* ---------- Safe renderers for Option A (grouped cards) ---------- */
+/* ---------- Small reusable presenters ---------- */
 
 function ReactionList({ reactions }) {
   if (!reactions || reactions.length === 0) return <div className="text-sm opacity-60">No reactions listed</div>;
@@ -102,6 +103,7 @@ function ReactionList({ reactions }) {
 }
 
 function ActiveIngredient({ ai }) {
+  if (!ai) return null;
   return (
     <div className="p-2 rounded-md border bg-zinc-50 dark:bg-black/20">
       <div className="text-sm font-medium">{ai.name || "Ingredient"}</div>
@@ -206,33 +208,18 @@ function ReceiverCard({ receiver }) {
   );
 }
 
-function OutcomeList({ outcome }) {
-  if (!outcome || outcome.length === 0) return <div className="text-sm opacity-60">No outcome information</div>;
-  return (
-    <div className="space-y-2">
-      {outcome.map((o, i) => (
-        <div key={i} className="p-2 rounded-md border bg-zinc-50 dark:bg-black/20">
-          <div className="text-sm font-medium">{o.medical_status || "Outcome"}</div>
-          {o.number_of_animals_affected && <div className="text-xs opacity-70 mt-1">{o.number_of_animals_affected} affected</div>}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /* ---------- Chart tooltip ---------- */
 const ChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload || payload.length === 0) return null;
   const v = payload[0].value;
   return (
-    <div className="p-2 rounded border bg-white dark:bg-black/90 border-zinc-200 dark:border-zinc-700 text-sm shadow">
+    <div className="p-2 rounded-2xl border bg-white dark:bg-black/90 border-zinc-200 dark:border-zinc-700 text-sm shadow">
       <div className="font-medium">{label}</div>
       <div className="text-xs opacity-70">{v} event{v !== 1 ? "s" : ""}</div>
     </div>
   );
 };
 
-/* ---------- Build timeseries from results ---------- */
 function buildSeries(results) {
   if (!results || results.length === 0) return [];
   const counts = {};
@@ -268,17 +255,23 @@ export default function FDAAnimalVetPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // sheet for mobile list
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // copy states for animated button
+  const [copyState, setCopyState] = useState("idle"); // idle | loading | copied
+
   useEffect(() => {
-    fetchEvents(query, { limit: 5 });
+    fetchEvents(query, { limit: 8 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function fetchEvents(q = "primary_reporter:Veterinarian", opts = { limit: 5 }) {
+  async function fetchEvents(q = "primary_reporter:Veterinarian", opts = { limit: 8 }) {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (q) params.set("search", q);
-      params.set("limit", String(opts.limit || 5));
+      params.set("limit", String(opts.limit || 8));
       const url = `${BASE_ENDPOINT}?${params.toString()}`;
       const res = await fetch(url);
       if (!res.ok) {
@@ -301,7 +294,7 @@ export default function FDAAnimalVetPage() {
     }
   }
 
-  // suggestions (preview items)
+  // suggestions via API (preview)
   async function getSuggestions(q) {
     if (!q || q.trim().length === 0) {
       setSuggestions([]);
@@ -336,13 +329,24 @@ export default function FDAAnimalVetPage() {
     setSelected(item);
     setShowSuggest(false);
     setRawResponse({ results: [item] });
+    setSheetOpen(false);
   }
 
-  function copyEvent() {
+  async function copyEvent() {
     if (!selected) return toast?.info?.("No event selected");
-    navigator.clipboard.writeText(prettyJSON(selected));
-    toast?.success?.("JSON copied");
+    try {
+      setCopyState("loading");
+      await navigator.clipboard.writeText(prettyJSON(selected));
+      setCopyState("copied");
+      toast?.success?.("JSON copied");
+      setTimeout(() => setCopyState("idle"), 1400);
+    } catch (e) {
+      console.error(e);
+      setCopyState("idle");
+      toast?.error?.("Copy failed");
+    }
   }
+
   function downloadJSON() {
     const payload = rawResponse || selected;
     if (!payload) return toast?.info?.("No data to download");
@@ -359,57 +363,86 @@ export default function FDAAnimalVetPage() {
   const chartData = useMemo(() => buildSeries(events), [events]);
 
   return (
-    <div className={clsx("min-h-screen p-6 max-w-9xl mx-auto", isDark ? "bg-black text-zinc-100" : "bg-zinc-50 text-zinc-900")}>
+    <div className={clsx("min-h-screen p-4 md:p-6 pb-10 max-w-8xl mx-auto transition-colors", isDark ? "bg-black text-zinc-100" : "bg-zinc-50 text-zinc-900")}>
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold">FDA Animal & Veterinary — Events Explorer</h1>
-          <p className="mt-1 text-sm opacity-70 max-w-xl">
-            Explore adverse event reports. UI shows grouped cards for reactions, drugs, animal info, and outcomes. Use
-            Lucene-style queries: e.g. <code className="bg-zinc-100 dark:bg-zinc-900 px-1 rounded">primary_reporter:Veterinarian</code>.
-          </p>
+      <header className="flex items-center flex-wrap justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="p-2 md:hidden cursor-pointer" aria-label="Open list">
+                <Menu />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-full max-w-xs p-0">
+              <SheetHeader className="p-4">
+                <SheetTitle className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2"><Grid /> Events</div>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => fetchEvents(query, { limit: 12 })} className="cursor-pointer"><Loader2 className={loading ? "animate-spin" : ""} /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => setSheetOpen(false)} className="cursor-pointer">Close</Button>
+                  </div>
+                </SheetTitle>
+              </SheetHeader>
+
+              <div className="p-2">
+                <ScrollArea style={{ height: "calc(100vh - 120px)" }}>
+                  <div className="space-y-2">
+                    {events && events.length > 0 ? events.map((ev, i) => (
+                      <button key={(ev.report_id || ev.unique_aer_id_number || i) + i} onClick={() => onSelectSuggestion(ev)} className="w-full text-left p-3 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-900/40 flex flex-col gap-1 cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium text-sm">{ev.animal?.species ? `${ev.animal.species}` : (ev.report_id || ev.unique_aer_id_number || `event-${i}`)}</div>
+                          <div className="text-xs opacity-60">{parseFDA_Date(ev.original_receive_date || ev.onset_date)}</div>
+                        </div>
+                        <div className="text-xs opacity-60">{ev.primary_reporter || "—"}</div>
+                      </button>
+                    )) : (<div className="p-3 text-sm opacity-60">No events yet</div>)}
+                  </div>
+                </ScrollArea>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <div>
+            <h1 className="text-xl md:text-2xl font-extrabold flex items-center gap-2">
+              <span className="hidden md:inline-flex rounded-full bg-zinc-100 dark:bg-zinc-900 p-2"><BarChart2 /></span>
+              FDA Animal & Veterinary
+            </h1>
+            <div className="text-xs opacity-70 -mt-1">Adverse events explorer · lucene queries · responsive UI</div>
+          </div>
         </div>
 
+        {/* Desktop search */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
             fetchEvents(query, { limit: 20 });
             setShowSuggest(false);
           }}
-          className="w-full md:w-[560px]"
+          className="flex-1 md:flex-none w-full md:w-[640px] relative"
         >
-          <div className={clsx("flex items-center gap-2 rounded-lg px-2 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
+          <div className={clsx("flex items-center gap-2 rounded-lg px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-60" />
             <Input
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
-              placeholder='Search (e.g. "species:Dog" or "primary_reporter:Veterinarian")'
+              placeholder='Search — e.g. "species:Dog" or "primary_reporter:Veterinarian"'
               className="border-0 shadow-none bg-transparent outline-none"
               onFocus={() => setShowSuggest(true)}
             />
-            <Button type="button" variant="outline" onClick={() => { setQuery("primary_reporter:Veterinarian"); fetchEvents("primary_reporter:Veterinarian", { limit: 20 }); }}>Default</Button>
-            <Button type="submit" variant="outline"><Search /></Button>
+            <Button type="button" variant="outline" onClick={() => { setQuery("primary_reporter:Veterinarian"); fetchEvents("primary_reporter:Veterinarian", { limit: 20 }); }} className="cursor-pointer">Default</Button>
+            <Button type="submit" variant="outline" className="cursor-pointer"><Search /></Button>
           </div>
 
           <AnimatePresence>
             {showSuggest && suggestions.length > 0 && (
-              <motion.ul
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className={clsx("mt-2 rounded-xl absolute right-6 shadow-lg  max-h-72 overflow-auto", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
-              >
+              <motion.ul initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className={clsx("absolute left-0 right-0 mt-2 rounded-xl shadow-lg z-40 max-h-72 overflow-auto", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
                 {suggestions.map((s, i) => {
                   const label = s.report_id || s.unique_aer_id_number || `event-${i}`;
                   return (
-                    <li
-                      key={label + i}
-                      className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-900/40 cursor-pointer"
-                      onClick={() => onSelectSuggestion(s)}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1">
-                          <div className="font-medium text-sm">{s.animal?.species ? `${s.animal.species} — ${s.report_id || s.unique_aer_id_number}` : (s.report_id || label)}</div>
+                    <li key={label + i} onClick={() => onSelectSuggestion(s)} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-900/40 cursor-pointer">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="font-medium text-sm">{s.animal?.species ? `${s.animal.species} — ${label}` : label}</div>
                           <div className="text-xs opacity-60 mt-1">{parseFDA_Date(s.original_receive_date || s.onset_date)}</div>
                         </div>
                         <div className="text-xs opacity-60">{s.primary_reporter || "—"}</div>
@@ -423,83 +456,76 @@ export default function FDAAnimalVetPage() {
         </form>
       </header>
 
-      {/* Main layout */}
+      {/* Main grid */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-
-        {/* Center: full detail */}
-        <section className="lg:col-span-9">
+        {/* Center: main preview (larger) */}
+        <section className="lg:col-span-7">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-center justify-between border-b", isDark ? "border-zinc-800" : "border-zinc-200")}>
+            <CardHeader className="p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b">
               <div>
-                <CardTitle className="text-lg">Selected Event</CardTitle>
-                <div className="text-xs opacity-60">{selected ? (selected.unique_aer_id_number || selected.report_id || "Event selected") : "No event selected. Select a suggestion or search."}</div>
+                <CardTitle className="text-lg flex items-center gap-2"><Layers /> Selected Event</CardTitle>
+                <div className="text-xs opacity-60 mt-1">
+                  {selected ? safeText(selected.unique_aer_id_number || selected.report_id) : "No event selected — pick from search or mobile list"}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => fetchEvents(query, { limit: 20 })} className="flex items-center gap-2">
-                  <Loader2 className={loading ? "animate-spin" : ""} /> Refresh
-                </Button>
-                <Button variant="ghost" onClick={() => setDialogOpen(true)}><List /> Raw</Button>
+                
+
+                <Button variant="outline" onClick={downloadJSON} className="cursor-pointer"><Download /></Button>
+                <Button variant="ghost" onClick={() => { window.open(`${BASE_ENDPOINT}?search=${encodeURIComponent(query)}&limit=20`, "_blank"); }} className="cursor-pointer"><ExternalLink /></Button>
               </div>
             </CardHeader>
 
             <CardContent>
               {!selected ? (
-                <div className="py-12 text-center opacity-60">No event loaded</div>
+                <div className="py-12 text-center opacity-60">Select an event to explore details.</div>
               ) : (
                 <div className="space-y-4">
-                  {/* Top summary */}
+                  {/* Top compact summary row */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-4 rounded-lg border bg-white/80 dark:bg-black/30 border-zinc-200 dark:border-zinc-700">
-                      <div className="text-xs opacity-70">Report</div>
-                      <div className="font-semibold">{selected.report_id || selected.unique_aer_id_number || "—"}</div>
+                      <div className="text-xs opacity-70 flex items-center gap-2"><Info /> Report</div>
+                      <div className="font-semibold mt-1">{selected.report_id || selected.unique_aer_id_number || "—"}</div>
                       <div className="text-xs opacity-60 mt-2">{parseFDA_Date(selected.original_receive_date)}</div>
-                      <div className="text-xs opacity-70 mt-3">Primary reporter</div>
+                      <div className="mt-3 text-xs opacity-70">Reporter</div>
                       <div className="font-medium">{selected.primary_reporter || "—"}</div>
-                      <div className="text-xs opacity-70 mt-2">Type</div>
-                      <div className="font-medium">{selected.type_of_information || "—"}</div>
                     </div>
 
                     <div className="p-4 rounded-lg border bg-white/80 dark:bg-black/30 border-zinc-200 dark:border-zinc-700">
-                      <div className="text-xs opacity-70">Animal</div>
-                      <div className="font-semibold">{selected.animal?.species || "—"}</div>
-                      <div className="text-xs opacity-60 mt-1">{selected.animal?.breed?.breed_component || ""}</div>
-
-                      <div className="mt-3">
-                        <div className="text-xs opacity-70">Affected</div>
-                        <div className="font-medium">{selected.number_of_animals_affected || "—"}</div>
-                      </div>
-
-                      <div className="mt-2">
-                        <div className="text-xs opacity-70">Serious AE</div>
-                        <div className="font-medium">{String(selected.serious_ae || "false")}</div>
-                      </div>
+                      <div className="text-xs opacity-70 flex items-center gap-2"><AlertTriangle /> Event</div>
+                      <div className="font-semibold mt-1">{selected.animal?.species || "—"}</div>
+                      <div className="text-xs opacity-60 mt-2">{selected.animal?.breed?.breed_component || ""}</div>
+                      <div className="mt-3 text-xs opacity-70">Affected</div>
+                      <div className="font-medium">{selected.number_of_animals_affected || "—"}</div>
+                      <div className="mt-2 text-xs opacity-70">Serious AE</div>
+                      <div className="font-medium">{String(selected.serious_ae || false)}</div>
                     </div>
 
                     <div className="p-4 rounded-lg border bg-white/80 dark:bg-black/30 border-zinc-200 dark:border-zinc-700">
-                      <div className="text-xs opacity-70">Health assessment</div>
-                      <div className="font-semibold">{selected.health_assessment_prior_to_exposure?.condition || "—"}</div>
-                      <div className="text-xs opacity-70 mt-2">Assessed by</div>
-                      <div className="font-medium">{selected.health_assessment_prior_to_exposure?.assessed_by || "—"}</div>
-                      <div className="mt-3">
-                        <div className="text-xs opacity-70">Onset</div>
-                        <div className="font-medium">{parseFDA_Date(selected.onset_date)}</div>
-                      </div>
+                      <div className="text-xs opacity-70 flex items-center gap-2"><Calendar /> Timeline</div>
+                      <div className="font-semibold mt-1">{parseFDA_Date(selected.onset_date) || "—"}</div>
+                      <div className="text-xs opacity-60 mt-2">Onset</div>
+                      <div className="font-medium">{parseFDA_Date(selected.onset_date) || "—"}</div>
+                      <div className="mt-2 text-xs opacity-70">Health prior</div>
+                      <div className="font-medium">{selected.health_assessment_prior_to_exposure?.condition || "—"}</div>
                     </div>
                   </div>
 
                   {/* Narrative */}
                   <div className="p-4 rounded-lg border bg-white/80 dark:bg-black/30 border-zinc-200 dark:border-zinc-700">
-                    <div className="text-sm font-semibold mb-2">Narrative / Description</div>
-                    <div className="text-sm leading-relaxed whitespace-pre-wrap">{selected.description || selected.reaction?.map?.(r => r.veddra_term_name).join?.(", ") || "No narrative available."}</div>
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-semibold flex items-center gap-2"><FileText /> Narrative / Description</div>
+                      <div className="text-xs opacity-60">{selected.description ? `${String(selected.description).slice(0, 40)}${selected.description.length > 40 ? "…" : ""}` : "—"}</div>
+                    </div>
+                    <div className="mt-3 text-sm leading-relaxed whitespace-pre-wrap">{selected.description || (selected.reaction?.map?.(r => r.veddra_term_name).join?.(", ") || "No narrative available.")}</div>
                   </div>
 
-                  {/* Grouped cards: reactions, drugs, animal, receiver, outcome */}
+                  {/* Grouped cards grid */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm font-semibold">Reactions</div>
+                        <div className="text-sm font-semibold flex items-center gap-2"><AlertTriangle /> Reactions</div>
                         <div className="text-xs opacity-60">{selected.reaction?.length || 0}</div>
                       </div>
                       <ReactionList reactions={selected.reaction} />
@@ -507,40 +533,45 @@ export default function FDAAnimalVetPage() {
 
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm font-semibold">Outcome</div>
+                        <div className="text-sm font-semibold flex items-center gap-2"><Info /> Outcome</div>
                         <div className="text-xs opacity-60">{selected.outcome?.length || 0}</div>
                       </div>
-                      <OutcomeList outcome={selected.outcome} />
+                      <div className="space-y-2">
+                        {(selected.outcome || []).map((o, i) => (
+                          <div key={i} className="p-2 rounded-md border bg-zinc-50 dark:bg-black/20">
+                            <div className="text-sm font-medium">{o.medical_status || "Outcome"}</div>
+                            {o.number_of_animals_affected && <div className="text-xs opacity-70 mt-1">{o.number_of_animals_affected} affected</div>}
+                          </div>
+                        ))}
+                        {(selected.outcome || []).length === 0 && <div className="text-sm opacity-60">No outcome information</div>}
+                      </div>
                     </div>
 
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm font-semibold">Drugs</div>
+                        <div className="text-sm font-semibold flex items-center gap-2"><MousePointer /> Drugs</div>
                         <div className="text-xs opacity-60">{selected.drug?.length || 0}</div>
                       </div>
                       <div className="space-y-2">
                         {selected.drug?.map((d, i) => <DrugCard drug={d} key={i} index={i} />)}
+                        {!selected.drug && <div className="text-sm opacity-60">No drug data</div>}
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-sm font-semibold mb-2">Animal</div>
+                      <div className="text-sm font-semibold mb-2 flex items-center gap-2"><Layers /> Animal & Receiver</div>
                       <AnimalCard animal={selected.animal} />
-
                       <Separator className="my-3" />
-
-                      <div className="text-sm font-semibold mb-2">Receiver</div>
                       <ReceiverCard receiver={selected.receiver} />
                     </div>
                   </div>
 
-                  {/* Quick metadata row */}
+                  {/* Footer meta row */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="text-xs opacity-60">Unique AER ID: <span className="font-medium">{selected.unique_aer_id_number || "—"}</span></div>
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => { window.open(`${BASE_ENDPOINT}?search=${encodeURIComponent(query)}&limit=20`, "_blank"); }}><ExternalLink /> Open endpoint</Button>
-                      <Button variant="ghost" onClick={copyEvent}><Copy /> Copy</Button>
-                      <Button variant="outline" onClick={downloadJSON}><Download /> Download</Button>
+                      <Button variant="outline" onClick={() => { navigator.clipboard.writeText(`${BASE_ENDPOINT}?search=${encodeURIComponent(query)}&limit=20`); toast?.success?.("Endpoint copied"); }} className="cursor-pointer"><FileText /> Copy Endpoint</Button>
+                      <Button variant="ghost" onClick={() => setDialogOpen(true)} className="cursor-pointer"><List /> Raw</Button>
                     </div>
                   </div>
                 </div>
@@ -549,31 +580,26 @@ export default function FDAAnimalVetPage() {
           </Card>
         </section>
 
-        {/* Right: quick actions + chart */}
-        <aside className="lg:col-span-3 space-y-4">
+        {/* Right column: actions + chart */}
+        <aside className="lg:col-span-5 space-y-4">
           <Card className={clsx("rounded-2xl p-4 border", isDark ? "bg-black/30 border-zinc-800" : "bg-white/90 border-zinc-200")}>
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-semibold">Quick Actions</div>
+              <div className="text-sm font-semibold flex items-center gap-2"><Grid /> Quick Actions</div>
               <div className="text-xs opacity-60">Tools</div>
             </div>
 
             <div className="flex flex-col gap-2">
-              <Button variant="outline" onClick={() => { navigator.clipboard.writeText(`${BASE_ENDPOINT}?search=${encodeURIComponent(query)}&limit=20`); toast?.success?.("Endpoint copied"); }}>
-                <FileText /> Copy Endpoint
-              </Button>
-
-              <Button variant="ghost" onClick={() => setDialogOpen(true)}><List /> View raw response</Button>
-
-              <Button variant="outline" onClick={downloadJSON}><Download /> Download JSON</Button>
-
-              <Button variant="ghost" onClick={() => { setSelected(events && events.length ? events[0] : null); toast?.success?.("Selected first event"); }}><Info /> Select first</Button>
+              <Button variant="outline" onClick={() => { navigator.clipboard.writeText(`${BASE_ENDPOINT}?search=${encodeURIComponent(query)}&limit=20`); toast?.success?.("Endpoint copied"); }} className="cursor-pointer"><FileText /> Copy Endpoint</Button>
+              <Button variant="ghost" onClick={() => setDialogOpen(true)} className="cursor-pointer"><List /> View raw response</Button>
+              <Button variant="outline" onClick={downloadJSON} className="cursor-pointer"><Download /> Download JSON</Button>
+              <Button variant="ghost" onClick={() => { setSelected(events && events.length ? events[0] : null); toast?.success?.("Selected first event"); }} className="cursor-pointer"><Info /> Select first</Button>
             </div>
           </Card>
 
           <Card className={clsx("rounded-2xl p-4 border", isDark ? "bg-black/30 border-zinc-800" : "bg-white/90 border-zinc-200")}>
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-semibold">Events Over Time</div>
-              <div className="text-xs opacity-60"><Calendar /></div>
+              <div className="text-sm font-semibold flex items-center gap-2"><Calendar /> Events Over Time</div>
+              <div className="text-xs opacity-60"><BarChart2 /></div>
             </div>
 
             <div style={{ height: 220 }}>
@@ -603,9 +629,9 @@ export default function FDAAnimalVetPage() {
 
       {/* Raw dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-4xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-4xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
-            <DialogTitle>Raw API Response</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">Raw API Response</DialogTitle>
           </DialogHeader>
 
           <div style={{ maxHeight: "60vh", overflow: "auto", padding: 16 }}>
@@ -617,8 +643,8 @@ export default function FDAAnimalVetPage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">Data from <code className="bg-zinc-100 dark:bg-zinc-900 px-1 rounded">animalandveterinary/event.json</code></div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
-              <Button variant="outline" onClick={downloadJSON}><Download /></Button>
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="cursor-pointer"><X /></Button>
+              <Button variant="outline" onClick={downloadJSON} className="cursor-pointer"><Download /></Button>
             </div>
           </DialogFooter>
         </DialogContent>

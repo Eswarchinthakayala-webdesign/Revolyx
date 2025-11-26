@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 
 import {
+  Menu,
   Search,
   ExternalLink,
   Copy,
@@ -19,7 +20,15 @@ import {
   MapPin,
   FileText,
   RefreshCw,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Check,
+  X,
+  Clock,
+  Tag,
+  User,
+  Heart,
+  Layers,
+  Sparkles
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +38,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/components/theme-provider";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"; // shadcn-style sheet
 
 /* ---------- Final Space API base ---------- */
 const BASE = "https://finalspaceapi.com/api/v0";
@@ -46,6 +56,29 @@ const prettyJSON = (obj) => JSON.stringify(obj, null, 2);
 
 function humanLabelForKey(k) {
   return k.replace(/_/g, " ").replace(/(^\w|\s\w)/g, (m) => m.toUpperCase());
+}
+
+/* mapping of field keys to lucide icons for nicer field headers */
+const FIELD_ICON = {
+  origin: MapPin,
+  air_date: Clock,
+  by: User,
+  character: User,
+  gender: Tag,
+  hair: Layers,
+  status: Heart,
+  species: Sparkles,
+  abilities: Sparkles,
+  alias: Tag,
+  id: Tag,
+  name: User,
+  title: BookOpen,
+  quote: QuoteIconFallback
+};
+
+// fallback simple icon component for keys not in mapping
+function QuoteIconFallback(props) {
+  return <BookOpen {...props} />;
 }
 
 /* ---------- Component ---------- */
@@ -67,8 +100,15 @@ export default function FinalSpacePage() {
   const [current, setCurrent] = useState(null); // selected item
   const [rawOpen, setRawOpen] = useState(false);
   const [imgDialogOpen, setImgDialogOpen] = useState(false);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+
+  // copy state
+  const [copied, setCopied] = useState(false);
+  const [copiedEndpoint, setCopiedEndpoint] = useState(false);
 
   const suggestTimer = useRef(null);
+  const copyTimer = useRef(null);
+  const endpointCopyTimer = useRef(null);
 
   /* fetch the full list for the currently selected resource */
   useEffect(() => {
@@ -80,9 +120,7 @@ export default function FinalSpacePage() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (!cancelled) {
-          // API returns an array directly
           setList(Array.isArray(json) ? json : []);
-          // auto-select first item as "default" to show on the page
           if (Array.isArray(json) && json.length > 0) {
             setCurrent(json[0]);
           } else {
@@ -109,12 +147,11 @@ export default function FinalSpacePage() {
       setSuggestions([]);
       return;
     }
-    // small delay debounce
+    // debounce
     if (suggestTimer.current) clearTimeout(suggestTimer.current);
     suggestTimer.current = setTimeout(() => {
       const q = query.toLowerCase().trim();
       const filtered = list.filter((it) => {
-        // check a few likely fields for match
         const name = (it.name || it.title || it.quote || "").toString().toLowerCase();
         const id = it.id?.toString?.() ?? "";
         const by = (it.by || it.character || "").toString().toLowerCase();
@@ -129,12 +166,17 @@ export default function FinalSpacePage() {
   function selectSuggestion(item) {
     setCurrent(item);
     setShowSuggest(false);
+    setMobileSheetOpen(false);
+    // close raw view when switching to keep UX tidy
+    setRawOpen(false);
   }
 
   function copyJSON() {
     if (!current) return;
     navigator.clipboard.writeText(prettyJSON(current));
-    // small visual hint: you may want to use a toast helper in your app
+    setCopied(true);
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+    copyTimer.current = setTimeout(() => setCopied(false), 2000);
   }
 
   function downloadJSON() {
@@ -151,13 +193,10 @@ export default function FinalSpacePage() {
 
   function openOriginalLink() {
     if (!current) return;
-    // many objects may not have direct external URLs.
-    // Characters and episodes sometimes include 'img_url' or 'image' fields or a 'url' link.
     const possible = current.link || current.url || current.character || current.image || current.img_url;
     if (typeof possible === "string" && possible.startsWith("http")) {
       window.open(possible, "_blank");
     } else {
-      // fallback: open API endpoint for that id if id exists
       if (current.id != null) {
         window.open(`${resource.endpoint}${current.id}`, "_blank");
       }
@@ -173,6 +212,13 @@ export default function FinalSpacePage() {
     URL.revokeObjectURL(a.href);
   }
 
+  function copyEndpoint() {
+    navigator.clipboard.writeText(resource.endpoint);
+    setCopiedEndpoint(true);
+    if (endpointCopyTimer.current) clearTimeout(endpointCopyTimer.current);
+    endpointCopyTimer.current = setTimeout(() => setCopiedEndpoint(false), 2000);
+  }
+
   /* Derived rendering helpers */
   const imageUrl = useMemo(() => {
     if (!current) return null;
@@ -185,18 +231,105 @@ export default function FinalSpacePage() {
     return obj.name || obj.title || obj.quote || `#${obj.id}` || "Item";
   }
 
+  /* utility to render a "field card" with icon */
+  function FieldCard({ k, v }) {
+    const IconComp = FIELD_ICON[k] ?? QuoteIconFallback;
+    return (
+      <div className={clsx("p-3 rounded-md border bg-transparent")}>
+        <div className="flex items-start gap-3">
+          <div className="mt-1">
+            <IconComp className="w-5 h-5 opacity-80" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs opacity-60">{humanLabelForKey(k)}</div>
+            <div className="text-sm font-medium break-words">{typeof v === "object" ? JSON.stringify(v) : (v ?? "—")}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* small responsive helper for header search on mobile */
+  const SearchBar = (
+    <form
+      onSubmit={(e) => {
+        e?.preventDefault?.();
+        if (suggestions.length > 0) selectSuggestion(suggestions[0]);
+      }}
+      className={clsx("flex items-center gap-2 w-full rounded-lg px-3 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}
+    >
+      <Search className="opacity-60" />
+      <Input
+        placeholder={`Search ${resource.label} (name, id, or text)...`}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onFocus={() => setShowSuggest(true)}
+        className="border-0 shadow-none bg-transparent outline-none"
+      />
+      <Button type="button" variant="outline" className="px-3 cursor-pointer" onClick={() => {
+        setQuery("");
+        setSuggestions([]);
+        setShowSuggest(false);
+      }}>
+        Clear
+      </Button>
+      <Button type="submit" variant="outline" className="px-3 cursor-pointer"><Search /></Button>
+    </form>
+  );
+
   return (
-    <div className={clsx("min-h-screen overflow-hidden p-6 max-w-9xl mx-auto")}>
+    <div className={clsx("min-h-screen overflow-hidden p-4 sm:p-6 max-w-9xl mx-auto")}>
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>Final Space — Explorer</h1>
-          <p className="mt-1 text-sm opacity-70">Browse characters, episodes, quotes & locations from Final Space API</p>
+      <header className="flex items-center flex-wrap sm:flex-nowrap justify-between gap-4 mb-4">
+        <div className="flex items-center gap-3">
+          {/* Mobile sheet trigger */}
+          <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
+            <SheetTrigger asChild>
+              <Button size="icon" variant="ghost" className="md:hidden cursor-pointer p-2">
+                <Menu className="w-5 h-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className={clsx(isDark ? "bg-black/90" : "bg-white")}>
+              <SheetHeader>
+                <SheetTitle>Resources</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4">
+                <div className="px-2">
+                  {RESOURCES.map((r) => (
+                    <Button
+                      key={r.key}
+                      variant={r.key === resource.key ? "default" : "ghost"}
+                      onClick={() => {
+                        setResource(r);
+                        setMobileSheetOpen(false);
+                      }}
+                      className="w-full justify-start mb-2 cursor-pointer"
+                    >
+                      {r.label}
+                    </Button>
+                  ))}
+                </div>
+                <Separator />
+                <div className="p-2">
+                  <div className="text-sm opacity-70 mb-2">Fetched: {list.length}</div>
+                  <Button className="w-full" variant="outline" onClick={() => downloadListAsJSON()}>Download list</Button>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <div>
+            <h1 className={clsx("text-xl sm:text-2xl md:text-3xl font-extrabold")}>Final Space — Explorer</h1>
+            <p className="mt-0.5 text-xs opacity-60">Browse characters, episodes, quotes & locations</p>
+          </div>
         </div>
 
-        <div className="flex items-center flex-wrap gap-3 w-full md:w-auto">
-          {/* resource switcher */}
-          <div className={clsx("flex items-center gap-2 rounded-lg px-2 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
+        <div className="flex items-center gap-3 w-full max-w-2xl">
+          {SearchBar}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2 rounded-lg px-2 py-1" aria-hidden>
             {RESOURCES.map((r) => (
               <Button
                 key={r.key}
@@ -210,39 +343,19 @@ export default function FinalSpacePage() {
             ))}
           </div>
 
-          {/* search form */}
-          <form
-            onSubmit={(e) => {
-              e?.preventDefault?.();
-              // focusing/search handled by suggestions already; if only one suggestion, select it
-              if (suggestions.length > 0) selectSuggestion(suggestions[0]);
-            }}
-            className={clsx("flex items-center gap-2 w-full md:w-[560px] rounded-lg px-3 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}
-          >
-            <Search className="opacity-60" />
-            <Input
-              placeholder={`Search ${resource.label} (name, id, or text)...`}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onFocus={() => setShowSuggest(true)}
-              className="border-0 shadow-none bg-transparent outline-none"
-            />
-            <Button type="button" variant="outline" className="px-3 cursor-pointer" onClick={() => {
-              setQuery("");
-              setSuggestions([]);
-              setShowSuggest(false);
-            }}>
-              Clear
-            </Button>
-            <Button type="submit" variant="outline" className="px-3 cursor-pointer"><Search /></Button>
-          </form>
+   
         </div>
       </header>
 
       {/* suggestions dropdown */}
       <AnimatePresence>
         {showSuggest && suggestions.length > 0 && (
-          <motion.ul initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_280px)] md:right-auto max-w-4xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
+          <motion.ul
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className={clsx("absolute z-50 left-4 right-4 md:left-[calc(50%_-_280px)] md:right-auto max-w-4xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
+          >
             {suggestions.map((s, idx) => (
               <li key={s.id ?? idx} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => selectSuggestion(s)}>
                 <div className="flex items-center gap-3">
@@ -259,10 +372,10 @@ export default function FinalSpacePage() {
         )}
       </AnimatePresence>
 
-      {/* main layout: left (list/search), center (details), right (actions) */}
-      <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* left: compact list (search + list) */}
-        <aside className="lg:col-span-3 space-y-4">
+      {/* main layout: left (list/search) for large screens, center (details), right (actions) */}
+      <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-4">
+        {/* left: compact list (visible on lg) */}
+        <aside className="hidden lg:block lg:col-span-3 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
             <CardHeader className={clsx("p-4 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div>
@@ -270,14 +383,14 @@ export default function FinalSpacePage() {
                 <div className="text-xs opacity-60">Fetched {list.length} items</div>
               </div>
               <div className="flex items-center gap-2">
-                 <Button className="cursor-pointer"variant="ghost" size="sm" onClick={() => { setResource(resource); /* refresh */ setList([]); }}>
+                <Button className="cursor-pointer" variant="ghost" size="sm" onClick={() => { setResource(resource); setList([]); }}>
                   <RefreshCw className={loadingList ? "animate-spin" : ""} />
                 </Button>
               </div>
             </CardHeader>
 
             <CardContent className="p-0">
-              <ScrollArea style={{ maxHeight: 520 }} className="overflow-auto">
+              <ScrollArea style={{ maxHeight: 560 }} className="overflow-auto">
                 <div className="p-3 space-y-2">
                   {loadingList ? (
                     <div className="py-6 text-center"><Loader2 className="animate-spin mx-auto" /></div>
@@ -285,7 +398,14 @@ export default function FinalSpacePage() {
                     <div className="py-6 text-center text-sm opacity-60">No items loaded</div>
                   ) : (
                     list.map((it) => (
-                      <div key={it.id ?? it.name} className={clsx("flex items-center gap-3 w-80 truncate p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/40 cursor-pointer", current?.id === it.id ? "ring-2 ring-zinc-500/30" : "")} onClick={() => selectSuggestion(it)}>
+                      <div
+                        key={it.id ?? it.name}
+                        className={clsx(
+                          "flex items-center gap-3 w-full truncate p-3 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/40 cursor-pointer transition",
+                          current?.id === it.id ? "ring-2 ring-zinc-500/30 bg-zinc-50 dark:bg-zinc-900/50" : ""
+                        )}
+                        onClick={() => selectSuggestion(it)}
+                      >
                         <img src={it.img_url || it.image || it.image_url || ""} alt={it.name || it.title || ""} className="w-12 h-10 object-cover rounded" />
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium w-full truncate">{mainTitleFor(it)}</div>
@@ -306,14 +426,53 @@ export default function FinalSpacePage() {
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
             <CardHeader className={clsx("p-5 flex items-center flex-wrap gap-3 justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div>
-                <CardTitle className="text-lg">{mainTitleFor(current)}</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-3">
+                  <div className="text-2xl">{mainTitleFor(current)}</div>
+                </CardTitle>
                 <div className="text-xs opacity-60">{current ? `${resource.label} • ${current.id != null ? `#${current.id}` : ""}` : "No item selected"}</div>
               </div>
 
               <div className="flex items-center gap-2">
-                 <Button className="cursor-pointer"variant="ghost" size="sm" onClick={() => setRawOpen((s) => !s)}><List /> {rawOpen ? "Hide Raw" : "Raw"}</Button>
-                {imageUrl &&  <Button className="cursor-pointer"variant="ghost" size="sm" onClick={() => setImgDialogOpen(true)}><ImageIcon /> Image</Button>}
-                 <Button className="cursor-pointer"variant="outline" size="sm" onClick={() => downloadJSON()}><Download /> Download</Button>
+                <Button className="cursor-pointer" variant="ghost" size="sm" onClick={() => setRawOpen((s) => !s)}>
+                  <List /> {rawOpen ? "Hide Raw" : "Raw"}
+                </Button>
+
+                {imageUrl && (
+                  <Button className="cursor-pointer" variant="ghost" size="sm" onClick={() => setImgDialogOpen(true)}>
+                    <ImageIcon /> Image
+                  </Button>
+                )}
+
+                <Button className="cursor-pointer" variant="outline" size="sm" onClick={() => downloadJSON()}>
+                  <Download /> Download
+                </Button>
+
+                <motion.div whileTap={{ scale: 0.92 }}>
+                  <Button
+                    className="cursor-pointer flex items-center gap-2"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyJSON()}
+                  >
+                    <AnimatePresence>
+                      {!copied ? (
+                        <motion.span key="copy" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}>
+                          <Copy />
+                        </motion.span>
+                      ) : (
+                        <motion.span
+                          key="check"
+                          initial={{ scale: 0.6, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.6, opacity: 0 }}
+                        >
+                          <Check className="text-green-500" />
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                    <span>{copied ? "Copied" : "Copy"}</span>
+                  </Button>
+                </motion.div>
               </div>
             </CardHeader>
 
@@ -321,10 +480,10 @@ export default function FinalSpacePage() {
               {(!current) ? (
                 <div className="py-12 text-center text-sm opacity-60">Select an item from the left or search above.</div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* left: image & core meta */}
-                  <div className={clsx("p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <div className="w-full h-44 rounded-md overflow-hidden mb-3 bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  {/* left: image */}
+                  <div className={clsx("md:col-span-5 p-4 rounded-xl border flex flex-col items-center", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                    <div className="w-full h-64 rounded-md overflow-hidden mb-4 bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                       {imageUrl ? (
                         <img src={imageUrl} alt={mainTitleFor(current)} className="object-cover w-full h-full" />
                       ) : (
@@ -332,76 +491,83 @@ export default function FinalSpacePage() {
                       )}
                     </div>
 
-                    <div className="text-lg font-semibold">{mainTitleFor(current)}</div>
-                    <div className="text-xs opacity-60 mb-3">{current.origin || current.air_date || current.by || "—"}</div>
+                    <div className="text-lg font-semibold text-center">{mainTitleFor(current)}</div>
+                    <div className="text-xs opacity-60 mb-3 text-center">{current.origin || current.air_date || current.by || "—"}</div>
 
-                    <div className="space-y-2 text-sm">
-                      {/* show a few highlighted fields */}
-                         {current.gender && (
-                        <div>
+                    <div className="w-full mt-3 space-y-2 text-sm">
+                      {current.gender && (
+                        <div className="flex items-center justify-between">
                           <div className="text-xs opacity-60">Gender</div>
                           <div className="font-medium">{current.gender}</div>
                         </div>
                       )}
-                         {current.hair && (
-                        <div>
+                      {current.hair && (
+                        <div className="flex items-center justify-between">
                           <div className="text-xs opacity-60">Hair</div>
                           <div className="font-medium">{current.hair}</div>
                         </div>
                       )}
                       {current.status && (
-                        <div>
+                        <div className="flex items-center justify-between">
                           <div className="text-xs opacity-60">Status</div>
                           <div className="font-medium">{current.status}</div>
                         </div>
                       )}
-
                       {current.species && (
-                        <div>
+                        <div className="flex items-center justify-between">
                           <div className="text-xs opacity-60">Species</div>
                           <div className="font-medium">{current.species}</div>
                         </div>
                       )}
-
                       {current.abilities && Array.isArray(current.abilities) && current.abilities.length > 0 && (
                         <div>
                           <div className="text-xs opacity-60">Abilities</div>
                           <div className="font-medium">{current.abilities.join(", ")}</div>
                         </div>
                       )}
-
                       {current.alias && Array.isArray(current.alias) && current.alias.length > 0 && (
                         <div>
                           <div className="text-xs opacity-60">Aliases</div>
                           <div className="font-medium">{current.alias.join(", ")}</div>
                         </div>
                       )}
-
-                      <div className="mt-4">
-                         <Button className="cursor-pointer"variant="outline" onClick={() => openOriginalLink()}><ExternalLink /> Open</Button>
+                      <div className="mt-4 flex gap-2">
+                        <Button className="cursor-pointer" variant="outline" onClick={() => openOriginalLink()}><ExternalLink /> Open</Button>
+                        <Button className="cursor-pointer" variant="ghost" onClick={() => downloadJSON()}><Download /> Save</Button>
                       </div>
                     </div>
                   </div>
 
-                  {/* right: detailed fields */}
-                  <div className={clsx("p-4 rounded-xl border md:col-span-2", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <div className="text-sm font-semibold mb-2">Details</div>
-                    <div className="text-sm leading-relaxed mb-3">
-                      {/* try to show a natural description if available */}
+                  {/* right: details */}
+                  <div className={clsx("md:col-span-7 p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-semibold mb-1 flex items-center gap-2">
+                          <BookOpen className="w-4 h-4 opacity-80" /> Details
+                        </div>
+                        <div className="text-xs opacity-60">A natural representation of the selected item</div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="ghost" className="cursor-pointer" onClick={() => { setShowSuggest(false); setQuery(""); }}>
+                          <SlidersHorizontal /> Reset
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="text-sm leading-relaxed my-3">
                       {current.description || current.summary || current.quote || current.name || "No extended description available."}
                     </div>
 
                     <Separator className="my-3" />
 
-                    <div className="text-sm font-semibold mb-2">All fields</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <FileText className="w-4 h-4 opacity-80" /> All fields
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {Object.keys(current).map((k) => (
-                        <div key={k} className="p-2 rounded-md border">
-                          <div className="text-xs opacity-60">{humanLabelForKey(k)}</div>
-                          <div className="text-sm font-medium break-words">
-                            {typeof current[k] === "object" ? JSON.stringify(current[k]) : (current[k] ?? "—")}
-                          </div>
-                        </div>
+                        <FieldCard key={k} k={k} v={current[k]} />
                       ))}
                     </div>
                   </div>
@@ -430,7 +596,21 @@ export default function FinalSpacePage() {
             </div>
             <div className="flex items-center gap-2">
               <Button className="cursor-pointer" variant="ghost" size="sm" onClick={() => downloadListAsJSON()}><Download /></Button>
-               <Button className="cursor-pointer"variant="ghost" size="sm" onClick={() => copyJSON()}><Copy /></Button>
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <Button className="cursor-pointer" variant="ghost" size="sm" onClick={() => copyJSON()}>
+                  <AnimatePresence>
+                    {!copied ? (
+                      <motion.span key="copy2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                        <Copy />
+                      </motion.span>
+                    ) : (
+                      <motion.span key="ok2" initial={{ scale: 0.6 }} animate={{ scale: 1 }} exit={{ scale: 0.6 }}>
+                        <Check className="text-green-500" />
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </Button>
+              </motion.div>
             </div>
           </div>
 
@@ -439,14 +619,20 @@ export default function FinalSpacePage() {
           <div className="space-y-2">
             <Button variant="outline" className="w-full cursor-pointer justify-start" onClick={() => downloadJSON()}><FileText className="mr-2" /> Download item JSON</Button>
             <Button variant="outline" className="w-full cursor-pointer justify-start" onClick={() => { if (imageUrl) setImgDialogOpen(true); else window.alert("No image available"); }}><ImageIcon className="mr-2" /> View image</Button>
-            <Button variant="outline" className="w-full cursor-pointer justify-start" onClick={() => { navigator.clipboard.writeText(resource.endpoint); }}><Copy className="mr-2" /> Copy endpoint</Button>
+
+            <motion.div whileTap={{ scale: 0.98 }}>
+              <Button variant={copiedEndpoint ? "default" : "outline"} className="w-full cursor-pointer justify-start" onClick={() => copyEndpoint()}>
+                {copiedEndpoint ? <Check className="mr-2" /> : <Copy className="mr-2" />} Copy endpoint
+              </Button>
+            </motion.div>
+
             <Button variant="ghost" className="w-full cursor-pointer justify-start" onClick={() => { setShowSuggest(false); setQuery(""); }}><SlidersHorizontal className="mr-2" /> Reset search</Button>
           </div>
 
           <Separator />
 
           <div className="text-xs opacity-60">
-            Endpoint: <div className="break-words">{resource.endpoint}</div>
+            Endpoint: <div className="break-words mt-1">{resource.endpoint}</div>
           </div>
         </aside>
       </main>

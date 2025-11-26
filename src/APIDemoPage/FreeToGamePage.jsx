@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   ExternalLink,
-  Copy,
+  Copy as CopyIcon,
   Download,
   ImageIcon,
   List,
@@ -18,7 +18,12 @@ import {
   Gamepad,
   Calendar,
   Tag,
-  Users
+  Users,
+  Menu,
+  Check,
+  RefreshCw,
+  FileText,
+  Code as CodeIcon
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,14 +33,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Separator } from "@/components/ui/separator";
 import { useTheme } from "@/components/theme-provider";
 import { showToast } from "../lib/ToastHelper";
-
-/**
- * FreeToGamePage
- * - Fetches all games from https://www.freetogame.com/api/games
- * - Search is client-side (fast suggestions)
- * - Layout: left (image/meta), center (details), right (quick actions)
- * - No local save/favorites
- */
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const API_ENDPOINT = "https://www.freetogame.com/api/games";
 const DEFAULT_PLACEHOLDER = "Search games by title, genre, or platform…";
@@ -48,6 +47,18 @@ function prettyJSON(obj) {
   }
 }
 
+/**
+ * Utility: sample N random items from array
+ */
+function sample(arr = [], n = 10) {
+  const copy = arr.slice();
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, n);
+}
+
 export default function FreeToGamePage() {
   const { theme } = useTheme?.() ?? { theme: "system" };
   const isDark =
@@ -56,6 +67,7 @@ export default function FreeToGamePage() {
       typeof window !== "undefined" &&
       window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
 
+  // data/state
   const [allGames, setAllGames] = useState([]);
   const [loadingAll, setLoadingAll] = useState(false);
   const [query, setQuery] = useState("");
@@ -64,13 +76,18 @@ export default function FreeToGamePage() {
   const [selected, setSelected] = useState(null);
   const [rawResp, setRawResp] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [copyState, setCopyState] = useState("idle"); // idle | copying | copied
+  const [sheetOpen, setSheetOpen] = useState(false); // mobile sidebar
+  const [showRaw, setShowRaw] = useState(false);
 
   const suggestTimer = useRef(null);
   const searchInputRef = useRef(null);
 
+  // Random sidebar list (10)
+  const randomSidebar = useMemo(() => sample(allGames, 10), [allGames]);
+
+  // Fetch all games once
   useEffect(() => {
-    // initial load: fetch all games
     let mounted = true;
     async function fetchAll() {
       setLoadingAll(true);
@@ -85,10 +102,7 @@ export default function FreeToGamePage() {
         if (!mounted) return;
         setAllGames(Array.isArray(json) ? json : []);
         setRawResp(json);
-        // default to first game
-        if (Array.isArray(json) && json.length > 0) {
-          setSelected(json[0]);
-        }
+        if (Array.isArray(json) && json.length > 0) setSelected(json[0]);
       } catch (err) {
         console.error(err);
         showToast("error", "Failed to load games");
@@ -100,14 +114,14 @@ export default function FreeToGamePage() {
     return () => { mounted = false; };
   }, []);
 
-  // debounce search & generate suggestions from allGames
+  // Debounced suggestions
   function onQueryChange(v) {
     setQuery(v);
     setShowSuggest(true);
     if (suggestTimer.current) clearTimeout(suggestTimer.current);
     suggestTimer.current = setTimeout(() => {
       filterSuggestions(v);
-    }, 250);
+    }, 220);
   }
 
   function filterSuggestions(q) {
@@ -130,8 +144,8 @@ export default function FreeToGamePage() {
     setShowSuggest(false);
     setQuery("");
     setSuggestions([]);
-    // no separate detail fetch required — API returns full object
     showToast("success", `Loaded: ${game.title}`);
+    setSheetOpen(false); // close mobile sheet if open
   }
 
   function openGame() {
@@ -140,10 +154,22 @@ export default function FreeToGamePage() {
     else showToast("info", "No official link available");
   }
 
-  function copyJSON() {
-    if (!selected) return showToast("info", "No game selected");
-    navigator.clipboard.writeText(prettyJSON(selected));
-    showToast("success", "Game JSON copied");
+  // Animated copy to clipboard
+  async function copyJSON() {
+    const payload = selected || rawResp;
+    if (!payload) return showToast("info", "No game selected");
+    try {
+      setCopyState("copying");
+      await navigator.clipboard.writeText(prettyJSON(payload));
+      setCopyState("copied");
+      showToast("success", "Copied JSON");
+      // reset after animation
+      setTimeout(() => setCopyState("idle"), 1600);
+    } catch (err) {
+      console.error(err);
+      setCopyState("idle");
+      showToast("error", "Copy failed");
+    }
   }
 
   function downloadJSON() {
@@ -159,7 +185,13 @@ export default function FreeToGamePage() {
     showToast("success", "Downloaded JSON");
   }
 
-  // Utility: render tags
+  function refreshRandom() {
+    // force recompute of randomSidebar by re-setting state copy of allGames
+    setAllGames(prev => prev.slice());
+    showToast("info", "Refreshed random picks");
+  }
+
+  // UI small helpers
   function TagPill({ children }) {
     return (
       <div className={clsx("inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium uppercase tracking-wider", isDark ? "bg-zinc-800/60 text-zinc-200" : "bg-zinc-100 text-zinc-700")}>
@@ -169,16 +201,62 @@ export default function FreeToGamePage() {
   }
 
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
+    <div className={clsx("min-h-screen pb-10 p-4 md:p-6 max-w-8xl mx-auto")}>
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold leading-tight")}>Free-to-Play Games — Explorer</h1>
-          <p className="mt-1 text-sm opacity-70 max-w-prose">Browse free-to-play PC games. Search by title, genre or platform — view details and quick actions.</p>
+      <header className="flex items-start md:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          {/* Mobile menu trigger */}
+          <div className="md:hidden">
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" className="p-2 rounded-lg cursor-pointer">
+                  <Menu />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className={clsx(isDark ? "bg-black/90" : "bg-white")}>
+                <div className="flex items-center justify-between p-4 border-b">
+                  <div className="flex items-center gap-2">
+                    <Gamepad />
+                    <div>
+                      <div className="text-sm font-semibold">Explore Games</div>
+                      <div className="text-xs opacity-60">Quick picks</div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-xs opacity-60">Random picks</div>
+                    <Button size="sm" variant="ghost" className="gap-2 cursor-pointer" onClick={refreshRandom}><RefreshCw /> Refresh</Button>
+                  </div>
+
+                  <ScrollArea className="h-[60vh]">
+                    <ul className="space-y-2">
+                      {randomSidebar.map((g) => (
+                        <li key={g.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => chooseGame(g)}>
+                          <img src={g.thumbnail} alt={g.title} className="w-12 h-8 object-cover rounded-md flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">{g.title}</div>
+                            <div className="text-xs opacity-60 truncate">{g.genre} • {g.platform}</div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </ScrollArea>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          <div>
+            <h1 className={clsx("text-2xl md:text-3xl font-extrabold leading-tight")}>Free-to-Play Games — Explorer</h1>
+            <p className="mt-0 text-xs md:text-sm opacity-70 max-w-prose">Browse free-to-play PC & web games. Fast local search, quick actions, and full JSON export.</p>
+          </div>
         </div>
 
-        <div className="w-full md:w-auto">
-          <form onSubmit={(e) => { e.preventDefault(); /* keep client-side search */ }} className={clsx("flex items-center gap-2 w-full md:w-[640px] rounded-xl px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
+        <div className="hidden md:block w-full md:w-auto">
+          <form onSubmit={(e) => { e.preventDefault(); }} className={clsx("flex items-center gap-2 w-full md:w-[640px] rounded-xl px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-60" />
             <Input
               ref={searchInputRef}
@@ -188,10 +266,10 @@ export default function FreeToGamePage() {
               className="border-0 shadow-none bg-transparent outline-none"
               onFocus={() => setShowSuggest(true)}
             />
-            <Button type="button" variant="outline" className="px-3" onClick={() => { setQuery(""); setSuggestions([]); setShowSuggest(false); searchInputRef.current?.focus(); }}>
+            <Button type="button" variant="outline" className="px-3 cursor-pointer" onClick={() => { setQuery(""); setSuggestions([]); setShowSuggest(false); searchInputRef.current?.focus(); }}>
               Clear
             </Button>
-            <Button type="button" variant="outline" className="px-3" onClick={() => { if (allGames.length > 0) { setSelected(allGames[0]); showToast("info", "Reset to first game"); } }}>
+            <Button type="button" variant="outline" className="px-3 cursor-pointer" onClick={() => { if (allGames.length > 0) { setSelected(allGames[0]); showToast("info", "Reset to first game"); } }}>
               <ArrowRightCircle /> Default
             </Button>
           </form>
@@ -205,7 +283,7 @@ export default function FreeToGamePage() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl rounded-2xl overflow-hidden shadow-2xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
+            className={clsx("absolute z-50 left-4 right-4 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl rounded-2xl overflow-hidden shadow-2xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
           >
             {suggestions.map((g, idx) => (
               <li
@@ -229,76 +307,56 @@ export default function FreeToGamePage() {
       </AnimatePresence>
 
       {/* Layout */}
-      <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* LEFT: Image + meta (lg:col-span-3) */}
-        <aside className={clsx("lg:col-span-3 rounded-2xl overflow-hidden", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/95 border border-zinc-200")}>
-          <div className={clsx("p-5", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/95 border-b border-zinc-200")}>
-            <div className="flex items-start gap-4">
-              <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 shadow-md">
-                <img src={selected?.thumbnail || "/api_previews/freetogame.png"} alt={selected?.title || "Game thumbnail"} className="w-full h-full object-cover" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold leading-tight">{selected?.title || "Loading..."}</h2>
-                <div className="text-sm opacity-60 mt-1">{selected?.short_description || "Select a game to view details."}</div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {selected?.genre && <TagPill><Tag className="mr-1" size={14}/> {selected.genre}</TagPill>}
-                  {selected?.platform && <TagPill><Gamepad className="mr-1" size={14}/> {selected.platform}</TagPill>}
-                  {selected?.publisher && <TagPill><Users className="mr-1" size={14}/> {selected.publisher}</TagPill>}
-                </div>
+      <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-4">
+        {/* LEFT: Desktop sidebar with 10 random picks */}
+        <aside className={clsx("hidden lg:block lg:col-span-3 h-fit rounded-2xl overflow-hidden", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/95 border border-zinc-200")}>
+          <div className={clsx("p-4 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/95 border-b border-zinc-200")}>
+            <div className="flex items-center gap-2">
+              <Gamepad />
+              <div>
+                <div className="text-sm font-semibold">Random picks</div>
+                <div className="text-xs opacity-60">10 suggested games</div>
               </div>
             </div>
-
-            <div className="mt-4 flex gap-2">
-              <Button onClick={() => setDialogOpen(true)} variant="outline" className="flex-1"><ImageIcon /> View Image</Button>
-              <Button onClick={openGame} variant="ghost" className="flex-1"><ExternalLink /> Official</Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="cursor-pointer" onClick={refreshRandom}><RefreshCw /></Button>
+              <Button variant="ghost" size="sm" className="cursor-pointer" onClick={() => setAllGames(prev => prev.slice())}><List /></Button>
             </div>
           </div>
 
-          <div className="p-4 space-y-3">
-            <div>
-              <div className="text-xs opacity-60">Release Date</div>
-              <div className="font-medium">{selected?.release_date || "—"}</div>
-            </div>
-
-            <div>
-              <div className="text-xs opacity-60">Developer</div>
-              <div className="font-medium">{selected?.developer || "—"}</div>
-            </div>
-
-            <div>
-              <div className="text-xs opacity-60">Publisher</div>
-              <div className="font-medium">{selected?.publisher || "—"}</div>
-            </div>
-
-            <Separator />
-
-            <div>
-              <div className="text-xs opacity-60">Genre</div>
-              <div className="font-medium">{selected?.genre || "—"}</div>
-            </div>
-
-            <div>
-              <div className="text-xs opacity-60">Platform</div>
-              <div className="font-medium">{selected?.platform || "—"}</div>
-            </div>
-          </div>
+          <ScrollArea className="h-[70vh] p-3">
+            <ul className="space-y-2">
+              {randomSidebar.map((g) => (
+                <li key={g.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => chooseGame(g)}>
+                  <img src={g.thumbnail} alt={g.title} className="w-14 h-10 object-cover rounded-md flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium w-30 truncate">{g.title}</div>
+                    <div className="text-xs opacity-60 w-30 truncate">{g.genre} • {g.platform}</div>
+                  </div>
+                  <div className="text-xs opacity-60">{g.release_date}</div>
+                </li>
+              ))}
+            </ul>
+          </ScrollArea>
         </aside>
 
         {/* CENTER: full details (lg:col-span-7) */}
-        <section className={clsx("lg:col-span-7 rounded-2xl overflow-hidden", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/95 border border-zinc-200")}>
-          <Card className="rounded-none shadow-none border-0">
-            <CardHeader className={clsx("p-5 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/95 border-b border-zinc-200")}>
-              <div>
-                <CardTitle className="text-xl md:text-2xl">{selected?.title || "Game details"}</CardTitle>
-                <div className="text-sm opacity-60">{selected?.genre} • {selected?.platform} • {selected?.release_date}</div>
+        <section className={clsx("lg:col-span-7 rounded-2xl overflow-hidden", isDark ? "bg-black border border-zinc-800" : "bg-white/95 border border-zinc-200")}>
+          <Card className="rounded-none dark:bg-black/90 bg-white shadow-none border-0">
+            <CardHeader className={clsx("p-5 flex flex-col md:flex-row items-start md:items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/95 border-b border-zinc-200")}>
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-lg md:text-xl flex items-center gap-3">
+                  <Star className="opacity-80" />
+                  <span className="truncate">{selected?.title || "Game details"}</span>
+                </CardTitle>
+                <div className="text-xs opacity-60 mt-1 flex items-center gap-3">
+                  <div className="flex items-center gap-1"><Tag size={14} /> <span>{selected?.genre || "—"}</span></div>
+                  <div className="flex items-center gap-1"><Gamepad size={14} /> <span>{selected?.platform || "—"}</span></div>
+                  <div className="flex items-center gap-1"><Calendar size={14} /> <span>{selected?.release_date || "—"}</span></div>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={copyJSON}><Copy /></Button>
-                <Button variant="outline" onClick={downloadJSON}><Download /></Button>
-                <Button variant="ghost" onClick={() => setShowSuggest(s => !s)}>{showSuggest ? <List /> : <List />}</Button>
-              </div>
+             
             </CardHeader>
 
             <CardContent className="p-6">
@@ -309,38 +367,53 @@ export default function FreeToGamePage() {
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Main description / synopsis (span 2) */}
-                  <div className="lg:col-span-2">
-                    <div className="prose max-w-none dark:prose-invert">
-                      <h3 className="text-lg font-semibold mb-2">Overview</h3>
-                      <p className="text-sm leading-relaxed">{selected.short_description || selected.description || "No description available."}</p>
+                  <div className="lg:col-span-2 space-y-6">
+                    <div className="rounded-lg border p-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-28 h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-md">
+                          <img src={selected?.thumbnail || "/api_previews/freetogame.png"} alt={selected?.title || "Game thumbnail"} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold flex items-center gap-2">
+                            <FileText /> Overview
+                          </h3>
+                          <p className="mt-2 text-sm leading-relaxed text-justify">{selected.short_description || selected.description || "No description available from API."}</p>
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {selected?.genre && <TagPill><Tag className="mr-1" size={14}/> {selected.genre}</TagPill>}
+                            {selected?.platform && <TagPill><Gamepad className="mr-1" size={14}/> {selected.platform}</TagPill>}
+                            {selected?.publisher && <TagPill><Users className="mr-1" size={14}/> {selected.publisher}</TagPill>}
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="mt-6">
-                      <h4 className="text-base font-semibold mb-2">Details & Stats</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="rounded-lg border p-4">
+                      <h4 className="text-base font-semibold flex items-center gap-2"><CodeIcon /> Details & Stats</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                         <div className="p-3 rounded-lg border">
                           <div className="text-xs opacity-60">Game ID</div>
                           <div className="font-medium">{selected.id}</div>
                         </div>
 
                         <div className="p-3 rounded-lg border">
-                          <div className="text-xs opacity-60">Genre</div>
-                          <div className="font-medium">{selected.genre}</div>
-                        </div>
-
-                        <div className="p-3 rounded-lg border">
-                          <div className="text-xs opacity-60">Platform</div>
-                          <div className="font-medium">{selected.platform}</div>
-                        </div>
-
-                        <div className="p-3 rounded-lg border">
                           <div className="text-xs opacity-60">Developer</div>
-                          <div className="font-medium">{selected.developer}</div>
+                          <div className="font-medium">{selected.developer || "—"}</div>
                         </div>
 
                         <div className="p-3 rounded-lg border">
                           <div className="text-xs opacity-60">Publisher</div>
-                          <div className="font-medium">{selected.publisher}</div>
+                          <div className="font-medium">{selected.publisher || "—"}</div>
+                        </div>
+
+                        <div className="p-3 rounded-lg border">
+                          <div className="text-xs opacity-60">Release</div>
+                          <div className="font-medium">{selected.release_date || "—"}</div>
+                        </div>
+
+                        <div className="p-3 rounded-lg border">
+                          <div className="text-xs opacity-60">Platform</div>
+                          <div className="font-medium">{selected.platform || "—"}</div>
                         </div>
 
                         <div className="p-3 rounded-lg border">
@@ -350,9 +423,9 @@ export default function FreeToGamePage() {
                       </div>
                     </div>
 
-                    <div className="mt-6">
-                      <h4 className="text-base font-semibold mb-2">About / More</h4>
-                      <div className="text-sm leading-relaxed">
+                    <div className="rounded-lg border p-4">
+                      <h4 className="text-base font-semibold flex items-center gap-2"><List /> About / More</h4>
+                      <div className="text-sm leading-relaxed mt-2">
                         {selected.description || selected.short_description || "No extended description provided by API."}
                       </div>
                     </div>
@@ -361,7 +434,7 @@ export default function FreeToGamePage() {
                   {/* Right column inside center: screenshots / tags */}
                   <aside className="lg:col-span-1 space-y-4">
                     <div className="rounded-lg p-3 border">
-                      <div className="text-xs opacity-60 mb-2">Screenshots</div>
+                      <div className="text-xs opacity-60 mb-2 flex items-center gap-2"><ImageIcon /> Screenshots</div>
                       {selected?.screenshots && selected.screenshots.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2">
                           {selected.screenshots.slice(0,4).map((s, i) => (
@@ -374,7 +447,7 @@ export default function FreeToGamePage() {
                     </div>
 
                     <div className="rounded-lg p-3 border">
-                      <div className="text-xs opacity-60 mb-2">Tags</div>
+                      <div className="text-xs opacity-60 mb-2 flex items-center gap-2"><Tag /> Tags</div>
                       <div className="flex flex-wrap gap-2">
                         {selected?.genre && <TagPill>{selected.genre}</TagPill>}
                         {selected?.platform && <TagPill>{selected.platform}</TagPill>}
@@ -383,10 +456,11 @@ export default function FreeToGamePage() {
                     </div>
 
                     <div className="rounded-lg p-3 border">
-                      <div className="text-xs opacity-60 mb-2">Quick Stats</div>
+                      <div className="text-xs opacity-60 mb-2 flex items-center gap-2"><Star /> Quick Stats</div>
                       <div className="text-sm">
                         <div className="flex justify-between"><div className="opacity-60">Release</div><div className="font-medium">{selected.release_date || "—"}</div></div>
                         <div className="flex justify-between mt-2"><div className="opacity-60">Platform</div><div className="font-medium">{selected.platform}</div></div>
+                        <div className="flex justify-between mt-2"><div className="opacity-60">Developer</div><div className="font-medium">{selected.developer || "—"}</div></div>
                       </div>
                     </div>
                   </aside>
@@ -394,18 +468,43 @@ export default function FreeToGamePage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Raw response toggle */}
+          <div className="p-4 border-t">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-xs opacity-70"><FileText /> Raw API Response</div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="ghost" className="cursor-pointer" onClick={() => setShowRaw(s => !s)}>{showRaw ? "Hide" : "Show"}</Button>
+                <Button size="sm" variant="ghost" className="cursor-pointer" onClick={() => { navigator.clipboard.writeText(prettyJSON(rawResp || {})); showToast("success", "Raw JSON copied"); }}><CopyIcon /></Button>
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {showRaw && (
+                <motion.pre
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className={clsx("mt-3 rounded-md p-3 overflow-auto text-xs border", isDark ? "bg-black/60 border-zinc-800" : "bg-white/95 border-zinc-200")}
+                  style={{ maxHeight: "32vh", whiteSpace: "pre-wrap" }}
+                >
+                  {prettyJSON(rawResp)}
+                </motion.pre>
+              )}
+            </AnimatePresence>
+          </div>
         </section>
 
         {/* RIGHT: Quick actions (lg:col-span-2) */}
         <aside className={clsx("lg:col-span-2 rounded-2xl p-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/95 border border-zinc-200")}>
-          <div className="text-sm font-semibold mb-2">Quick Actions</div>
+          <div className="text-sm font-semibold mb-2 flex items-center gap-2"><ArrowRightCircle /> Quick Actions</div>
 
           <div className="space-y-2">
-            <Button className="w-full justify-start" onClick={openGame}><ExternalLink className="mr-2" /> Open Official</Button>
-            <Button className="w-full justify-start" onClick={() => setDialogOpen(true)}><ImageIcon className="mr-2" /> View Image</Button>
-            <Button className="w-full justify-start" onClick={copyJSON}><Copy className="mr-2" /> Copy JSON</Button>
-            <Button className="w-full justify-start" onClick={downloadJSON}><Download className="mr-2" /> Download JSON</Button>
-            <Button className="w-full justify-start" onClick={() => { if (selected?.game_url) window.open(selected.game_url + "?utm_source=explorer", "_blank"); else showToast("info", "No game link"); }} variant="outline"><ArrowRightCircle className="mr-2" /> Play / Visit</Button>
+            <Button className="w-full justify-start cursor-pointer" variant="outline" onClick={openGame}><ExternalLink className="mr-2" /> Open Official</Button>
+            <Button className="w-full justify-start cursor-pointer" variant="outline" onClick={() => setDialogOpen(true)}><ImageIcon className="mr-2" /> View Image</Button>
+            <Button className="w-full justify-start cursor-pointer" variant="outline" onClick={copyJSON}><CopyIcon className="mr-2" /> Copy JSON</Button>
+            <Button className="w-full justify-start cursor-pointer" variant="outline" onClick={downloadJSON}><Download className="mr-2" /> Download JSON</Button>
+            <Button className="w-full justify-start cursor-pointer" onClick={() => { if (selected?.game_url) window.open(selected.game_url + "?utm_source=explorer", "_blank"); else showToast("info", "No game link"); }} variant="outline"><ArrowRightCircle className="mr-2" /> Play / Visit</Button>
           </div>
 
           <Separator className="my-4" />
@@ -415,9 +514,9 @@ export default function FreeToGamePage() {
         </aside>
       </main>
 
-      {/* Image dialog */}
+      {/* Image dialog (unchanged) */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-4xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-4xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>{selected?.title || "Image"}</DialogTitle>
           </DialogHeader>

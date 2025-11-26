@@ -21,7 +21,43 @@ import {
   X,
   Copy,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Code,
+  Newspaper,
+  Landmark,
+  Film,
+  Rocket,
+  FolderCog,
+  BookOpen,
+  GraduationCap,
+  Music,
+  Gamepad2,
+  Palette,
+  Cpu,
+  Trees,
+  PawPrint,
+  Bot,
+  MapPin,
+  Camera,
+  User,
+  PenTool,
+  Utensils,
+  FlaskConical,
+  CloudSun,
+  Trophy,
+  Sparkle,
+  Cross,
+  BookImage as Bible,
+  ScrollText,
+  Globe2,
+  HeartPulse,
+  Sun,
+  BarChart3,
+  Mountain,
+  Boxes,
+  Bus,
+  Navigation,
+  Plane,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -1258,11 +1294,45 @@ fetch("https://api.gold-api.com/symbols")
 /* Category Icon mapping */
 const CATEGORY_ICON = {
   Utility: Layers,
+  Utilities: FolderCog,
   Fun: Sparkles,
-  Geo: Globe,
   Food: Atom,
-  Dev: CodeIcon,
+  "Food & Drinks": Utensils,
+  Geo: Globe,
+  Geolocation: MapPin,
+  Geography: Globe2,
+  Dev: Code,
   Media: ImageIcon,
+  News: Newspaper,
+  Finance: Landmark,
+  Entertainment: Film,
+  Space: Rocket,
+  Books: BookOpen,
+  Literature: ScrollText,
+  Education: GraduationCap,
+  Music: Music,
+  Games: Gamepad2,
+  Art: Palette,
+  Tech: Cpu,
+  Nature: Trees,
+  Animals: PawPrint,
+  AI: Bot,
+  Images: Camera,
+  Profile: User,
+  Design: PenTool,
+  Science: FlaskConical,
+  Weather: CloudSun,
+  Sports: Trophy,
+  Spiritual: Sparkle,
+  Religion: Bible,
+  Health: HeartPulse,
+  Motivation: Sun,
+  Data: BarChart3,
+  Geology: Mountain,
+  Misc: Boxes,
+  Transport: Bus,
+  Location: Navigation,
+  Aviation: Plane,
 };
 
 function CategoryIcon({ category, className }) {
@@ -1441,25 +1511,25 @@ export default function ApisPage() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" className="lg:hidden">
+              <Button variant="outline" className="lg:hidden cursor-pointer">
                 <Menu />
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-[320px] p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="text-lg font-semibold">APIs</div>
-                <Button variant="ghost" size="sm" onClick={() => { setQuery(""); setCategoryFilter("All"); }}>
+                 <Button className="cursor-pointer"  variant="ghost" size="sm" onClick={() => { setQuery(""); setCategoryFilter("All"); }}>
                   Reset
                 </Button>
               </div>
 
               <Input value={query} onChange={(e) => onSearchChange(e.target.value)} placeholder="Search..." className="mb-3" />
 
-              <div className="mb-3">
+              <div className="mb-3 h-30 overflow-y-auto no-scrollbar">
                 <div className="text-xs opacity-60 mb-2">Category</div>
                 <div className="flex flex-wrap gap-2">
                   {categories.map((c) => (
-                    <Button key={c} variant={c === categoryFilter ? "default" : "ghost"} size="sm" onClick={() => setCategoryFilter(c)}>{c}</Button>
+                     <Button className="cursor-pointer"  key={c} variant={c === categoryFilter ? "default" : "ghost"} size="sm" onClick={() => setCategoryFilter(c)}>{c}</Button>
                   ))}
                 </div>
               </div>
@@ -1470,9 +1540,9 @@ export default function ApisPage() {
                     <motion.div key={api.id}  className={clsx("p-3 rounded-lg border cursor-pointer", api.id === selectedId ? "border-zinc-500 bg-zinc-50 dark:bg-zinc-900/30" : "border-zinc-200 dark:border-zinc-700")} onClick={() => { selectApi(api.id); }}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <CategoryIcon category={api.category} className="w-5 h-5 opacity-80" />
+                         
                           <div>
-                            <div className="font-semibold">{api.name}</div>
+                            <div className="font-semibold flex gap-1 items-center"> <CategoryIcon category={api.category} className="w-5 h-5 mr-2 opacity-80" /> {api.name}</div>
                             <div className="text-xs opacity-60">{api.description}</div>
                           </div>
                         </div>
@@ -1493,9 +1563,9 @@ export default function ApisPage() {
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className={clsx("absolute left-6 right-6 md:left-[calc(50%_-_360px)] md:right-auto max-w-3xl z-50 rounded-xl overflow-hidden border", isDark ? "bg-black/60 border-zinc-800" : "bg-white border-zinc-200")}>
             {suggestions.map((s) => (
               <div key={s.id} className="p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-3" onClick={() => { selectApi(s.id); }}>
-                <CategoryIcon category={s.category} className="w-5 h-5 opacity-80" />
+              
                 <div className="flex-1">
-                  <div className="font-medium">{s.name}</div>
+                  <div className="font-medium flex  gap-1 items-center">  <CategoryIcon category={s.category} className="w-5 h-5 mr-2 opacity-80" /> {s.name}</div>
                   <div className="text-xs opacity-60">{s.category} • {s.description}</div>
                 </div>
                 <ChevronRight className="w-4 h-4 opacity-60" />
@@ -1521,9 +1591,9 @@ export default function ApisPage() {
                   <motion.div key={api.id} className={clsx("p-3 rounded-lg border cursor-pointer", api.id === selectedId ? "border-zinc-500 bg-zinc-50 dark:bg-zinc-700/30" : "border-zinc-200 dark:border-zinc-700")} onClick={() => selectApi(api.id)}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <CategoryIcon category={api.category} className="w-5 h-5 opacity-80" />
+                     
                         <div>
-                          <div className="font-semibold">{api.name}</div>
+                          <div className="font-semibold flex  gap-1 items-center">   <CategoryIcon category={api.category} className="w-5 h-5 mr-2 opacity-80" />{api.name}</div>
                           <div className="text-xs opacity-60">{api.description}</div>
                         </div>
                       </div>
@@ -1558,10 +1628,10 @@ export default function ApisPage() {
                 </div> */}
 
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => copyEndpoint(selected.endpoint)}><Copy /></Button>
-                  <Button onClick={() => tryInvoke(selected.endpoint)} disabled={loadingInvoke}>{loadingInvoke ? "Fetching..." : "Try"}</Button>
+                   <Button className="cursor-pointer"  variant="outline" onClick={() => copyEndpoint(selected.endpoint)}><Copy /></Button>
+                   <Button className="cursor-pointer"  onClick={() => tryInvoke(selected.endpoint)} disabled={loadingInvoke}>{loadingInvoke ? "Fetching..." : "Try"}</Button>
                   <Link to={`/apis/${selected.id}`}>
-                    <Button variant="ghost">Open <ExternalLink className="w-4 h-4 inline ml-1" /></Button>
+                     <Button className="cursor-pointer"  variant="ghost">Open <ExternalLink className="w-4 h-4 inline ml-1" /></Button>
                   </Link>
                 </div>
               </div>
@@ -1622,7 +1692,7 @@ export default function ApisPage() {
 
                       <InfoRow icon={<ExternalLink />} label="Docs / Link">
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm" onClick={() => window.open(selected.endpoint, "_blank")}>Open</Button>
+                           <Button className="cursor-pointer"  variant="outline" size="sm" onClick={() => window.open(selected.endpoint, "_blank")}>Open</Button>
                           <Button variant="ghost" size="sm" onClick={() => toast("No docs provided — use endpoint")}>Docs</Button>
                         </div>
                       </InfoRow>
@@ -1633,8 +1703,8 @@ export default function ApisPage() {
                     <div className="text-sm font-semibold mb-2">Test Console</div>
                     <div className="text-xs opacity-60 mb-2">Invoke the endpoint (GET) — may fail in-browser due to CORS.</div>
                     <div className="flex gap-2">
-                      <Button onClick={() => tryInvoke(selected.endpoint)} disabled={loadingInvoke}>{loadingInvoke ? "Running..." : "Invoke"}</Button>
-                      <Button variant="outline" onClick={() => copyEndpoint(selected.endpoint)}><Copy /></Button>
+                       <Button className="cursor-pointer" onClick={() => tryInvoke(selected.endpoint)} disabled={loadingInvoke}>{loadingInvoke ? "Running..." : "Invoke"}</Button>
+                       <Button className="cursor-pointer" variant="outline" onClick={() => copyEndpoint(selected.endpoint)}><Copy /></Button>
                     </div>
 
                     <AnimatePresence>

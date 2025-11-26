@@ -69,7 +69,7 @@ import FreeToGamePage from './APIDemoPage/FreeToGamePage'
 import OpenDotaPage from './APIDemoPage/OpenDotaPage'
 import ChessPlayerPage from './APIDemoPage/ChessPlayerPage'
 import IplDatasetPage from './APIDemoPage/IplDatasetPage'
-
+import XenoCantoPage from './APIDemoPage/XenoCantoPage'
 import NekosPage from './APIDemoPage/NekosPage'
 import ColorMindPage from './APIDemoPage/ColorMindPage'
 import EmojiHubPage from './APIDemoPage/EmojiHubPage'
@@ -86,7 +86,7 @@ import MFPage from './APIDemoPage/MFPage'
 import OpenBreweryPage from './APIDemoPage/OpenBreweryPage'
 import FruityvicePage from './APIDemoPage/FruityvicePage'
 import FoodishPage from './APIDemoPage/FoodishPage'
-
+// import AmiiboPage from './APIDemoPage/AmiiboPage'
 import DisneyCharactersPage from './APIDemoPage/DisneyCharactersPage'
 import NarutoCharactersPage from './APIDemoPage/NarutoCharactersPage'
 import OpenTopoPage from './APIDemoPage/OpenTopoPage'
@@ -399,7 +399,10 @@ const router=createBrowserRouter([
         path:"/apis/ipl_dataset",
         element:<IplDatasetPage/>
       },
-    
+      {
+        path:"/apis/xenocanto",
+        element:<XenoCantoPage/>
+      },
       {
         path:"/apis/nekosbest",
         element:<NekosPage/>
@@ -470,7 +473,10 @@ const router=createBrowserRouter([
         path:"/apis/foodish",
         element:<FoodishPage/>
        },
-     
+      //  {
+      //   path:"/apis/amiibo",
+      //   element:<AmiiboPage/>
+      //  },
        {
         path:"/apis/disney",
         element:<DisneyCharactersPage/>
