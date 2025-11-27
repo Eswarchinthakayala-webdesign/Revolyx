@@ -17,6 +17,14 @@ import {
   List,
   BookOpen,
   FileText,
+  Menu,
+  Check,
+  Clipboard,
+  RefreshCw,
+  Eye,
+  Sidebar,
+  Settings,
+  Layers,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -33,18 +41,29 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 
+// shadcn-style Sheet (mobile sidebar)
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+} from "@/components/ui/sheet";
+
 import { useTheme } from "@/components/theme-provider";
 
 /**
  * Gita (Telugu/Odia) Reader Page — improved & responsive
  *
- * Uses proxy base: /gita/{lang}/verse/{chapter}/{verse}
- * Language keys: 'tel' (Telugu), 'odi' (Odia)
- *
- * - Default verse: 1/1
- * - Prefetch a curated set of popular verses for suggestions
- * - Language switching updates endpoints and prefetched suggestions
- * - Dialog content scrolls to avoid page overflow
+ * Changes made:
+ * - Rebuilt middle preview UI with clearer headings + icons and nicer layout
+ * - Mobile header with menu (Sheet) to open sidebar for quick actions / popular verses
+ * - Copy animation: clicking copy shows animated tick and "Copied" state, then resets
+ * - All actionable elements have cursor-pointer, hover states, and subtle motion
+ * - Raw response is toggled and displayed inline (animated)
+ * - Use lucide-react icons across the UI for better affordances
+ * - Improved responsive grid and typography for a professional look
  */
 
 const PROXY_BASE = "/gita"; // Vite proxy: /gita -> https://gita-api.vercel.app
@@ -93,6 +112,10 @@ export default function GitaTeluguPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // copy button state
+  const [copied, setCopied] = useState(false);
 
   const suggestTimer = useRef(null);
   const formRef = useRef(null);
@@ -250,11 +273,24 @@ export default function GitaTeluguPage() {
     showToast("info", "No match in suggestions — try a chapter/verse like `2 47`");
   }
 
-  /* Copy JSON to clipboard */
+  /* Copy JSON to clipboard with animated feedback */
   function copyCurrentJSON() {
-    if (!currentVerse) return showToast("info", "No verse to copy");
-    navigator.clipboard.writeText(prettyJSON(rawResp || currentVerse));
-    showToast("success", "Verse JSON copied");
+    if (!currentVerse && !rawResp) {
+      showToast("info", "No verse to copy");
+      return;
+    }
+    const payload = rawResp || currentVerse;
+    navigator.clipboard.writeText(prettyJSON(payload)).then(
+      () => {
+        setCopied(true);
+        showToast("success", "Verse JSON copied");
+        // Reset after a short delay
+        setTimeout(() => setCopied(false), 2200);
+      },
+      () => {
+        showToast("error", "Failed to copy");
+      }
+    );
   }
 
   /* Download JSON */
@@ -290,20 +326,89 @@ export default function GitaTeluguPage() {
   /* UI palettes */
   const headerBg = clsx(isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200");
   const surface = clsx(isDark ? "bg-black/30 border-zinc-800" : "bg-white/70 border-zinc-200");
-  const pageBg = clsx("min-h-screen p-6 max-w-8xl mx-auto");
+  const pageBg = clsx("min-h-screen p-4 md:p-6 max-w-8xl mx-auto");
 
   return (
     <div className={pageBg}>
+      {/* Mobile sheet for sidebar */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetTrigger asChild>
+          {/* Hidden on desktop; visible in header */}
+          <Button className="md:hidden" variant="ghost" aria-label="Open menu">
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent position="left" size="full">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Sidebar className="h-5 w-5" /> Menu
+            </SheetTitle>
+          </SheetHeader>
+
+          <div className="p-4 space-y-4">
+            <Card className="p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-semibold">Popular Verses</div>
+                  <div className="text-xs opacity-60">Tap to open</div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => { prefetchPopular(); showToast("info", "Refetching popular..."); }}>
+                  <RefreshCw />
+                </Button>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {POPULAR_VERSES.map((p) => (
+                  <Button
+                    key={`${p.ch}-${p.v}`}
+                    variant="outline"
+                    className="justify-start cursor-pointer"
+                    onClick={() => { fetchVerse(p.ch, p.v); setSheetOpen(false); }}
+                  >
+                    <BookOpen className="mr-2" /> {p.ch}/{p.v}
+                  </Button>
+                ))}
+              </div>
+            </Card>
+
+            <Card className="p-3">
+              <div className="text-sm font-semibold mb-2">Quick Actions</div>
+              <div className="flex flex-col gap-2">
+                <Button variant="outline" className="cursor-pointer" onClick={() => { if (currentVerse) window.open(`${endpointForLang}/${currentVerse.chapter}/${currentVerse.verse}`, "_blank"); else showToast("info", "No verse"); }}>
+                  <ExternalLink className="mr-2" /> Open API
+                </Button>
+                <Button variant="outline" className="cursor-pointer" onClick={() => copyCurrentJSON()}>
+                  <Copy className="mr-2" /> Copy JSON
+                </Button>
+                <Button variant="outline" className="cursor-pointer" onClick={() => downloadCurrent()}>
+                  <Download className="mr-2" /> Download JSON
+                </Button>
+              </div>
+            </Card>
+          </div>
+
+          <SheetFooter className="p-4 text-xs opacity-60">Data from gita-api.vercel.app</SheetFooter>
+        </SheetContent>
+      </Sheet>
+
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold tracking-tight")}>Gita — Reader</h1>
-          <p className="mt-1 text-sm opacity-70">Read Bhagavad Gita verses in Telugu or Odia. Search by chapter/verse or filter suggestions.</p>
+      <header className="flex items-start md:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-3">
+            {/* mobile menu trigger already rendered via SheetTrigger above */}
+            <div className="hidden md:block">
+              <h1 className={clsx("text-3xl md:text-4xl font-extrabold tracking-tight")}>Gita — Reader</h1>
+              <p className="mt-1 text-sm opacity-70">Read Bhagavad Gita verses in Telugu or Odia.</p>
+            </div>
+            <div className="md:hidden">
+              <h1 className="text-2xl font-bold">Gita</h1>
+              <p className="text-xs opacity-70">Telugu / Odia</p>
+            </div>
+          </div>
         </div>
 
         {/* Controls: language select + search */}
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2">
             <Select value={language} onValueChange={(val) => setLanguage(val)} className="w-36">
               <SelectTrigger className={clsx(isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
                 <SelectValue placeholder="Language" />
@@ -319,17 +424,19 @@ export default function GitaTeluguPage() {
           <form ref={formRef} onSubmit={handleSearchSubmit} className={clsx("flex items-center gap-2 w-full md:w-[560px] rounded-lg px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-60" />
             <Input
-              placeholder="Search chapter/verse (e.g. 2 47) or type to filter suggestions..."
+              placeholder="Search chapter/verse (e.g. 2 47) or filter suggestions..."
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
               className="border-0 shadow-none bg-transparent outline-none"
               onFocus={() => setShowSuggest(true)}
               aria-label="Search chapter/verse"
             />
-            <Button type="button" variant="outline" className="px-3" onClick={() => { fetchVerse(1, 1); setShowSuggest(false); }}>
+            <Button type="button" variant="outline" className="px-3 cursor-pointer" onClick={() => { fetchVerse(1, 1); setShowSuggest(false); }}>
               Default
             </Button>
-            <Button type="submit" variant="outline" className="px-3"><Search /></Button>
+            <Button type="submit" variant="outline" className="px-3 cursor-pointer" title="Search">
+              <Search />
+            </Button>
           </form>
         </div>
       </header>
@@ -343,7 +450,7 @@ export default function GitaTeluguPage() {
             exit={{ opacity: 0, y: -8 }}
             className={clsx("relative")}
           >
-            <div className={clsx("absolute left-6 right-6 md:left-[calc(50%_-_280px)] md:right-auto max-w-4xl rounded-xl overflow-hidden shadow-xl z-40", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
+            <div className={clsx("absolute left-4 right-4 md:left-[calc(50%_-_280px)] md:right-auto max-w-4xl rounded-xl overflow-hidden shadow-xl z-40", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
               {loadingSuggest && <div className="p-3 text-sm opacity-60">Loading suggestions…</div>}
               {!loadingSuggest && suggestions.length === 0 && <div className="p-3 text-sm opacity-60">No suggestions — try typing or use chapter/verse.</div>}
               {!loadingSuggest && suggestions.length > 0 && (
@@ -385,8 +492,8 @@ export default function GitaTeluguPage() {
 
       {/* Main layout: left meta, center reading, right quick actions */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* Left: meta / quick links */}
-        <aside className="lg:col-span-3 space-y-4">
+        {/* Left: meta / quick links (hidden on small; accessible via sheet) */}
+        <aside className="hidden lg:block lg:col-span-3 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border shadow-sm", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
             <CardHeader className={clsx("p-5 flex items-center justify-between", headerBg)}>
               <div>
@@ -425,7 +532,7 @@ export default function GitaTeluguPage() {
             <div className="text-sm font-semibold mb-2">Popular Verses</div>
             <div className="grid grid-cols-1 gap-2">
               {POPULAR_VERSES.map((p) => (
-                <Button key={`${p.ch}-${p.v}`} variant="ghost" className="justify-start" onClick={() => fetchVerse(p.ch, p.v)}>
+                <Button key={`${p.ch}-${p.v}`} variant="ghost" className="justify-start cursor-pointer" onClick={() => fetchVerse(p.ch, p.v)}>
                   <BookOpen className="mr-2" /> {p.ch}/{p.v}
                 </Button>
               ))}
@@ -433,18 +540,25 @@ export default function GitaTeluguPage() {
           </Card>
         </aside>
 
-        {/* Center: main reading area */}
+        {/* Center: main reading area (improved UI) */}
         <section className="lg:col-span-6 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border shadow-sm", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-center justify-between", headerBg)}>
+            <CardHeader className={clsx("p-5 flex items-start justify-between", headerBg)}>
               <div>
-                <CardTitle className="text-lg tracking-tight">Reading</CardTitle>
-                <div className="text-xs opacity-60">{currentVerse ? `Chapter ${currentVerse.chapter} • Verse ${currentVerse.verse}` : "Awaiting verse..."}</div>
+                <CardTitle className="text-lg tracking-tight flex items-center gap-2">
+                  <Layers className="h-5 w-5 opacity-80" />
+                  Reading
+                </CardTitle>
+                <div className="text-xs opacity-60 mt-1">{currentVerse ? `Chapter ${currentVerse.chapter} • Verse ${currentVerse.verse}` : "Awaiting verse..."}</div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="ghost" onClick={() => currentVerse && setShowRaw((s) => !s)}><List /> {showRaw ? "Hide Raw" : "Raw"}</Button>
-                <Button variant="ghost" onClick={() => setDialogOpen(true)}><ImageIcon /> View</Button>
+                <Button variant="ghost" onClick={() => setShowRaw((s) => !s)} className="cursor-pointer">
+                  <List /> {showRaw ? "Hide Raw" : "Raw"}
+                </Button>
+                <Button variant="ghost" onClick={() => setDialogOpen(true)} className="cursor-pointer">
+                  <ImageIcon /> View
+                </Button>
               </div>
             </CardHeader>
 
@@ -455,30 +569,100 @@ export default function GitaTeluguPage() {
                 <div className="py-12 text-center text-sm opacity-60">No verse yet — try the default or search a chapter/verse.</div>
               ) : (
                 <div className="space-y-6">
-                  <div className="max-w-none">
-                    <h2 className="text-2xl md:text-3xl font-bold">Chapter {currentVerse.chapter} • Verse {currentVerse.verse}</h2>
-                    <p className="text-2xl md:text-3xl leading-relaxed mt-2">{currentVerse.text || "—"}</p>
-                  </div>
+                  {/* Verse card */}
+                  <div className={clsx("rounded-xl p-6 shadow-sm border", isDark ? "bg-black/30 border-zinc-800" : "bg-white/80 border-zinc-200")}>
+                    <div className="flex items-start flex-col justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+                          <BookOpen className="h-5 w-5 opacity-80" />
+                          Chapter {currentVerse.chapter} • Verse {currentVerse.verse}
+                        </h2>
+                        <p className="text-2xl md:text-3xl leading-relaxed mt-3">{currentVerse.text || "—"}</p>
+                      </div>
 
-                  <div>
-                    <div className="text-sm font-semibold mb-2">Translation / Meaning</div>
-                    <div className="text-sm leading-relaxed">{currentVerse.meaning || "No translation available."}</div>
+                      <div className="flex flex-col items-end gap-2">
+                        
+
+                        <div className="flex flex-col items-end gap-1">
+                       
+                          <div className="flex gap-2">
+                            {/* Copy with animated tick */}
+                            <motion.button
+                              onClick={copyCurrentJSON}
+                              whileTap={{ scale: 0.96 }}
+                              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border cursor-pointer"
+                              style={{ borderColor: isDark ? "rgba(148,163,184,0.06)" : undefined }}
+                            >
+                              <AnimatePresence initial={false}>
+                                {!copied ? (
+                                  <motion.span key="copy" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }}>
+                                    <Copy className="h-4 w-4" />
+                                  </motion.span>
+                                ) : (
+                                  <motion.span key="check" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+                                    <Check className="h-4 w-4 text-emerald-400" />
+                                  </motion.span>
+                                )}
+                              </AnimatePresence>
+
+                              <span className="text-sm">{copied ? "Copied" : "Copy"}</span>
+                            </motion.button>
+
+                            <Button variant="outline" onClick={() => downloadCurrent()} className="px-3 py-2 cursor-pointer">
+                              <Download className="mr-2" /> Save
+                            </Button>
+
+                            <Button variant="outline" onClick={() => { if (currentVerse) window.open(`${endpointForLang}/${currentVerse.chapter}/${currentVerse.verse}`, "_blank"); else showToast("info", "No verse"); }} className="px-3 py-2 cursor-pointer">
+                              <ExternalLink className="mr-2" /> Open
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* transliteration + meaning */}
+                    <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 rounded-md border">
+                        <div className="flex items-center gap-2">
+                          <Clipboard className="h-4 w-4 opacity-80" />
+                          <div className="text-sm font-semibold">Transliteration</div>
+                        </div>
+                        <div className="text-sm mt-2 leading-relaxed">{currentVerse.transliteration || "—"}</div>
+                      </div>
+
+                      <div className="p-4 rounded-md border">
+                        <div className="flex items-center gap-2">
+                          <Eye className="h-4 w-4 opacity-80" />
+                          <div className="text-sm font-semibold">Translation / Meaning</div>
+                        </div>
+                        <div className="text-sm mt-2 leading-relaxed">{currentVerse.meaning || "No translation available."}</div>
+                      </div>
+                    </div>
                   </div>
 
                   <Separator />
 
+                  {/* Fields area */}
                   <div>
-                    <div className="text-sm font-semibold mb-2">Fields</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="p-3 rounded-md border">
-                        <div className="text-xs opacity-60">Chapter</div>
-                        <div className="text-sm font-medium">{currentVerse.chapter}</div>
+                    <div className="text-sm font-semibold mb-2 flex items-center gap-2">
+                      <Settings className="h-4 w-4 opacity-80" /> Fields
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="p-3 rounded-md border flex items-center justify-between">
+                        <div>
+                          <div className="text-xs opacity-60">Chapter</div>
+                          <div className="text-sm font-medium">{currentVerse.chapter}</div>
+                        </div>
+                        <div className="text-xs opacity-60">#{currentVerse.chapter}</div>
                       </div>
-                      <div className="p-3 rounded-md border">
-                        <div className="text-xs opacity-60">Verse</div>
-                        <div className="text-sm font-medium">{currentVerse.verse}</div>
+                      <div className="p-3 rounded-md border flex items-center justify-between">
+                        <div>
+                          <div className="text-xs opacity-60">Verse</div>
+                          <div className="text-sm font-medium">{currentVerse.verse}</div>
+                        </div>
+                       
                       </div>
-                      <div className="p-3 rounded-md border col-span-1 sm:col-span-2">
+                      <div className="p-3 rounded-md border col-span-1 sm:col-span-1">
                         <div className="text-xs opacity-60">Source / Raw</div>
                         <div className="text-sm font-medium break-words">{currentVerse.raw ? "API payload available" : "—"}</div>
                       </div>
@@ -488,9 +672,10 @@ export default function GitaTeluguPage() {
               )}
             </CardContent>
 
+            {/* Raw response toggle area (animated) */}
             <AnimatePresence>
               {showRaw && rawResp && (
-                <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={clsx("p-4 border-t", isDark ? "bg-black/30 border-zinc-800" : "bg-white/60 border-zinc-200")}>
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className={clsx("p-4 border-t", isDark ? "bg-black/30 border-zinc-800" : "bg-white/60 border-zinc-200")}>
                   <ScrollArea style={{ maxHeight: 300 }}>
                     <pre className={clsx("text-xs", isDark ? "text-zinc-200" : "text-zinc-900")}>
                       {prettyJSON(rawResp)}
@@ -510,22 +695,23 @@ export default function GitaTeluguPage() {
                 <div className="text-sm font-semibold">Quick Actions</div>
                 <div className="text-xs opacity-60">Utilities for the current verse</div>
               </div>
+              <div className="text-xs opacity-60">v1</div>
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-2">
-              <Button variant="outline" onClick={() => { if (currentVerse) window.open(`${endpointForLang}/${currentVerse.chapter}/${currentVerse.verse}`, "_blank"); else showToast("info", "No verse"); }}>
+              <Button variant="outline" onClick={() => { if (currentVerse) window.open(`${endpointForLang}/${currentVerse.chapter}/${currentVerse.verse}`, "_blank"); else showToast("info", "No verse"); }} className="cursor-pointer">
                 <ExternalLink className="mr-2" /> Open API
               </Button>
-              <Button variant="outline" onClick={() => copyCurrentJSON()}>
+              <Button variant="outline" onClick={() => { copyCurrentJSON(); }} className="cursor-pointer">
                 <Copy className="mr-2" /> Copy JSON
               </Button>
-              <Button variant="outline" onClick={() => downloadCurrent()}>
+              <Button variant="outline" onClick={() => downloadCurrent()} className="cursor-pointer">
                 <Download className="mr-2" /> Download JSON
               </Button>
-              <Button variant="outline" onClick={() => setShowRaw((s) => !s)}>
+              <Button variant="outline" onClick={() => setShowRaw((s) => !s)} className="cursor-pointer">
                 <FileText className="mr-2" /> Toggle Raw
               </Button>
-              <Button variant="ghost" onClick={() => { setQuery(""); setShowSuggest(false); showToast("info", "Query cleared"); }}>
+              <Button variant="ghost" onClick={() => { setQuery(""); setShowSuggest(false); showToast("info", "Query cleared"); }} className="cursor-pointer">
                 <X className="mr-2" /> Clear
               </Button>
             </div>
@@ -540,7 +726,7 @@ export default function GitaTeluguPage() {
 
       {/* Dialog: big view — content scrolls inside dialog to avoid page overflow */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-3xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>{currentVerse ? `Chapter ${currentVerse.chapter} • Verse ${currentVerse.verse}` : "Verse"}</DialogTitle>
           </DialogHeader>
@@ -562,8 +748,8 @@ export default function GitaTeluguPage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">Data from gita-api.vercel.app</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
-              <Button variant="outline" onClick={() => { if (currentVerse) window.open(`${endpointForLang}/${currentVerse.chapter}/${currentVerse.verse}`, "_blank"); }}>
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="cursor-pointer"><X /></Button>
+              <Button variant="outline" onClick={() => { if (currentVerse) window.open(`${endpointForLang}/${currentVerse.chapter}/${currentVerse.verse}`, "_blank"); }} className="cursor-pointer">
                 <ExternalLink />
               </Button>
             </div>

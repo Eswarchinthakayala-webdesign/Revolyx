@@ -380,7 +380,7 @@ function SearchBar({
           onFocus={() => setShowSuggest(true)}
           className="border-0 shadow-none bg-transparent outline-none"
         />
-        <Button type="button" variant="outline" className="px-3" onClick={() => { if (query && /^\d+$/.test(query.trim())) { onSelectSuggestion({ match_id: query.trim(), _src: `${RAW_MATCH_BASE}/${query.trim()}.json` }); } else setShowSuggest(s => !s); }}>
+        <Button type="button" variant="outline" className="px-3 cursor-pointer" onClick={() => { if (query && /^\d+$/.test(query.trim())) { onSelectSuggestion({ match_id: query.trim(), _src: `${RAW_MATCH_BASE}/${query.trim()}.json` }); } else setShowSuggest(s => !s); }}>
           <Search />
         </Button>
       </div>
@@ -818,7 +818,7 @@ function InningsCard({ teamName, logo, overs = [], flatDeliveries = [], powerpla
 
         <div className="flex items-center gap-2">
           <div className="text-sm opacity-70">{topBatsmen.slice(0,2).map(b => `${b.name} ${b.runs}`).join(" • ")}</div>
-          <Button variant="ghost" onClick={() => setOpen(s => !s)}>{open ? <ChevronUp /> : <ChevronDown />}</Button>
+          <Button className="cursor-pointer" variant="ghost" onClick={() => setOpen(s => !s)}>{open ? <ChevronUp /> : <ChevronDown />}</Button>
         </div>
       </div>
 
@@ -1040,7 +1040,7 @@ function MatchDetailsPanel({
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={onRefresh}>
+            <Button className="cursor-pointer" variant="outline" onClick={onRefresh}>
               <Loader2
                 className={loading ? "animate-spin mr-2" : "mr-2"}
               />
@@ -1199,11 +1199,11 @@ function RightActionsPanel({ currentMatch, rawResp, onOpenRaw, onDownload, onCop
       <div>
         <div className="text-sm font-semibold mb-2">Quick actions</div>
         <div className="grid grid-cols-1 gap-2">
-          <Button variant="outline" onClick={onOpenRaw}><ExternalLink /> Open raw</Button>
-          <Button variant="outline" onClick={onDownload}><Download /> Download</Button>
-          <Button variant="outline" onClick={onCopy}><Copy /> Copy JSON</Button>
-          <Button variant="outline" onClick={onOpenRepo}><ExternalLink /> Open repo</Button>
-          <Button variant="ghost" onClick={() => onViewLogoClick(findTeamLogo(currentMatch?.data?.info?.teams?.[0]))}><ImageIcon /> View team logo</Button>
+          <Button className="cursor-pointer" variant="outline" onClick={onOpenRaw}><ExternalLink /> Open raw</Button>
+          <Button className="cursor-pointer" variant="outline" onClick={onDownload}><Download /> Download</Button>
+          <Button className="cursor-pointer" variant="outline" onClick={onCopy}><Copy /> Copy JSON</Button>
+          <Button className="cursor-pointer" variant="outline" onClick={onOpenRepo}><ExternalLink /> Open repo</Button>
+          <Button className="cursor-pointer" variant="ghost" onClick={() => onViewLogoClick(findTeamLogo(currentMatch?.data?.info?.teams?.[0]))}><ImageIcon /> View team logo</Button>
         </div>
       </div>
 
@@ -1228,7 +1228,7 @@ function ImageDialog({ open, src, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+      <DialogContent className={clsx("max-w-3xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
         <DialogHeader>
           <DialogTitle>Image</DialogTitle>
         </DialogHeader>
@@ -1240,7 +1240,7 @@ function ImageDialog({ open, src, onOpenChange }) {
         <DialogFooter className="flex justify-between items-center p-4 border-t">
           <div className="text-xs opacity-60">Team image</div>
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>Close</Button>
+            <Button className="cursor-pointer" variant="ghost" onClick={() => onOpenChange(false)}>Close</Button>
           </div>
         </DialogFooter>
       </DialogContent>
@@ -1360,7 +1360,7 @@ export default function IplDataPage() {
   }, []);
 
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
+    <div className={clsx("min-h-screen p-6 max-w-8xl pb-10 mx-auto")}>
 
         <div className="flex flex-col  sm:flex-row items-start sm:items-center justify-between">
       <PageHeader currentMatch={currentMatch} isDark={isDark} />

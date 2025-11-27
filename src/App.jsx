@@ -122,6 +122,7 @@ import FinalSpacePage from './APIDemoPage/FinalSpacePage'
 import GoldApiPage from './APIDemoPage/GoldApiPage'
 import GoldApiPage2 from './APIDemoPage/GoldApiPage2'
 import FDAAnimalVetPage from './APIDemoPage/FDAAnimalVetPage'
+import WormsPage from './APIDemoPage/WormsPage'
 
 const router=createBrowserRouter([
   {
@@ -155,6 +156,10 @@ const router=createBrowserRouter([
        {
         path:"/designs",
         element:<BackgroundPage/>
+      },
+      {
+        path:"/apis/worms",
+        element:<WormsPage/>
       },
        {
         path:"/flow-chart",

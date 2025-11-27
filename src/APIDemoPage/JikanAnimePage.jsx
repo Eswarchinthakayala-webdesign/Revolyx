@@ -204,7 +204,7 @@ export default function JikanAnimePage() {
   }
 
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
+    <div className={clsx("min-h-screen p-6 max-w-8xl pb-10 mx-auto")}>
       {/* Header */}
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <div>
@@ -222,10 +222,10 @@ export default function JikanAnimePage() {
               className="border-0 shadow-none bg-transparent outline-none"
               onFocus={() => setShowSuggest(true)}
             />
-            <Button type="button" variant="outline" className="px-3" onClick={() => fetchAnime(query)}>
+            <Button type="button" variant="outline" className="px-3 cursor-pointer" onClick={() => fetchAnime(query)}>
               Top
             </Button>
-            <Button type="submit" variant="outline" className="px-3"><Search /></Button>
+            <Button type="submit" variant="outline" className="px-3 cursor-pointer"><Search /></Button>
           </form>
         </div>
       </header>
@@ -286,8 +286,8 @@ export default function JikanAnimePage() {
                   </div>
 
                   <div className="mt-4 flex flex-col gap-2">
-                    <Button variant="outline" onClick={() => setDialogOpen(true)}><ImageIcon /> View image</Button>
-                    <Button variant="ghost" onClick={() => { if (current.url) window.open(current.url, "_blank"); else showToast("info", "No external URL"); }}><ExternalLink /> Open on MAL</Button>
+                    <Button className="cursor-pointer" variant="outline" onClick={() => setDialogOpen(true)}><ImageIcon /> View image</Button>
+                    <Button className="cursor-pointer" variant="ghost" onClick={() => { if (current.url) window.open(current.url, "_blank"); else showToast("info", "No external URL"); }}><ExternalLink /> Open on MAL</Button>
                   </div>
                 </div>
               )}
@@ -298,8 +298,8 @@ export default function JikanAnimePage() {
         {/* Center column: full details */}
         <section className="lg:col-span-6 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-6 flex items-start justify-between gap-4", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
-              <div className="flex-1 min-w-0">
+            <CardHeader className={clsx("p-6 flex items-start flex-wrap justify-between gap-4", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+              <div className=" min-w-0">
                 <h2 className="text-2xl font-extrabold leading-tight">{current?.title || "Anime Details"}</h2>
                 <div className="mt-1 text-sm opacity-60">{current?.title_english || current?.title_japanese || ""}</div>
                 <div className="mt-3 text-xs opacity-60 flex flex-wrap gap-2">
@@ -312,9 +312,9 @@ export default function JikanAnimePage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => fetchAnime(query)}><Loader2 className={loading ? "animate-spin" : ""} /> Refresh</Button>
-                <Button variant="ghost" onClick={() => setShowRaw((s) => !s)}><List /> {showRaw ? "Hide JSON" : "Raw"}</Button>
-                <Button variant="ghost" onClick={() => setDialogOpen(true)}><ImageIcon /> Image</Button>
+                <Button className="cursor-pointer" variant="outline" onClick={() => fetchAnime(query)}><Loader2 className={loading ? "animate-spin" : ""} /> Refresh</Button>
+                <Button className="cursor-pointer" variant="ghost" onClick={() => setShowRaw((s) => !s)}><List /> {showRaw ? "Hide JSON" : "Raw"}</Button>
+                <Button className="cursor-pointer" variant="ghost" onClick={() => setDialogOpen(true)}><ImageIcon /> Image</Button>
               </div>
             </CardHeader>
 
@@ -403,11 +403,11 @@ export default function JikanAnimePage() {
               <div className="text-xs opacity-60 mb-3">Open, share, copy or download data about the selected anime.</div>
 
               <div className="flex flex-col gap-2">
-                <Button variant="outline" onClick={() => { if (current?.url) window.open(current.url, "_blank"); else showToast("info", "No URL available"); }}><ExternalLink /> Open on MAL</Button>
-                <Button variant="outline" onClick={() => copyToClipboard()}><Copy /> Copy JSON</Button>
-                <Button variant="outline" onClick={() => downloadJSON()}><Download /> Download JSON</Button>
-                <Button variant="outline" onClick={() => tryShare()}><Share2 /> Share</Button>
-                <Button variant="ghost" onClick={() => setShowRaw((s) => !s)}><List /> Toggle JSON</Button>
+                <Button className="cursor-pointer" variant="outline" onClick={() => { if (current?.url) window.open(current.url, "_blank"); else showToast("info", "No URL available"); }}><ExternalLink /> Open on MAL</Button>
+                <Button className="cursor-pointer" variant="outline" onClick={() => copyToClipboard()}><Copy /> Copy JSON</Button>
+                <Button className="cursor-pointer" variant="outline" onClick={() => downloadJSON()}><Download /> Download JSON</Button>
+                <Button className="cursor-pointer" variant="outline" onClick={() => tryShare()}><Share2 /> Share</Button>
+                <Button className="cursor-pointer" variant="ghost" onClick={() => setShowRaw((s) => !s)}><List /> Toggle JSON</Button>
               </div>
             </div>
 
@@ -436,7 +436,7 @@ export default function JikanAnimePage() {
 
       {/* Image dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-4xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-4xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>{current?.title || "Image"}</DialogTitle>
           </DialogHeader>
@@ -453,8 +453,8 @@ export default function JikanAnimePage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">Image from Jikan / MAL</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
-              <Button variant="outline" onClick={() => { if (current?.url) window.open(current.url, "_blank"); }}><ExternalLink /></Button>
+              <Button className="cursor-pointer" variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
+              <Button className="cursor-pointer" variant="outline" onClick={() => { if (current?.url) window.open(current.url, "_blank"); }}><ExternalLink /></Button>
             </div>
           </DialogFooter>
         </DialogContent>

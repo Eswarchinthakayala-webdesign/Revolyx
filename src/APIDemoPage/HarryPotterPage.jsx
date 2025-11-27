@@ -19,7 +19,18 @@ import {
   User,
   Wand,
   CheckCircle,
-  X
+  X,
+  Menu,
+  Gift,
+  Heart,
+  Info,
+  Clock,
+  Calendar,
+  Zap,
+  FileText,
+  Layers,
+  Smile,
+  Film,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +40,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/components/theme-provider";
+// If you have shadcn's sheet component in your ui, import it. Otherwise replace with your modal/sheet.
+import {
+  Sheet,
+  SheetTrigger,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from "@/components/ui/sheet";
 
 /* ---------- Config ---------- */
 const ENDPOINT = "https://hp-api.onrender.com/api/characters";
@@ -45,6 +65,17 @@ function safe(val) {
   if (Array.isArray(val)) return val.length ? val.join(", ") : "—";
   if (typeof val === "object") return JSON.stringify(val);
   return String(val);
+}
+
+function sampleTen(arr = []) {
+  if (!Array.isArray(arr) || arr.length === 0) return [];
+  const copy = arr.slice();
+  // fisher-yates shuffle first few
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, 10);
 }
 
 /* ---------- Component ---------- */
@@ -70,7 +101,16 @@ export default function HarryPotterPage() {
   const [showRaw, setShowRaw] = useState(false);
   const [imageOpen, setImageOpen] = useState(false);
 
+  // mobile sheet
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // copy button animated state
+  const [copyStatus, setCopyStatus] = useState("idle"); // 'idle' | 'copied' | 'loading'
+
   const suggestTimer = useRef(null);
+
+  // 10 random characters
+  const [randomTen, setRandomTen] = useState([]);
 
   /* Fetch the full dataset once on mount */
   useEffect(() => {
@@ -82,11 +122,13 @@ export default function HarryPotterPage() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (!mounted) return;
-        setCharacters(Array.isArray(json) ? json : []);
+        const arr = Array.isArray(json) ? json : [];
+        setCharacters(arr);
         setRawResp(json);
         // choose a sensible default: Harry Potter if present, otherwise first
-        const defaultChar = (Array.isArray(json) && json.find((c) => /harry potter/i.test(c.name))) ?? (json && json[0]) ?? null;
+        const defaultChar = (Array.isArray(arr) && arr.find((c) => /harry potter/i.test(c.name))) ?? (arr && arr[0]) ?? null;
         setCurrent(defaultChar);
+        setRandomTen(sampleTen(arr));
       } catch (err) {
         console.error(err);
         showToast("error", "Failed to load characters");
@@ -144,6 +186,7 @@ export default function HarryPotterPage() {
     setQuery("");
     // attach rawResp for ability to view the particular item's JSON (local subset)
     setRawResp(item);
+    showToast("success", `Loaded ${item.name}`);
   }
 
   async function handleSearchSubmit(e) {
@@ -196,8 +239,22 @@ export default function HarryPotterPage() {
 
   function copyCurrent() {
     if (!current) return showToast("info", "No character selected");
-    navigator.clipboard.writeText(prettyJSON(current));
-    showToast("success", "Character JSON copied");
+    try {
+      setCopyStatus("loading");
+      navigator.clipboard.writeText(prettyJSON(current)).then(() => {
+        setCopyStatus("copied");
+        showToast("success", "Character JSON copied");
+        // reset after short delay
+        setTimeout(() => setCopyStatus("idle"), 1400);
+      }).catch((err) => {
+        console.error(err);
+        setCopyStatus("idle");
+        showToast("error", "Copy failed");
+      });
+    } catch (err) {
+      console.error(err);
+      showToast("error", "Copy failed");
+    }
   }
 
   function downloadCurrent() {
@@ -227,16 +284,91 @@ export default function HarryPotterPage() {
     ];
   }, [current]);
 
+  // quick stats for nicer UI
+  const stats = useMemo(() => {
+    if (!current) return [];
+    return [
+      { icon: Clock, label: "Alive", value: current.alive ? "Yes" : "No" },
+      { icon: Calendar, label: "Born", value: (current.dateOfBirth || current.yearOfBirth) ? `${safe(current.dateOfBirth)} ${current.yearOfBirth ? `(${current.yearOfBirth})` : ""}` : "—" },
+      { icon: User, label: "Actor", value: safe(current.actor) },
+      { icon: Layers, label: "Role", value: (current.hogwartsStudent ? "Student" : "") + (current.hogwartsStaff ? (current.hogwartsStudent ? ", Staff" : "Staff") : "") || "—" },
+    ];
+  }, [current]);
+
+  // helper to focus a character
+  const focusCharacter = (c) => {
+    setCurrent(c);
+    setRawResp(c);
+    setSheetOpen(false); // close mobile sheet
+    showToast("success", `Loaded ${c.name}`);
+  };
+
+  // refresh random ten on demand
+  const refreshRandom = () => {
+    setRandomTen(sampleTen(characters));
+  };
+
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
-      {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>Revolyx — Harry Potter Characters</h1>
-          <p className="mt-1 text-sm opacity-70">Explore characters, their houses, wands, actor and more. Data from the HP API.</p>
+    <div className={clsx("min-h-screen p-4 md:p-6 max-w-8xl pb-10 mx-auto")}>
+      {/* Responsive header: left title, right search + menu on mobile */}
+      <header className="flex items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3">
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="p-2 md:hidden cursor-pointer">
+                <Menu />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-full p-3 max-w-xs">
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                  <Smile /> Characters
+                </SheetTitle>
+              </SheetHeader>
+
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold">Random 10</div>
+                  <Button size="sm" variant="ghost" onClick={refreshRandom} className="cursor-pointer"><Zap /></Button>
+                </div>
+
+                <div className="space-y-2 overflow-y-auto h-100">
+                  {randomTen.map((r, idx) => (
+                    <div key={r.name + idx} onClick={() => focusCharacter(r)} className="flex items-center gap-3 p-2 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer">
+                      <img src={r.image || ""} alt={r.name} className="w-12 h-12 rounded object-cover" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{r.name}</div>
+                        <div className="text-xs opacity-60 truncate">{[r.house, r.actor].filter(Boolean).join(" • ")}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <Button className="w-full cursor-pointer" variant="outline" onClick={() => { setCurrent(characters.find(c => /harry potter/i.test(c?.name)) ?? characters[0] ?? null); setRawResp(characters.find(c => /harry potter/i.test(c?.name)) ?? characters[0] ?? null); }}>
+                    <User /> Focus Harry
+                  </Button>
+                  <Button className="w-full cursor-pointer" variant="outline" onClick={() => { navigator.clipboard.writeText(ENDPOINT); showToast("success", "Endpoint copied"); }}>
+                    <Copy /> Copy Endpoint
+                  </Button>
+                </div>
+              </div>
+
+              <SheetFooter className="mt-4">
+                <div className="text-xs opacity-60">HP Dataset • API</div>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
+
+          <div>
+            <h1 className={clsx("text-2xl md:text-3xl font-extrabold leading-tight")}>Revolyx</h1>
+            <div className="text-xs opacity-60">Harry Potter Characters — explore wands, houses, actors and more</div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="hidden md:flex items-center gap-3 w-full md:w-auto">
           <form onSubmit={handleSearchSubmit} className={clsx("flex items-center gap-2 w-full md:w-[560px] rounded-lg px-3 py-1 border", isDark ? "bg-black/50 border-zinc-800" : "bg-white border-zinc-200")}>
             <Search className="opacity-60" />
             <Input
@@ -246,18 +378,42 @@ export default function HarryPotterPage() {
               className="border-0 shadow-none bg-transparent outline-none"
               onFocus={() => setShowSuggest(true)}
             />
-            <Button type="button" variant="outline" onClick={() => { setShowSuggest(true); searchClient(query); }}>
+            <Button type="button" variant="outline" onClick={() => { setShowSuggest(true); searchClient(query); }} className="cursor-pointer">
               Suggest
             </Button>
-            <Button type="submit" variant="ghost"><Search /></Button>
+            <Button type="submit" variant="ghost" className="cursor-pointer"><Search /></Button>
           </form>
+        </div>
+
+        {/* mobile search button */}
+        <div className="md:hidden flex items-center gap-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="p-2 cursor-pointer"><Search /></Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="max-w-md w-full">
+              <SheetHeader>
+                <SheetTitle>Search characters</SheetTitle>
+              </SheetHeader>
+
+              <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full rounded-lg px-3 py-1 border mt-2">
+                <Input
+                  placeholder="Search by name, house, actor or species"
+                  value={query}
+                  onChange={(e) => onQueryChange(e.target.value)}
+                  className="border-0 shadow-none bg-transparent outline-none"
+                />
+                <Button type="submit" variant="ghost" className="cursor-pointer"><Search /></Button>
+              </form>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 
       {/* suggestions */}
       <AnimatePresence>
         {showSuggest && (suggestions.length > 0 || loadingSuggest) && (
-          <motion.ul initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_280px)] md:right-auto max-w-4xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
+          <motion.ul initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className={clsx("absolute z-50 left-4 right-4 md:left-[calc(50%_-_280px)] md:right-auto max-w-4xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
             {loadingSuggest && <li className="p-3 text-sm opacity-60">Searching…</li>}
             {suggestions.map((s, idx) => (
               <li key={s.name + idx} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => pickSuggestion(s)}>
@@ -281,18 +437,36 @@ export default function HarryPotterPage() {
         {/* Center: character viewer */}
         <section className="lg:col-span-9 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+            <CardHeader className={clsx("p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div>
-                <CardTitle className="text-lg">Character</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-3">
+                  <Film className="opacity-70" />
+                  <span>Character</span>
+                </CardTitle>
                 <div className="text-xs opacity-60">{current?.name ?? (loading ? "Loading..." : "Select a character")}</div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => { setCurrent(characters[0] ?? null); setRawResp(characters[0] ?? null); }}><Loader2 className={loading ? "animate-spin" : ""} /> Default</Button>
-                <Button variant="ghost" onClick={() => setShowRaw(s => !s)}><List /> {showRaw ? "Hide Raw" : "View Raw"}</Button>
-                <Button variant="ghost" onClick={() => setImageOpen(true)}><ImageIcon /> View Image</Button>
-                <Button variant="ghost" onClick={() => copyCurrent()}><Copy /></Button>
-                <Button variant="ghost" onClick={() => downloadCurrent()}><Download /></Button>
+                <Button variant="outline" onClick={() => { setCurrent(characters[0] ?? null); setRawResp(characters[0] ?? null); }} className="cursor-pointer"><Loader2 className={loading ? "animate-spin" : ""} /> Default</Button>
+
+                <Button variant="ghost" onClick={() => setShowRaw(s => !s)} className="cursor-pointer"><List /> {showRaw ? "Hide Raw" : "View Raw"}</Button>
+
+                <Button variant="ghost" onClick={() => setImageOpen(true)} className="cursor-pointer"><ImageIcon /> View Image</Button>
+
+                <Button variant="ghost" onClick={() => copyCurrent()} className="cursor-pointer relative">
+                  {copyStatus === "copied" ? (
+                    <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                      <CheckCircle />
+                      <span className="sr-only">Copied</span>
+                    </motion.div>
+                  ) : copyStatus === "loading" ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Copy />
+                  )}
+                </Button>
+
+                <Button variant="ghost" onClick={() => downloadCurrent()} className="cursor-pointer"><Download /></Button>
               </div>
             </CardHeader>
 
@@ -303,12 +477,12 @@ export default function HarryPotterPage() {
                 <div className="py-12 text-center text-sm opacity-60">No character selected — use search or choose the default.</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Left: image & metadata */}
+                  {/* Left: image & key meta */}
                   <div className={clsx("p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
                     <div className="w-full h-88 rounded-md overflow-hidden mb-3 bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                       {current.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={current.image} alt={current.name} className=" w-full h-full" />
+                        <img src={current.image} alt={current.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="text-sm opacity-60">No image available</div>
                       )}
@@ -319,84 +493,76 @@ export default function HarryPotterPage() {
 
                     <div className="mt-3 flex flex-wrap gap-2">
                       {badges.map(b => (
-                        <div key={b.key} className="px-2 py-1 rounded-full text-xs border">{b.label}</div>
+                        <div key={b.key} className="px-2 py-1 rounded-full text-xs border cursor-pointer">{b.label}</div>
                       ))}
                     </div>
 
                     <div className="mt-4 space-y-2 text-sm">
                       <div>
-                        <div className="text-xs opacity-60">Actor</div>
+                        <div className="text-xs opacity-60 flex items-center gap-2"><User className="w-3 h-3" /> Actor</div>
                         <div className="font-medium">{safe(current.actor)}</div>
                       </div>
                       <div>
-                        <div className="text-xs opacity-60">Born</div>
+                        <div className="text-xs opacity-60 flex items-center gap-2"><Calendar className="w-3 h-3" /> Born</div>
                         <div className="font-medium">{(current.dateOfBirth || current.yearOfBirth) ? `${safe(current.dateOfBirth)} ${current.yearOfBirth ? `(${current.yearOfBirth})` : ""}` : "—"}</div>
                       </div>
                       <div>
-                        <div className="text-xs opacity-60">Alive</div>
+                        <div className="text-xs opacity-60 flex items-center gap-2"><Heart className="w-3 h-3" /> Alive</div>
                         <div className="font-medium">{current.alive ? "Yes" : "No"}</div>
                       </div>
                     </div>
 
                     <div className="mt-4 flex gap-2">
-                      <Button variant="outline" onClick={() => { if (current.wand && Object.keys(current.wand).length) showToast("info", `Wand: ${wandDescription(current.wand)}`); else showToast("info", "Wand unknown"); }}><Wand /> Wand</Button>
-                      <Button variant="ghost" onClick={() => { if (current.image) window.open(current.image, "_blank"); else showToast("info", "No image"); }}><ExternalLink /> Open Image</Button>
+                      <Button variant="outline" onClick={() => { if (current.wand && Object.keys(current.wand).length) showToast("info", `Wand: ${wandDescription(current.wand)}`); else showToast("info", "Wand unknown"); }} className="cursor-pointer"><Wand /> Wand</Button>
+                      <Button variant="ghost" onClick={() => { if (current.image) window.open(current.image, "_blank"); else showToast("info", "No image"); }} className="cursor-pointer"><ExternalLink /> Open Image</Button>
                     </div>
                   </div>
 
-                  {/* Right: details */}
+                  {/* Right: details (spans 2 cols) */}
                   <div className={clsx("p-4 rounded-xl border col-span-1 md:col-span-2", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <div className="text-sm font-semibold mb-2">Overview</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                      <div>
-                        <div className="text-xs opacity-60">Gender</div>
-                        <div className="font-medium">{safe(current.gender)}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs opacity-60">Species</div>
-                        <div className="font-medium">{safe(current.species)}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs opacity-60">House</div>
-                        <div className="font-medium">{safe(current.house)}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs opacity-60">Ancestry</div>
-                        <div className="font-medium">{safe(current.ancestry)}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs opacity-60">Eye Colour</div>
-                        <div className="font-medium">{safe(current.eyeColour)}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs opacity-60">Hair Colour</div>
-                        <div className="font-medium">{safe(current.hairColour)}</div>
-                      </div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-sm font-semibold flex items-center gap-2"><Info /> Overview</div>
+                      <div className="text-xs opacity-60">ID: {current.name?.toLowerCase().replace(/\s+/g, "_")}</div>
+                    </div>
+
+                    {/* stats grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                      {stats.map((s, idx) => (
+                        <div key={s.label + idx} className="p-3 rounded border text-sm cursor-default">
+                          <div className="flex items-center gap-2">
+                            <s.icon className="opacity-70" />
+                            <div className="text-xs opacity-60">{s.label}</div>
+                          </div>
+                          <div className="mt-2 font-medium">{s.value}</div>
+                        </div>
+                      ))}
                     </div>
 
                     <Separator />
 
                     <div className="mt-3">
-                      <div className="text-sm font-semibold mb-2">Wand</div>
+                      <div className="flex items-center gap-2 text-sm font-semibold mb-2"><Wand /> Wand</div>
                       <div className="text-sm">{wandDescription(current.wand)}</div>
                     </div>
 
                     <Separator className="my-3" />
 
                     <div>
-                      <div className="text-sm font-semibold mb-2">Biography / Notes</div>
+                      <div className="flex items-center gap-2 text-sm font-semibold mb-2"><BookOpen /> Biography / Notes</div>
                       <div className="text-sm leading-relaxed">{current.actor ? `Played by ${current.actor}.` : ""} {current.patronus ? `Patronus: ${current.patronus}.` : ""} {(current.hogwartsStudent ? "Hogwarts student. " : "") + (current.hogwartsStaff ? "Hogwarts staff. " : "")}</div>
                     </div>
 
                     <Separator className="my-3" />
 
                     <div>
-                      <div className="text-sm font-semibold mb-2">All fields (raw)</div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2 text-sm font-semibold"><FileText /> All fields (raw)</div>
+                        <div className="text-xs opacity-60">Inspect</div>
+                      </div>
                       <ScrollArea className="h-40 rounded-md border p-2">
                         <pre className="text-xs whitespace-pre-wrap">{prettyJSON(current)}</pre>
                       </ScrollArea>
                     </div>
-
                   </div>
                 </div>
               )}
@@ -405,9 +571,18 @@ export default function HarryPotterPage() {
             <AnimatePresence>
               {showRaw && rawResp && (
                 <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={clsx("p-4 border-t", isDark ? "bg-black/30 border-zinc-800" : "bg-white/60 border-zinc-200")}>
-                  <pre className={clsx("text-xs overflow-auto", isDark ? "text-zinc-200" : "text-zinc-900")} style={{ maxHeight: 300 }}>
-                    {prettyJSON(rawResp)}
-                  </pre>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <pre className={clsx("text-xs overflow-auto", isDark ? "text-zinc-200" : "text-zinc-900")} style={{ maxHeight: 300 }}>
+                        {prettyJSON(rawResp)}
+                      </pre>
+                    </div>
+                    <div className="flex flex-col gap-2 ml-3">
+                      <Button variant="outline" onClick={() => { navigator.clipboard.writeText(prettyJSON(rawResp)); showToast("success", "Raw copied"); }} className="cursor-pointer"><Copy /></Button>
+                      <Button variant="outline" onClick={() => { const blob = new Blob([prettyJSON(rawResp)], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `hp_raw.json`; a.click(); URL.revokeObjectURL(a.href); showToast("success", "Exported raw"); }} className="cursor-pointer"><Download /></Button>
+                      <Button variant="ghost" onClick={() => setShowRaw(false)} className="cursor-pointer"><X /></Button>
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -418,24 +593,24 @@ export default function HarryPotterPage() {
         <aside className={clsx("lg:col-span-3 rounded-2xl p-4 space-y-4", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
           <div>
             <div className="flex items-center justify-between mb-2">
-              <div className="text-sm font-semibold">Quick Actions</div>
+              <div className="text-sm font-semibold flex items-center gap-2"><Gift /> Quick Actions</div>
               <div className="text-xs opacity-60">Utilities</div>
             </div>
 
             <div className="space-y-2">
-              <Button className="w-full" variant="outline" onClick={() => { setCurrent(characters.find(c => /harry potter/i.test(c.name)) ?? characters[0] ?? null); setRawResp(characters.find(c => /harry potter/i.test(c.name)) ?? characters[0] ?? null); }}>
+              <Button className="w-full cursor-pointer" variant="outline" onClick={() => { setCurrent(characters.find(c => /harry potter/i.test(c.name)) ?? characters[0] ?? null); setRawResp(characters.find(c => /harry potter/i.test(c.name)) ?? characters[0] ?? null); }}>
                 <User /> Focus Harry
               </Button>
 
-              <Button className="w-full" variant="outline" onClick={() => { setShowRaw(s => !s); }}>
+              <Button className="w-full cursor-pointer" variant="outline" onClick={() => { setShowRaw(s => !s); }}>
                 <List /> Toggle Raw Response
               </Button>
 
-              <Button className="w-full" variant="outline" onClick={() => { navigator.clipboard.writeText(ENDPOINT); showToast("success", "Endpoint copied"); }}>
+              <Button className="w-full cursor-pointer" variant="outline" onClick={() => { navigator.clipboard.writeText(ENDPOINT); showToast("success", "Endpoint copied"); }}>
                 <Copy /> Copy Endpoint
               </Button>
 
-              <Button className="w-full" variant="outline" onClick={() => { if (rawResp) { const blob = new Blob([prettyJSON(rawResp)], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `hp_characters.json`; a.click(); URL.revokeObjectURL(a.href); showToast("success", "Exported dataset"); } else { showToast("info", "No dataset to export"); } }}>
+              <Button className="w-full cursor-pointer" variant="outline" onClick={() => { if (rawResp) { const blob = new Blob([prettyJSON(rawResp)], { type: "application/json" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `hp_characters.json`; a.click(); URL.revokeObjectURL(a.href); showToast("success", "Exported dataset"); } else { showToast("info", "No dataset to export"); } }}>
                 <Download /> Export Dataset
               </Button>
             </div>
@@ -444,15 +619,36 @@ export default function HarryPotterPage() {
           <Separator />
 
           <div>
+            <div className="text-sm font-semibold mb-2 flex items-center gap-2"><MapPin /> Random 10</div>
+            <div className="grid grid-cols-2 gap-2">
+              {randomTen.map((r, idx) => (
+                <div key={r.name + idx} onClick={() => focusCharacter(r)} className="flex items-center gap-3 p-2 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer">
+                  <img src={r.image || ""} alt={r.name} className="w-10 h-10 rounded object-cover" />
+                  <div className="text-xs">
+                    <div className="font-medium truncate">{r.name}</div>
+                    <div className="opacity-60 truncate">{r.house || r.actor || "—"}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 flex gap-2">
+              <Button className="flex-1" variant="ghost" onClick={refreshRandom} ><Zap /></Button>
+              <Button className="flex-1" variant="ghost" onClick={() => setRandomTen(sampleTen(characters))} ><RefreshIconMock /></Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div>
             <div className="text-sm font-semibold mb-2">About</div>
-            <div className="text-xs opacity-60">This page consumes data from <code className="rounded px-1 py-0.5 bg-zinc-100 dark:bg-zinc-900">https://hp-api.onrender.com/api/characters</code>. All fields returned by the API are presented for inspection on this page.</div>
+            <div className="text-xs opacity-60">This page consumes data from <code className="rounded px-1 py-0.5 bg-zinc-100 dark:bg-zinc-900">https://hp-api.onrender.com/api/characters</code>. All fields are shown for inspection.</div>
           </div>
         </aside>
       </main>
 
       {/* Image dialog */}
       <Dialog open={imageOpen} onOpenChange={setImageOpen}>
-        <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-3xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>{current?.name || "Image"}</DialogTitle>
           </DialogHeader>
@@ -469,12 +665,18 @@ export default function HarryPotterPage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">Image supplied by the HP API dataset</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setImageOpen(false)}><X /></Button>
-              <Button variant="outline" onClick={() => { if (current?.image) window.open(current.image, "_blank"); }}><ExternalLink /></Button>
+              <Button variant="ghost" onClick={() => setImageOpen(false)} className="cursor-pointer"><X /></Button>
+              <Button variant="outline" onClick={() => { if (current?.image) window.open(current.image, "_blank"); }} className="cursor-pointer"><ExternalLink /></Button>
             </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
+}
+
+/* Small placeholder because original icon set didn't contain Refresh in earlier import list —
+   Replace this with a proper lucide import if you want (e.g. import { RefreshCcw } from "lucide-react") */
+function RefreshIconMock() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="opacity-80"><path d="M21 12a9 9 0 10-3 6.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M21 3v6h-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>;
 }

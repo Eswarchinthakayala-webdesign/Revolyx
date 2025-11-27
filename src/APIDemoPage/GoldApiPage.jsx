@@ -19,7 +19,11 @@ import {
   ArrowDown,
   ArrowUp,
   BarChart2,
-  Globe
+  Globe,
+  Menu,
+  Check,
+  FileText,
+  RefreshCw
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,14 +36,15 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { useTheme } from "@/components/theme-provider";
 import { showToast } from "../lib/ToastHelper";
 
+// shadcn/ui Sheet (mobile sidebar)
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+
 /* ---------- Endpoint & defaults ---------- */
 const API_BASE = "https://www.goldapi.io/api";
 const DEFAULT_PAIR = { metal: "XAU", currency: "INR" };
-
-/* Replace this with your API key or move to env handling */
 const DEFAULT_API_KEY = "goldapi-119w5smi7dmpry-io";
 
-/* ---------- Suggestion list (curated, searchable) ---------- */
+/* ---------- Suggestion list ---------- */
 const SUGGESTED_PAIRS = [
   { metal: "XAU", currency: "USD", label: "Gold — XAU/USD" },
   { metal: "XAU", currency: "INR", label: "Gold — XAU/INR" },
@@ -62,7 +67,6 @@ function parsePairInput(input) {
     const [metal, currency] = normalized.split("/").map(s => s.trim()).filter(Boolean);
     if (metal && currency) return { metal, currency };
   }
-  // allow single-term like "XAU" -> XAU/USD default
   if (/^[A-Z]{2,4}$/.test(normalized)) {
     return { metal: normalized, currency: "USD" };
   }
@@ -83,14 +87,11 @@ function humanDate(ts) {
   }
 }
 
-/* ---------- Component ---------- */
 export default function GoldApiPage() {
   const { theme } = useTheme?.() ?? { theme: "system" };
   const isDark =
     theme === "dark" ||
-    (theme === "system" &&
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches);
+    (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   const [apiKey, setApiKey] = useState(DEFAULT_API_KEY);
   const [query, setQuery] = useState(toPairString(DEFAULT_PAIR.metal, DEFAULT_PAIR.currency));
@@ -105,16 +106,20 @@ export default function GoldApiPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
 
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+
+  // copy states for animated feedback
+  const [copyEndpointState, setCopyEndpointState] = useState("idle"); // idle | copying | done
+  const [copyJSONState, setCopyJSONState] = useState("idle");
+
   const suggestRef = useRef(null);
   const fetchAbortRef = useRef(null);
 
   useEffect(() => {
-    // initial fetch for default pair
     fetchPrice(DEFAULT_PAIR.metal, DEFAULT_PAIR.currency);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* ---------- Suggestions: filter local list as user types ---------- */
   useEffect(() => {
     if (!query) {
       setSuggestions(SUGGESTED_PAIRS);
@@ -122,21 +127,17 @@ export default function GoldApiPage() {
     }
     setLoadingSuggest(true);
     const q = query.trim().toLowerCase();
-    // filter suggestions by label or pair
     const filt = SUGGESTED_PAIRS.filter(s =>
-      s.label.toLowerCase().includes(q) ||
-      toPairString(s.metal, s.currency).toLowerCase().includes(q)
+      s.label.toLowerCase().includes(q) || toPairString(s.metal, s.currency).toLowerCase().includes(q)
     );
-    // also include parsed input as suggestion if looks like pair
     const parsed = parsePairInput(query);
     const extra = parsed ? [{ metal: parsed.metal, currency: parsed.currency, label: `${parsed.metal}/${parsed.currency} (custom)` }] : [];
     setTimeout(() => {
       setSuggestions([...extra, ...filt]);
       setLoadingSuggest(false);
-    }, 120); // small debounce feel
+    }, 120);
   }, [query]);
 
-  /* ---------- Fetch helper ---------- */
   async function fetchPrice(metal, currency) {
     if (!metal || !currency) {
       showToast("info", "Please specify metal and currency (e.g. XAU/INR).");
@@ -145,10 +146,8 @@ export default function GoldApiPage() {
 
     if (!apiKey || apiKey === "YOUR_API_KEY") {
       showToast("warning", "Replace 'YOUR_API_KEY' with your GoldAPI key.");
-      // still let it try — endpoint will return 401
     }
 
-    // cancel previous
     if (fetchAbortRef.current) {
       fetchAbortRef.current.abort();
     }
@@ -182,7 +181,6 @@ export default function GoldApiPage() {
       showToast("success", `Loaded ${metal}/${currency} — ${json.price ?? "no price"}`);
     } catch (err) {
       if (err?.name === "AbortError") {
-        // ignore
       } else {
         console.error(err);
         showToast("error", "Network error fetching price");
@@ -210,16 +208,32 @@ export default function GoldApiPage() {
     fetchPrice(parsed.metal, parsed.currency);
   }
 
-  function copyEndpoint() {
+  async function copyEndpoint() {
     const url = `${API_BASE}/${currentPair.metal}/${currentPair.currency}`;
-    navigator.clipboard.writeText(url);
-    showToast("success", "Endpoint copied");
+    try {
+      setCopyEndpointState("copying");
+      await navigator.clipboard.writeText(url);
+      setCopyEndpointState("done");
+      showToast("success", "Endpoint copied");
+      setTimeout(() => setCopyEndpointState("idle"), 1800);
+    } catch (e) {
+      setCopyEndpointState("idle");
+      showToast("error", "Unable to copy");
+    }
   }
 
-  function copyJSON() {
+  async function copyJSON() {
     if (!rawResp) return showToast("info", "No response to copy.");
-    navigator.clipboard.writeText(prettyJSON(rawResp));
-    showToast("success", "JSON copied to clipboard");
+    try {
+      setCopyJSONState("copying");
+      await navigator.clipboard.writeText(prettyJSON(rawResp));
+      setCopyJSONState("done");
+      showToast("success", "JSON copied to clipboard");
+      setTimeout(() => setCopyJSONState("idle"), 1800);
+    } catch (e) {
+      setCopyJSONState("idle");
+      showToast("error", "Unable to copy");
+    }
   }
 
   function downloadJSON() {
@@ -235,7 +249,6 @@ export default function GoldApiPage() {
 
   const parsedFields = useMemo(() => {
     if (!rawResp || typeof rawResp !== "object") return null;
-    // goldapi typical response includes fields like: price, bid, ask, timestamp, unit, metal, currency, ch (change)
     return {
       price: rawResp.price ?? rawResp.bid ?? rawResp.ask ?? null,
       unit: rawResp.unit ?? rawResp.currency ?? null,
@@ -248,16 +261,60 @@ export default function GoldApiPage() {
   }, [rawResp, currentPair]);
 
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
+    <div className={clsx("min-h-screen p-4 sm:p-6 max-w-8xl mx-auto")}>
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>GoldAPI — Live Metals</h1>
-          <p className="mt-1 text-sm opacity-70">Real-time precious metal prices — fetch via GoldAPI (x-access-token header).</p>
+      <header className="flex items-start sm:items-center justify-between gap-4 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="sm:hidden">
+            <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" className="p-2 cursor-pointer">
+                  <Menu />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[280px]">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Star />
+                    <div className="font-semibold">GoldAPI — Tools</div>
+                  </div>
+                  <Button variant="ghost" onClick={() => setMobileSheetOpen(false)}><X /></Button>
+                </div>
+
+                <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
+                  <div className="space-y-4">
+                    <div className="text-xs opacity-70">Selected</div>
+                    <div className="p-3 rounded-md border">
+                      <div className="font-medium">{currentPair.metal}/{currentPair.currency}</div>
+                      <div className="text-xs opacity-60">{parsedFields?.timestamp ? humanDate(parsedFields.timestamp) : '—'}</div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-2">
+                      <Button className="w-full cursor-pointer" variant="outline" onClick={copyEndpoint}>
+                        {copyEndpointState === 'done' ? <Check /> : <Copy />} Copy Endpoint
+                      </Button>
+                      <Button className="w-full cursor-pointer" variant="outline" onClick={copyJSON}>
+                        {copyJSONState === 'done' ? <Check /> : <Copy />} Copy JSON
+                      </Button>
+                      <Button className="w-full cursor-pointer" variant="outline" onClick={downloadJSON}><Download /> Download</Button>
+                      <Button className="w-full cursor-pointer" variant="ghost" onClick={() => window.open('https://www.goldapi.io', '_blank')}><ExternalLink /> Docs</Button>
+                    </div>
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          <div>
+            <h1 className={clsx("text-2xl sm:text-3xl font-extrabold leading-tight")}>GoldAPI — Live Metals</h1>
+            <p className="text-sm opacity-70">Real-time precious metal prices (x-access-token header). Fast, lightweight.</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <form onSubmit={handleSubmit} className={clsx("relative flex items-center gap-2 w-full md:w-[560px] rounded-lg px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
+        <div className="hidden sm:flex items-center gap-3 w-full sm:w-auto">
+          <form onSubmit={handleSubmit} className={clsx("relative flex items-center gap-2 w-full sm:w-[520px] rounded-lg px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-60" />
             <Input
               placeholder="Search pair, e.g. XAU/INR or type 'gold'..."
@@ -266,24 +323,27 @@ export default function GoldApiPage() {
               className="border-0 shadow-none bg-transparent outline-none"
               onFocus={() => setShowSuggest(true)}
             />
-            <Button type="button" variant="ghost" className="px-3" onClick={() => { setQuery(toPairString(DEFAULT_PAIR.metal, DEFAULT_PAIR.currency)); fetchPrice(DEFAULT_PAIR.metal, DEFAULT_PAIR.currency); }}>
-              Default
-            </Button>
-            <Button type="submit" variant="outline" className="px-3">
-              {loading ? <Loader2 className="animate-spin" /> : <Search />}
-            </Button>
+
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="ghost" className="px-3 cursor-pointer" onClick={() => { setQuery(toPairString(DEFAULT_PAIR.metal, DEFAULT_PAIR.currency)); fetchPrice(DEFAULT_PAIR.metal, DEFAULT_PAIR.currency); }}>
+                Default
+              </Button>
+              <Button type="submit" variant="outline" className="px-3 cursor-pointer">
+                {loading ? <Loader2 className="animate-spin" /> : <Search />}
+              </Button>
+            </div>
           </form>
         </div>
       </header>
 
-      {/* Suggestions box */}
+      {/* Suggestions */}
       <AnimatePresence>
         {showSuggest && suggestions.length > 0 && (
           <motion.ul
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_280px)] md:right-auto max-w-4xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
+            className={clsx("absolute z-50 left-4 right-4 sm:left-[calc(50%_-_260px)] sm:right-auto max-w-4xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
             ref={suggestRef}
           >
             {loadingSuggest && <li className="p-3 text-sm opacity-60">Finding pairs…</li>}
@@ -309,18 +369,18 @@ export default function GoldApiPage() {
 
       {/* Layout */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* Left: quick meta / thumbnail */}
-        <aside className={clsx("lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
+        {/* Left: quick meta / thumbnail (desktop) */}
+        <aside className={clsx("hidden lg:block lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
           <div>
             <div className="text-sm font-semibold mb-2">Selected Pair</div>
             <div className="flex items-center gap-3">
               <div className="rounded-lg p-2 border" aria-hidden>
                 <div className="text-sm font-bold">{currentPair.metal}/{currentPair.currency}</div>
-                <div className="text-xs opacity-60">{parsedFields?.metal ?? "—"}</div>
+                <div className="text-xs opacity-60">{parsedFields?.metal ?? '—'}</div>
               </div>
               <div className="flex-1">
                 <div className="text-xs opacity-60">Last fetched</div>
-                <div className="text-sm">{parsedFields?.timestamp ? humanDate(parsedFields.timestamp) : "—"}</div>
+                <div className="text-sm">{parsedFields?.timestamp ? humanDate(parsedFields.timestamp) : '—'}</div>
               </div>
             </div>
           </div>
@@ -352,25 +412,32 @@ export default function GoldApiPage() {
             <div className="text-sm font-semibold mb-2">Developer</div>
             <div className="text-xs opacity-60">Endpoint & tools</div>
             <div className="mt-2 space-y-2">
-              <Button variant="outline" onClick={copyEndpoint}><Copy /> Copy Endpoint</Button>
-              <Button variant="outline" onClick={() => { window.open("https://www.goldapi.io", "_blank"); }}><Globe /> GoldAPI Docs</Button>
-              <Button variant="outline" onClick={() => { setDialogOpen(true); }}><ImageIcon /> View Raw</Button>
+              <Button variant="outline" onClick={copyEndpoint} className="cursor-pointer"><Copy /> Copy Endpoint</Button>
+              <Button variant="outline" onClick={() => { window.open("https://www.goldapi.io", "_blank"); }} className="cursor-pointer"><Globe /> GoldAPI Docs</Button>
+              <Button variant="outline" onClick={() => { setDialogOpen(true); }} className="cursor-pointer"><ImageIcon /> View Raw</Button>
             </div>
           </div>
         </aside>
 
-        {/* Center: large detail */}
+        {/* Center: redesigned preview */}
         <section className="lg:col-span-6 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
             <CardHeader className={clsx("p-5 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
-              <div>
-                <CardTitle className="text-lg">Live Price Detail</CardTitle>
-                <div className="text-xs opacity-60">{currentPair.metal}/{currentPair.currency}</div>
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-md bg-zinc-50 dark:bg-zinc-900/40">
+                  <DollarSign />
+                </div>
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">Live Price Detail <span className="text-xs opacity-60">{currentPair.metal}/{currentPair.currency}</span></CardTitle>
+                  <div className="text-xs opacity-60 flex items-center gap-2"><Clock className="opacity-70" /> {parsedFields?.timestamp ? humanDate(parsedFields.timestamp) : 'Not fetched'}</div>
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => fetchPrice(currentPair.metal, currentPair.currency)}><Loader2 className={loading ? "animate-spin" : ""} /> Refresh</Button>
-                <Button variant="ghost" onClick={() => setShowRaw(s => !s)}><List /> {showRaw ? "Hide Raw" : "Show Raw"}</Button>
+                <Tooltip content="Refresh">
+                  <Button variant="ghost" onClick={() => fetchPrice(currentPair.metal, currentPair.currency)} className="cursor-pointer"><RefreshCw className={loading ? "animate-spin" : ""} /></Button>
+                </Tooltip>
+                <Button variant="ghost" onClick={() => setShowRaw(s => !s)} className="cursor-pointer"><FileText /> {showRaw ? "Hide Raw" : "Show Raw"}</Button>
               </div>
             </CardHeader>
 
@@ -381,57 +448,71 @@ export default function GoldApiPage() {
                 <div className="py-12 text-center text-sm opacity-60">No data loaded — search a pair or pick a suggestion.</div>
               ) : (
                 <div className="space-y-4">
-                  {/* Main fields */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl border">
-                      <div className="text-xs opacity-60">Price</div>
-                      <div className="text-2xl font-bold">{parsedFields?.price ?? "—"} <span className="text-sm font-medium opacity-70">{parsedFields?.currency ?? ""}</span></div>
+                  {/* Main card top: price + quick actions */}
+                  <div className="p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+                    <div>
+                      <div className="text-xs opacity-60 flex items-center gap-2"><BarChart2 /> Price</div>
+                      <div className="text-3xl font-bold">{parsedFields?.price ?? "—"} <span className="text-base font-medium ml-2 opacity-70">{parsedFields?.currency ?? ""}</span></div>
                       <div className="mt-2 text-sm opacity-60">Fetched: {parsedFields?.timestamp ? humanDate(parsedFields.timestamp) : "—"}</div>
-
-                      <div className="mt-3 flex gap-2">
-                        <Button variant="outline" onClick={copyJSON}><Copy /> Copy JSON</Button>
-                        <Button variant="outline" onClick={downloadJSON}><Download /> Download</Button>
-                      </div>
                     </div>
 
-                    <div className="p-4 rounded-xl border">
-                      <div className="text-xs opacity-60">Analytics</div>
-                      <div className="grid grid-cols-1 gap-2 mt-2">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm">Change</div>
-                          <div className="font-medium">{parsedFields?.change ?? "—"}</div>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm">Unit</div>
-                          <div className="font-medium">{parsedFields?.unit ?? "—"}</div>
-                        </div>
-                      </div>
+                    <div className="flex gap-2">
+                      <motion.div whileTap={{ scale: 0.96 }}>
+                        <Button variant="outline" onClick={copyJSON} className="cursor-pointer flex items-center gap-2">
+                          {copyJSONState === 'done' ? <Check /> : <Copy />} {copyJSONState === 'done' ? 'Copied' : 'Copy JSON'}
+                        </Button>
+                      </motion.div>
+
+                      <motion.div whileTap={{ scale: 0.96 }}>
+                        <Button variant="ghost" onClick={downloadJSON} className="cursor-pointer flex items-center gap-2"><Download /> Download</Button>
+                      </motion.div>
                     </div>
                   </div>
 
-                  <Separator />
-
-                  <div>
-                    <div className="text-sm font-semibold mb-2">Full Response</div>
-                    <div className={clsx("rounded-md border p-3 overflow-auto", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")} style={{ maxHeight: 420 }}>
-                      <pre className={clsx("text-xs whitespace-pre-wrap")}>{prettyJSON(rawResp)}</pre>
+                  {/* Analytics / details */}
+                  <div className="p-4 rounded-xl border grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-xs opacity-60 flex items-center gap-2"><ArrowUp /> Change</div>
+                      <div className="font-medium mt-1">{parsedFields?.change ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs opacity-60 flex items-center gap-2"><DollarSign /> Unit</div>
+                      <div className="font-medium mt-1">{parsedFields?.unit ?? "—"}</div>
                     </div>
                   </div>
+
+                  {/* Raw toggleable */}
+                  <AnimatePresence>
+                    {showRaw && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="rounded-md border p-3 overflow-auto"
+                        style={{ maxHeight: 420 }}
+                      >
+                        <div className="text-sm font-semibold mb-2 flex items-center gap-2"><FileText /> Full Response</div>
+                        <ScrollArea style={{ maxHeight: 340 }}>
+                          <pre className="text-xs whitespace-pre-wrap">{prettyJSON(rawResp)}</pre>
+                        </ScrollArea>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
             </CardContent>
           </Card>
         </section>
 
-        {/* Right: quick actions + metadata */}
-        <aside className={clsx("lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
+        {/* Right: quick actions + metadata (desktop) */}
+        <aside className={clsx("hidden lg:block lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
           <div>
             <div className="text-sm font-semibold mb-2">Quick Actions</div>
             <div className="space-y-2">
-              <Button variant="outline" onClick={copyEndpoint}><Copy /> Copy Endpoint</Button>
-              <Button variant="outline" onClick={copyJSON}><Copy /> Copy JSON</Button>
-              <Button variant="outline" onClick={downloadJSON}><Download /> Download JSON</Button>
-              <Button variant="ghost" onClick={() => window.open("https://www.goldapi.io", "_blank")}><ExternalLink /> Open Docs</Button>
+              <Button variant="outline" onClick={copyEndpoint} className="cursor-pointer"><Copy /> Copy Endpoint</Button>
+              <Button variant="outline" onClick={copyJSON} className="cursor-pointer"><Copy /> Copy JSON</Button>
+              <Button variant="outline" onClick={downloadJSON} className="cursor-pointer"><Download /> Download JSON</Button>
+              <Button variant="ghost" onClick={() => window.open("https://www.goldapi.io", "_blank")} className="cursor-pointer"><ExternalLink /> Open Docs</Button>
             </div>
           </div>
 
@@ -445,7 +526,7 @@ export default function GoldApiPage() {
         </aside>
       </main>
 
-      {/* Raw dialog */}
+      {/* Raw dialog (kept for larger view) */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
@@ -463,8 +544,8 @@ export default function GoldApiPage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">From GoldAPI</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
-              <Button variant="outline" onClick={downloadJSON}><Download /></Button>
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="cursor-pointer"><X /></Button>
+              <Button variant="outline" onClick={downloadJSON} className="cursor-pointer"><Download /></Button>
             </div>
           </DialogFooter>
         </DialogContent>

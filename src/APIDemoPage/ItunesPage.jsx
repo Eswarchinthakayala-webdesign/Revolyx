@@ -22,7 +22,14 @@ import {
   Music,
   Speaker,
   Star,
-  List
+  List,
+  Menu,
+  Check,
+  Clock,
+  Calendar,
+  Tag,
+  ArrowRightCircle,
+  Shuffle
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -39,17 +46,16 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"; // shadcn-like sheet
 
 /*
-  iTunes Search API page
-  - Default term: "drake"
-  - Debounced suggestions
-  - Voice search (Web Speech)
-  - Preview audio player
-  - Raw JSON view, copy & download
-  - Image modal
-  - No local save logic (per user request)
+  Enhanced iTunes Search Page
+  - Improved layout + animation
+  - Mobile sheet sidebar
+  - Random 10 generator
+  - Animated copy -> tick
+  - Rich metadata with icons
+  - All buttons are cursor-pointer and a11y-friendly
 */
 
 const ITUNES_BASE = "https://itunes.apple.com/search";
@@ -61,7 +67,7 @@ function prettyJSON(obj) {
 }
 
 function msToTime(ms) {
-  if (!ms) return "--:--";
+  if (!ms && ms !== 0) return "--:--";
   const sec = Math.floor(ms / 1000);
   const m = Math.floor(sec / 60);
   const s = sec % 60;
@@ -93,6 +99,7 @@ export default function ItunesPage() {
   // UI toggles
   const [showRaw, setShowRaw] = useState(false);
   const [imgOpen, setImgOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   // audio preview
   const audioRef = useRef(null);
@@ -103,10 +110,22 @@ export default function ItunesPage() {
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef(null);
 
+  // copy animation state
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef(null);
+
   // init: search default term
   useEffect(() => {
     searchItunes(DEFAULT_TERM, DEFAULT_LIMIT);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // cleanup copy timer on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    };
   }, []);
 
   // fetch iTunes search
@@ -114,6 +133,7 @@ export default function ItunesPage() {
     if (!q || q.trim().length === 0) {
       setResults([]);
       setRawResp(null);
+      setCurrent(null);
       return;
     }
     setLoading(true);
@@ -130,6 +150,7 @@ export default function ItunesPage() {
         showToast?.("error", `iTunes search failed (${res.status})`);
         setResults([]);
         setRawResp(null);
+        setCurrent(null);
         setLoading(false);
         return;
       }
@@ -148,6 +169,7 @@ export default function ItunesPage() {
       showToast?.("error", "Search error");
       setResults([]);
       setRawResp(null);
+      setCurrent(null);
     } finally {
       setLoading(false);
     }
@@ -187,13 +209,14 @@ export default function ItunesPage() {
 
   async function handleSubmit(e) {
     e?.preventDefault?.();
-    await searchItunes(term, limit);
     setShowSuggest(false);
+    await searchItunes(term, limit);
   }
 
   function chooseSuggestion(item) {
     setCurrent(item);
     setShowSuggest(false);
+    setTerm(item.trackName || item.collectionName || item.artistName || term);
   }
 
   // audio controls
@@ -234,12 +257,20 @@ export default function ItunesPage() {
 
   // copy & download
   function copyJSON() {
-    if (!current && !rawResp) {
+    const payload = showRaw ? rawResp : (current || rawResp);
+    if (!payload) {
       showToast?.("info", "Nothing to copy");
       return;
     }
-    navigator.clipboard.writeText(prettyJSON(current || rawResp));
-    showToast?.("success", "Copied JSON to clipboard");
+    navigator.clipboard.writeText(prettyJSON(payload)).then(() => {
+      setCopied(true);
+      showToast?.("success", "Copied JSON to clipboard");
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 1800);
+    }).catch((e) => {
+      console.error(e);
+      showToast?.("error", "Could not copy");
+    });
   }
 
   function downloadJSON() {
@@ -317,20 +348,67 @@ export default function ItunesPage() {
     }
   }
 
-  // helpful derived values
+  // Random 10: pick 10 from current results or search random artist seeds
+  const randomSeeds = useMemo(() => [
+    "Beyonce", "Taylor Swift", "Coldplay", "Adele", "Bruno Mars", "Kendrick Lamar", "Drake", "Rihanna", "Ed Sheeran", "Billie Eilish"
+  ], []);
+
+  async function randomTen() {
+    if (results && results.length >= 10) {
+      // pick 10 random distinct from results
+      const shuffled = [...results].sort(() => 0.5 - Math.random());
+      const pick = shuffled.slice(0, 10);
+      setResults(pick);
+      setCurrent(pick[0] || null);
+      showToast?.("success", "10 random tracks chosen from current results");
+      return;
+    }
+    // otherwise run a random seeded search
+    const seed = randomSeeds[Math.floor(Math.random() * randomSeeds.length)];
+    await searchItunes(seed, 20);
+    // if we have results reduce to 10 randomized
+    if (results && results.length > 0) {
+      const shuffled = [...results].sort(() => 0.5 - Math.random());
+      const pick = shuffled.slice(0, 10);
+      setResults(pick);
+      setCurrent(pick[0] || null);
+    }
+  }
+
+  // derived
   const primaryTrack = current || (results.length > 0 ? results[0] : null);
 
-  return (
-    <div className={clsx("min-h-screen p-6 max-w-9xl mx-auto", isDark ? "bg-black text-zinc-100" : "bg-white text-zinc-900")}>
-      {/* header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+  // helper for headings with icon
+  function Heading({ icon: Icon, title, subtitle }) {
+    return (
+      <div className="flex items-start gap-3">
+        <div className="p-2 rounded-md bg-zinc-100 dark:bg-zinc-900/60 flex items-center justify-center">
+          <Icon className="w-5 h-5" />
+        </div>
         <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold">Harmony — iTunes Music Search</h1>
-          <p className="mt-1 text-sm opacity-70">Explore songs, play previews, view full metadata. Dark (black) / Light (white) theme-ready.</p>
+          <div className="text-sm font-semibold">{title}</div>
+          {subtitle && <div className="text-xs opacity-60">{subtitle}</div>}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={clsx("min-h-screen pb-10 p-4 md:p-6 max-w-9xl mx-auto", isDark ? "bg-black text-zinc-100" : "bg-white text-zinc-900")}>
+      {/* header */}
+      <header className="flex items-center flex-wrap justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" onClick={() => setSheetOpen(true)} aria-label="Open menu" className="p-2 sm:hidden rounded-md cursor-pointer">
+            <Menu />
+          </Button>
+          <div>
+            <h1 className="text-lg sm:text-2xl font-extrabold leading-tight">Harmony</h1>
+            <div className="text-xs opacity-60">iTunes Music Search — play previews, inspect metadata</div>
+          </div>
         </div>
 
-        <div className="w-full md:w-auto flex items-center gap-3">
-          <form onSubmit={handleSubmit} className={clsx("flex items-center gap-2 w-full md:w-[640px] rounded-xl px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
+        <div className="flex items-center gap-3">
+          <form onSubmit={handleSubmit} className={clsx("flex items-center gap-2 rounded-xl px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-70" />
             <Input
               placeholder="Search artist, song, or album (e.g. 'Drake')"
@@ -340,24 +418,26 @@ export default function ItunesPage() {
               className="border-0 shadow-none bg-transparent outline-none"
             />
             <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" onClick={() => { setTerm(DEFAULT_TERM); searchItunes(DEFAULT_TERM, limit); }}>Default</Button>
-              <Button type="submit" variant="ghost"><Search /></Button>
-              <Button variant="ghost" onClick={toggleListening} title="Voice search">
+              <Button type="button" variant="outline" onClick={() => { setTerm(DEFAULT_TERM); searchItunes(DEFAULT_TERM, limit); }} className="cursor-pointer">Default</Button>
+              <Button type="submit" variant="ghost" className="cursor-pointer"><Search /></Button>
+              <Button variant="ghost" onClick={toggleListening} title="Voice search" className="cursor-pointer">
                 {listening ? <MicOff className="animate-pulse" /> : <Mic />}
               </Button>
             </div>
           </form>
         </div>
+
+       
       </header>
 
-      {/* suggestions dropdown */}
+      {/* suggestions dropdown (mobile & desktop) */}
       <AnimatePresence>
         {showSuggest && suggestions.length > 0 && (
           <motion.ul
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_320px)] md:right-auto max-w-[640px] rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
+            className={clsx("absolute z-50 left-4 right-4 md:left-[calc(50%_-_320px)] md:right-auto max-w-[640px] rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
           >
             {loadingSuggest && <li className="p-3 text-sm opacity-60">Searching…</li>}
             {suggestions.map((s, i) => (
@@ -381,18 +461,13 @@ export default function ItunesPage() {
         {/* center content */}
         <section className="lg:col-span-8 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+            <CardHeader className={clsx("p-5 flex items-center flex-wrap gap-3 justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div>
-                <CardTitle className="text-lg">Track Details</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-3"><Music /> <span>Track Details</span></CardTitle>
                 <div className="text-xs opacity-60">{primaryTrack?.trackName ?? "No track loaded"}</div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" onClick={() => searchItunes(term, limit)}>{loading ? <Loader2 className="animate-spin" /> : "Refresh"}</Button>
-                <Button variant="ghost" onClick={() => setShowRaw((s) => !s)}><List /> {showRaw ? "Hide Raw" : "Show Raw"}</Button>
-                <Button variant="ghost" onClick={copyJSON}><Copy /></Button>
-                <Button variant="ghost" onClick={downloadJSON}><Download /></Button>
-              </div>
+        =
             </CardHeader>
 
             <CardContent>
@@ -404,31 +479,61 @@ export default function ItunesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* left: artwork + controls */}
                   <div className={clsx("p-4 rounded-xl border flex flex-col items-start gap-4", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <img src={primaryTrack.artworkUrl100} alt={primaryTrack.trackName} className="w-full rounded-lg object-cover cursor-pointer" onClick={() => openImageModal(primaryTrack)} />
+                    <div className="w-full">
+                      <img
+                        src={primaryTrack.artworkUrl100}
+                        alt={primaryTrack.trackName}
+                        className="w-full rounded-lg object-cover cursor-pointer"
+                        onClick={() => openImageModal(primaryTrack)}
+                        style={{ maxHeight: 320 }}
+                      />
+                    </div>
+
                     <div className="w-full">
                       <div className="text-lg font-semibold">{primaryTrack.trackName}</div>
                       <div className="text-sm opacity-60">{primaryTrack.artistName} • {primaryTrack.collectionName}</div>
-                      <div className="mt-2 text-xs opacity-60">Genre: {primaryTrack.primaryGenreName || "—"}</div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <Button variant="outline" onClick={() => playPreview(primaryTrack)}>{audioLoading ? <Loader2 className="animate-spin" /> : (playingTrack && playingTrack.previewUrl === primaryTrack.previewUrl ? <Pause /> : <Play />)}</Button>
-                        <Button variant="ghost" onClick={() => { if (primaryTrack.trackViewUrl) window.open(primaryTrack.trackViewUrl, "_blank"); }}><ExternalLink /></Button>
-                        <Button variant="ghost" onClick={() => showToast?.("info", "Feature: Add to playlist (placeholder)") }><Star /></Button>
+                    </div>
+
+                    <div className="w-full flex items-center gap-2">
+                      <Button variant="outline" onClick={() => playPreview(primaryTrack)} className="cursor-pointer">
+                        {audioLoading ? <Loader2 className="animate-spin" /> : (playingTrack && playingTrack.previewUrl === primaryTrack.previewUrl ? <Pause /> : <Play />)}
+                      </Button>
+                      <Button variant="ghost" onClick={() => { if (primaryTrack.trackViewUrl) window.open(primaryTrack.trackViewUrl, "_blank"); }} className="cursor-pointer"><ExternalLink /></Button>
+                      <Button variant="ghost" onClick={() => showToast?.("info", "Feature: Add to playlist (placeholder)")} className="cursor-pointer"><Star /></Button>
+                    </div>
+
+                    <div className="w-full mt-2 grid grid-cols-1 gap-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 opacity-60" />
+                        <div>
+                          <div className="text-xs opacity-60">Duration</div>
+                          <div className="font-medium">{msToTime(primaryTrack.trackTimeMillis)}</div>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="w-full mt-2 text-sm">
-                      <div className="text-xs opacity-60">Duration</div>
-                      <div className="font-medium">{msToTime(primaryTrack.trackTimeMillis)}</div>
-                    </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 opacity-60" />
+                        <div>
+                          <div className="text-xs opacity-60">Release</div>
+                          <div className="font-medium">{primaryTrack.releaseDate ? new Date(primaryTrack.releaseDate).toLocaleDateString() : "—"}</div>
+                        </div>
+                      </div>
 
-                    <div className="w-full mt-2 text-sm">
-                      <div className="text-xs opacity-60">Release</div>
-                      <div className="font-medium">{primaryTrack.releaseDate ? new Date(primaryTrack.releaseDate).toLocaleDateString() : "—"}</div>
-                    </div>
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-4 h-4 opacity-60" />
+                        <div>
+                          <div className="text-xs opacity-60">Genre</div>
+                          <div className="font-medium">{primaryTrack.primaryGenreName || "—"}</div>
+                        </div>
+                      </div>
 
-                    <div className="w-full mt-2 text-sm">
-                      <div className="text-xs opacity-60">Price</div>
-                      <div className="font-medium">{primaryTrack.trackPrice ? `${primaryTrack.trackPrice} ${primaryTrack.currency || ""}` : "—"}</div>
+                      <div className="flex items-center gap-2">
+                        <ArrowRightCircle className="w-4 h-4 opacity-60" />
+                        <div>
+                          <div className="text-xs opacity-60">Price</div>
+                          <div className="font-medium">{primaryTrack.trackPrice ? `${primaryTrack.trackPrice} ${primaryTrack.currency || ""}` : "—"}</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -436,33 +541,69 @@ export default function ItunesPage() {
                   <div className="md:col-span-2 space-y-4">
                     <div className={clsx("p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
                       <div className="flex items-center justify-between mb-3">
-                        <div className="text-sm font-semibold">Top results</div>
-                        <div className="text-xs opacity-60">Showing {results.length} items</div>
+                        <Heading icon={List} title="Top results" subtitle={`Showing ${results.length} items`} />
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={String(limit)}
+                            onValueChange={(v) => setLimit(Number(v))}
+                          >
+                            <SelectTrigger
+                              className={clsx(
+                                "w-auto rounded-md p-2 text-sm",
+                                isDark ? "bg-black/30 border border-zinc-800" : "bg-white border border-zinc-200"
+                              )}
+                              aria-label="Results limit"
+                            >
+                              <SelectValue placeholder="Limit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[6, 12, 24, 48].map((n) => (
+                                <SelectItem key={n} value={String(n)}>
+                                  {n}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+
+                          <Button variant="outline" onClick={() => searchItunes(term, limit)} className="cursor-pointer"><Search /></Button>
+                        </div>
                       </div>
 
-                      <ScrollArea className="h-[400px] overflow-auto">
-                        <div className="space-y-3">
+                      <ScrollArea className="h-[360px] p-3 overflow-auto">
+                        <div className="space-y-2 pt-3">
                           {results.map((r) => (
-                            <div key={r.trackId || r.collectionId} className="flex items-center gap-3 p-3 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/40 cursor-pointer" onClick={() => setCurrent(r)}>
+                            <div
+                              key={r.trackId || r.collectionId}
+                              className={clsx("flex items-center gap-3 p-3 rounded mx-2 hover:bg-zinc-100 dark:hover:bg-zinc-800/40 cursor-pointer transition", primaryTrack?.trackId === r.trackId ? "ring-2 ring-zinc-300 dark:ring-zinc-600" : "")}
+                              onClick={() => setCurrent(r)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => { if (e.key === "Enter") setCurrent(r); }}
+                            >
                               <img src={r.artworkUrl60} alt={r.trackName} className="w-12 h-12 rounded-sm object-cover" />
                               <div className="flex-1 min-w-0">
-                                <div className="font-medium truncate">{r.trackName}</div>
-                                <div className="text-xs opacity-60 truncate">{r.artistName} • {r.collectionName}</div>
+                                <div className="font-medium ">{r.trackName}</div>
+                                <div className="text-xs opacity-60 ">{r.artistName} • {r.collectionName}</div>
                               </div>
                               <div className="text-xs opacity-60">{msToTime(r.trackTimeMillis)}</div>
                             </div>
                           ))}
+                          {results.length === 0 && <div className="p-4 text-sm opacity-60">No results — try a different search.</div>}
                         </div>
                       </ScrollArea>
                     </div>
 
                     <div className={clsx("p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                      <div className="text-sm font-semibold mb-2">Full metadata</div>
+                      <div className="flex items-center justify-between mb-3">
+                        <Heading icon={Music} title="Full metadata" subtitle="All available fields from iTunes" />
+                        <div className="text-xs opacity-60">JSON view</div>
+                      </div>
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {Object.keys(primaryTrack).map((k) => (
-                          <div key={k} className="p-2 rounded-md border">
-                            <div className="text-xs opacity-60">{k}</div>
-                            <div className="text-sm font-medium break-words">{typeof primaryTrack[k] === "object" ? JSON.stringify(primaryTrack[k]) : (primaryTrack[k] ?? "—")}</div>
+                          <div key={k} className="p-3 rounded-md border">
+                            <div className="text-xs opacity-60 flex items-center gap-2"><span className="font-medium">{k}</span></div>
+                            <div className="text-sm font-medium break-words mt-1">{typeof primaryTrack[k] === "object" ? JSON.stringify(primaryTrack[k]) : (primaryTrack[k] ?? "—")}</div>
                           </div>
                         ))}
                       </div>
@@ -495,9 +636,9 @@ export default function ItunesPage() {
             <div className="text-xs opacity-60 mb-3">Endpoint: <code className="break-all">https://itunes.apple.com/search?term=&lt;term&gt;&amp;media=music&amp;entity=song&amp;limit={limit}</code></div>
 
             <div className="grid grid-cols-1 gap-2">
-              <Button variant="outline" onClick={() => { navigator.clipboard.writeText(`${ITUNES_BASE}?term=${encodeURIComponent(term)}&media=music&entity=song&limit=${limit}`); showToast?.("success", "Endpoint copied"); }}><Copy /> Copy Endpoint</Button>
-              <Button variant="outline" onClick={() => downloadJSON()}><Download /> Download JSON</Button>
-              <Button variant="outline" onClick={() => setShowRaw(s => !s)}><List /> Toggle Raw</Button>
+              <Button variant="outline" onClick={() => { navigator.clipboard.writeText(`${ITUNES_BASE}?term=${encodeURIComponent(term)}&media=music&entity=song&limit=${limit}`); showToast?.("success", "Endpoint copied"); }} className="cursor-pointer"><Copy /> Copy Endpoint</Button>
+              <Button variant="outline" onClick={() => downloadJSON()} className="cursor-pointer"><Download /> Download JSON</Button>
+              <Button variant="outline" onClick={() => setShowRaw(s => !s)} className="cursor-pointer"><List /> Toggle Raw</Button>
             </div>
           </div>
 
@@ -515,8 +656,8 @@ export default function ItunesPage() {
               <div className="text-xs opacity-60">{playingTrack?.artistName ?? ""}</div>
 
               <div className="mt-2 flex gap-2">
-                <Button variant="ghost" onClick={() => { if (playingTrack) { if (audioRef.current && !audioRef.current.paused) { audioRef.current.pause(); setPlayingTrack(null); } else if (audioRef.current) { audioRef.current.play(); setPlayingTrack(playingTrack); } } }}><Speaker /></Button>
-                <Button variant="outline" onClick={() => { if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; setPlayingTrack(null); } }}><X /> Stop</Button>
+                <Button variant="ghost" onClick={() => { if (playingTrack) { if (audioRef.current && !audioRef.current.paused) { audioRef.current.pause(); setPlayingTrack(null); } else if (audioRef.current) { audioRef.current.play(); setPlayingTrack(playingTrack); } } }} className="cursor-pointer"><Speaker /></Button>
+                <Button variant="outline" onClick={() => { if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; setPlayingTrack(null); } }} className="cursor-pointer"><X /> Stop</Button>
               </div>
 
               <audio ref={audioRef} style={{ display: "none" }} onEnded={() => setPlayingTrack(null)} onPlaying={() => setAudioLoading(false)} onLoadStart={() => setAudioLoading(true)} />
@@ -531,61 +672,59 @@ export default function ItunesPage() {
               <div className="text-xs opacity-60">Customize</div>
             </div>
 
-<div className="grid grid-cols-1 gap-3">
-  <label className="text-xs opacity-70">Results limit</label>
+            <div className="grid grid-cols-1 gap-3">
+              <label className="text-xs opacity-70">Results limit</label>
 
-  {/* Select for quick presets */}
-  <Select
-    value={String(limit)}
-    onValueChange={(v) => setLimit(Number(v))}
-  >
-    <SelectTrigger
-      className={clsx(
-        "w-full rounded-md p-2 text-sm",
-        isDark ? "bg-black/30 border border-zinc-800" : "bg-white border border-zinc-200"
-      )}
-      aria-label="Results limit"
-    >
-      <SelectValue placeholder="Select limit" />
-    </SelectTrigger>
+              {/* Select for quick presets */}
+              <Select
+                value={String(limit)}
+                onValueChange={(v) => setLimit(Number(v))}
+              >
+                <SelectTrigger
+                  className={clsx(
+                    "w-full rounded-md p-2 text-sm",
+                    isDark ? "bg-black/30 border border-zinc-800" : "bg-white border border-zinc-200"
+                  )}
+                  aria-label="Results limit"
+                >
+                  <SelectValue placeholder="Select limit" />
+                </SelectTrigger>
 
-    <SelectContent>
-      {[6, 12, 24, 48].map((n) => (
-        <SelectItem key={n} value={String(n)}>
-          {n}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
+                <SelectContent>
+                  {[6, 12, 24, 48].map((n) => (
+                    <SelectItem key={n} value={String(n)}>
+                      {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-  {/* Manual entry */}
-  <div className="flex items-center gap-2">
-    <Input
-      type="number"
-      min={1}
-      placeholder="Enter custom limit"
-      value={limit}
-      onChange={(e) => {
-        const val = Number(e.target.value);
-        if (!isNaN(val) && val > 0) setLimit(val);
-      }}
-      className={clsx(
-        "flex-1 rounded-md",
-        isDark ? "bg-black/30 border border-zinc-800" : "bg-white border border-zinc-200"
-      )}
-    />
+              {/* Manual entry */}
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="Enter custom limit"
+                  value={limit}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    if (!isNaN(val) && val > 0) setLimit(val);
+                  }}
+                  className={clsx(
+                    "flex-1 rounded-md",
+                    isDark ? "bg-black/30 border border-zinc-800" : "bg-white border border-zinc-200"
+                  )}
+                />
 
-    <Button
-      variant="outline"
-      onClick={() => searchItunes(term, limit)}
-      className="whitespace-nowrap"
-    >
-      <Search /> Apply
-    </Button>
-  </div>
-</div>
-
-
+                <Button
+                  variant="outline"
+                  onClick={() => searchItunes(term, limit)}
+                  className="whitespace-nowrap cursor-pointer"
+                >
+                  <Search /> Apply
+                </Button>
+              </div>
+            </div>
           </div>
         </aside>
       </main>
@@ -609,12 +748,95 @@ export default function ItunesPage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">Artwork from iTunes</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setImgOpen(false)}><X /></Button>
-              <Button variant="outline" onClick={() => { if (primaryTrack?.trackViewUrl) window.open(primaryTrack.trackViewUrl, "_blank"); }}><ExternalLink /></Button>
+              <Button variant="ghost" onClick={() => setImgOpen(false)} className="cursor-pointer"><X /></Button>
+              <Button variant="outline" onClick={() => { if (primaryTrack?.trackViewUrl) window.open(primaryTrack.trackViewUrl, "_blank"); }} className="cursor-pointer"><ExternalLink /></Button>
             </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile sheet for sidebar */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="left" className={clsx( "p-3",isDark ? "bg-black/90" : "bg-white")}>
+          <SheetHeader>
+            <SheetTitle>Menu</SheetTitle>
+          </SheetHeader>
+
+          <div className="space-y-4 p-2">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold">Search</div>
+              <div className="text-xs opacity-60">Quick actions</div>
+            </div>
+
+           
+
+            <Separator />
+
+            <div className="grid gap-2">
+              <Button variant="outline" onClick={() => { setTerm(DEFAULT_TERM); searchItunes(DEFAULT_TERM, limit); setSheetOpen(false); }} className="cursor-pointer">Default</Button>
+              <Button variant="outline" onClick={() => { randomTen(); setSheetOpen(false); }} className="cursor-pointer">Random 10</Button>
+              <Button variant="outline" onClick={() => { navigator.clipboard.writeText(`${ITUNES_BASE}?term=${encodeURIComponent(term)}&media=music&entity=song&limit=${limit}`); showToast?.("success", "Endpoint copied"); setSheetOpen(false); }} className="cursor-pointer">Copy Endpoint</Button>
+            </div>
+             <div className={clsx("p-4  rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                      <div className="flex items-center justify-between mb-3">
+                        <Heading icon={List} title="Top results" subtitle={`Showing ${results.length} items`} />
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={String(limit)}
+                            onValueChange={(v) => setLimit(Number(v))}
+                          >
+                            <SelectTrigger
+                              className={clsx(
+                                "w-auto rounded-md p-2 text-sm",
+                                isDark ? "bg-black/30 border border-zinc-800" : "bg-white border border-zinc-200"
+                              )}
+                              aria-label="Results limit"
+                            >
+                              <SelectValue placeholder="Limit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[6, 12, 24, 48].map((n) => (
+                                <SelectItem key={n} value={String(n)}>
+                                  {n}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+
+                          <Button variant="outline" onClick={() => searchItunes(term, limit)} className="cursor-pointer"><Search /></Button>
+                        </div>
+                      </div>
+
+                      <ScrollArea className="h-[360px] p-3  overflow-auto">
+                        <div className="space-y-2 pt-3">
+                          {results.map((r) => (
+                            <div
+                              key={r.trackId || r.collectionId}
+                              className={clsx("flex items-center gap-3 p-3 rounded mx-2 hover:bg-zinc-100 dark:hover:bg-zinc-800/40 cursor-pointer transition", primaryTrack?.trackId === r.trackId ? "ring-2 ring-zinc-300 dark:ring-zinc-600" : "")}
+                              onClick={() => setCurrent(r)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => { if (e.key === "Enter") setCurrent(r); }}
+                            >
+                              <img src={r.artworkUrl60} alt={r.trackName} className="w-12 h-12 rounded-sm object-cover" />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium ">{r.trackName}</div>
+                                <div className="text-xs opacity-60 ">{r.artistName} • {r.collectionName}</div>
+                              </div>
+                              <div className="text-xs opacity-60">{msToTime(r.trackTimeMillis)}</div>
+                            </div>
+                          ))}
+                          {results.length === 0 && <div className="p-4 text-sm opacity-60">No results — try a different search.</div>}
+                        </div>
+                      </ScrollArea>
+                    </div>
+          </div>
+
+          <SheetFooter>
+            <div className="p-2 text-xs opacity-60">Harmony · iTunes search</div>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

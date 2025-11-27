@@ -46,7 +46,6 @@ import {
   CloudSun,
   Trophy,
   Sparkle,
-  Cross,
   BookImage as Bible,
   ScrollText,
   Globe2,
@@ -68,8 +67,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useTheme } from "@/components/theme-provider";
-import { Link } from "react-router-dom";
- import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Link, useSearchParams } from "react-router-dom";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 
 /* ---------------------------
    API DATA
@@ -1250,6 +1249,18 @@ fetch("https://api.gold-api.com/symbols")
   .then(console.log);`,
 },
 {
+  id: "worms",
+  name: "WoRMS (World Register of Marine Species)",
+  category: "Animals",
+  endpoint: "https://www.marinespecies.org/rest/",
+  description: "A comprehensive database of marine species providing taxonomic information and species lookup. No API key required.",
+  image: "/api_previews/worms.png",
+  code: `fetch("https://www.marinespecies.org/rest/AphiaRecordsByName/Crab?like=true")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
   id: "fdaAnimalVet",
   name: "FDA Animal & Veterinary",
   category: "Health",
@@ -1262,34 +1273,8 @@ fetch("https://api.gold-api.com/symbols")
 },
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ];
+
 
 /* Category Icon mapping */
 const CATEGORY_ICON = {
@@ -1340,10 +1325,7 @@ function CategoryIcon({ category, className }) {
   return <Icon className={className} />;
 }
 
-/* ---------------------------
-   Small helpers / components
-   --------------------------- */
-
+/* Helpers */
 function prettyJSON(obj) {
   try {
     return JSON.stringify(obj, null, 2);
@@ -1352,7 +1334,6 @@ function prettyJSON(obj) {
   }
 }
 
-/* Small reusable Info row */
 function InfoRow({ icon, label, children }) {
   return (
     <div className="flex gap-3 items-start">
@@ -1364,9 +1345,8 @@ function InfoRow({ icon, label, children }) {
     </div>
   );
 }
-
 /* ---------------------------
-   Main Page
+   Part 2: Main component (continued)
    --------------------------- */
 
 export default function ApisPage() {
@@ -1377,8 +1357,12 @@ export default function ApisPage() {
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
 
-  // state
-  const [selectedId, setSelectedId] = useState(APIS[0].id);
+  // URL query param handling (React Router)
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // State
+  const initialSelectedFromUrl = searchParams.get("selected") || null;
+  const [selectedId, setSelectedId] = useState(initialSelectedFromUrl || APIS[0].id);
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [showCode, setShowCode] = useState(false);
@@ -1397,7 +1381,11 @@ export default function ApisPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return APIS.filter((a) => {
-      const qMatch = !q || a.name.toLowerCase().includes(q) || a.description.toLowerCase().includes(q);
+      const qMatch =
+        !q ||
+        a.name.toLowerCase().includes(q) ||
+        (a.description || "").toLowerCase().includes(q) ||
+        (a.category || "").toLowerCase().includes(q);
       const cMatch = categoryFilter === "All" || a.category === categoryFilter;
       return qMatch && cMatch;
     });
@@ -1407,17 +1395,27 @@ export default function ApisPage() {
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return APIS.filter((a) => a.name.toLowerCase().includes(q) || a.description.toLowerCase().includes(q)).slice(0, 6);
+    return APIS.filter(
+      (a) =>
+        a.name.toLowerCase().includes(q) ||
+        (a.description || "").toLowerCase().includes(q) ||
+        (a.category || "").toLowerCase().includes(q)
+    ).slice(0, 6);
   }, [query]);
 
   // related APIs for right panel
-  const related = APIS.filter((a) => a.category === selected.category && a.id !== selected.id).slice(0, 6);
+  const related = useMemo(() => APIS.filter((a) => a.category === selected.category && a.id !== selected.id).slice(0, 6), [selected]);
 
   useEffect(() => {
-    // focus search on load for quick keyboard
-    // comment out if undesired
-    // searchRef.current?.focus();
-  }, []);
+    // if URL param changes externally (back/forward), sync selectedId
+    const urlSelected = searchParams.get("selected");
+    if (urlSelected && urlSelected !== selectedId) {
+      const found = APIS.find((a) => a.id === urlSelected);
+      if (found) setSelectedId(urlSelected);
+    }
+    // if param was removed, keep existing selection (no-op)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   /* ---------------------------
      Handlers
@@ -1427,22 +1425,31 @@ export default function ApisPage() {
     setShowSuggest(true);
     if (suggestTimer.current) clearTimeout(suggestTimer.current);
     suggestTimer.current = setTimeout(() => {
-      // show suggestions (already computed)
-    }, 250);
+      // suggestions computed via memo
+    }, 200);
+  }
+
+  function setSelectedAndUpdateUrl(id) {
+    setSelectedId(id);
+    // update query param 'selected'
+    const next = new URLSearchParams(searchParams.toString());
+    next.set("selected", id);
+    // preserve other params if any
+    setSearchParams(next, { replace: false });
   }
 
   function selectApi(id) {
-    setSelectedId(id);
     setShowCode(false);
     setShowSuggest(false);
     setRawExample(null);
+    setSelectedAndUpdateUrl(id);
   }
 
   async function tryInvoke(endpoint) {
     setLoadingInvoke(true);
     setRawExample(null);
     try {
-      // Basic GET request; no CORS handling here (may fail in browser for some endpoints)
+      // Basic GET request — note: CORS may block some endpoints in-browser
       const res = await fetch(endpoint, { method: "GET" });
       const ct = res.headers.get("content-type") || "";
       let body;
@@ -1463,8 +1470,18 @@ export default function ApisPage() {
   }
 
   function copyEndpoint(ep) {
-    navigator.clipboard.writeText(ep);
-    toast.success("Endpoint copied");
+    try {
+      navigator.clipboard.writeText(ep);
+      toast.success("Endpoint copied");
+    } catch (err) {
+      toast.error("Copy failed");
+    }
+  }
+
+  function clearUrlSelection() {
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("selected");
+    setSearchParams(next, { replace: false });
   }
 
   /* ---------------------------
@@ -1494,19 +1511,18 @@ export default function ApisPage() {
               onFocus={() => setShowSuggest(true)}
             />
 
-<Select value={categoryFilter} onValueChange={setCategoryFilter}>
-  <SelectTrigger className="w-32 border-none bg-transparent focus:ring-0 focus:ring-offset-0 text-sm">
-    <SelectValue placeholder="Category" />
-  </SelectTrigger>
-  <SelectContent>
-    {categories.map((c) => (
-      <SelectItem key={c} value={c} className="cursor-pointer">
-        {c}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
-
+            <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v)}>
+              <SelectTrigger className="w-32 border-none bg-transparent focus:ring-0 focus:ring-offset-0 text-sm">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c} value={c} className="cursor-pointer">
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <Sheet>
@@ -1518,7 +1534,7 @@ export default function ApisPage() {
             <SheetContent side="left" className="w-[320px] p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="text-lg font-semibold">APIs</div>
-                 <Button className="cursor-pointer"  variant="ghost" size="sm" onClick={() => { setQuery(""); setCategoryFilter("All"); }}>
+                <Button className="cursor-pointer" variant="ghost" size="sm" onClick={() => { setQuery(""); setCategoryFilter("All"); }}>
                   Reset
                 </Button>
               </div>
@@ -1529,7 +1545,7 @@ export default function ApisPage() {
                 <div className="text-xs opacity-60 mb-2">Category</div>
                 <div className="flex flex-wrap gap-2">
                   {categories.map((c) => (
-                     <Button className="cursor-pointer"  key={c} variant={c === categoryFilter ? "default" : "ghost"} size="sm" onClick={() => setCategoryFilter(c)}>{c}</Button>
+                    <Button className="cursor-pointer" key={c} variant={c === categoryFilter ? "default" : "ghost"} size="sm" onClick={() => setCategoryFilter(c)}>{c}</Button>
                   ))}
                 </div>
               </div>
@@ -1537,12 +1553,13 @@ export default function ApisPage() {
               <ScrollArea className="h-[60vh]">
                 <div className="space-y-3">
                   {filtered.map((api) => (
-                    <motion.div key={api.id}  className={clsx("p-3 rounded-lg border cursor-pointer", api.id === selectedId ? "border-zinc-500 bg-zinc-50 dark:bg-zinc-900/30" : "border-zinc-200 dark:border-zinc-700")} onClick={() => { selectApi(api.id); }}>
+                    <motion.div key={api.id} className={clsx("p-3 rounded-lg border cursor-pointer", api.id === selectedId ? "border-zinc-500 bg-zinc-50 dark:bg-zinc-900/30" : "border-zinc-200 dark:border-zinc-700")} onClick={() => { selectApi(api.id); }}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                         
                           <div>
-                            <div className="font-semibold flex gap-1 items-center"> <CategoryIcon category={api.category} className="w-5 h-5 mr-2 opacity-80" /> {api.name}</div>
+                            <div className="font-semibold flex gap-1 items-center">
+                              <CategoryIcon category={api.category} className="w-5 h-5 mr-2 opacity-80" /> {api.name}
+                            </div>
                             <div className="text-xs opacity-60">{api.description}</div>
                           </div>
                         </div>
@@ -1563,9 +1580,8 @@ export default function ApisPage() {
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className={clsx("absolute left-6 right-6 md:left-[calc(50%_-_360px)] md:right-auto max-w-3xl z-50 rounded-xl overflow-hidden border", isDark ? "bg-black/60 border-zinc-800" : "bg-white border-zinc-200")}>
             {suggestions.map((s) => (
               <div key={s.id} className="p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-3" onClick={() => { selectApi(s.id); }}>
-              
                 <div className="flex-1">
-                  <div className="font-medium flex  gap-1 items-center">  <CategoryIcon category={s.category} className="w-5 h-5 mr-2 opacity-80" /> {s.name}</div>
+                  <div className="font-medium flex gap-1 items-center"><CategoryIcon category={s.category} className="w-5 h-5 mr-2 opacity-80" /> {s.name}</div>
                   <div className="text-xs opacity-60">{s.category} • {s.description}</div>
                 </div>
                 <ChevronRight className="w-4 h-4 opacity-60" />
@@ -1580,9 +1596,15 @@ export default function ApisPage() {
         {/* Left Sidebar (desktop) */}
         <aside className="hidden lg:block lg:col-span-3">
           <Card className={clsx("p-4 rounded-2xl border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <div className="mb-3">
-              <div className="text-sm font-semibold">APIs</div>
-              <div className="text-xs opacity-60">Browse curated endpoints</div>
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold">APIs</div>
+                <div className="text-xs opacity-60">Browse curated endpoints</div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" className="cursor-pointer" onClick={() => { setQuery(""); setCategoryFilter("All"); clearUrlSelection(); }}>Reset</Button>
+                <Button size="sm" variant="ghost" className="cursor-pointer" onClick={() => { setQuery(""); }}>Clear</Button>
+              </div>
             </div>
 
             <ScrollArea className="h-[72vh] pr-2">
@@ -1591,9 +1613,8 @@ export default function ApisPage() {
                   <motion.div key={api.id} className={clsx("p-3 rounded-lg border cursor-pointer", api.id === selectedId ? "border-zinc-500 bg-zinc-50 dark:bg-zinc-700/30" : "border-zinc-200 dark:border-zinc-700")} onClick={() => selectApi(api.id)}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                     
                         <div>
-                          <div className="font-semibold flex  gap-1 items-center">   <CategoryIcon category={api.category} className="w-5 h-5 mr-2 opacity-80" />{api.name}</div>
+                          <div className="font-semibold flex gap-1 items-center"><CategoryIcon category={api.category} className="w-5 h-5 mr-2 opacity-80" />{api.name}</div>
                           <div className="text-xs opacity-60">{api.description}</div>
                         </div>
                       </div>
@@ -1622,16 +1643,11 @@ export default function ApisPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                {/* <div className="px-3 py-2 rounded-lg border bg-black/5 dark:bg-white/5 text-sm">
-                  <div className="text-xs opacity-60">Endpoint</div>
-                  <div className="font-mono text-sm">{selected.endpoint}</div>
-                </div> */}
-
                 <div className="flex gap-2">
-                   <Button className="cursor-pointer"  variant="outline" onClick={() => copyEndpoint(selected.endpoint)}><Copy /></Button>
-                   <Button className="cursor-pointer"  onClick={() => tryInvoke(selected.endpoint)} disabled={loadingInvoke}>{loadingInvoke ? "Fetching..." : "Try"}</Button>
+
+                  <Button className="cursor-pointer" onClick={() => tryInvoke(selected.endpoint)} disabled={loadingInvoke}>{loadingInvoke ? "Fetching..." : "Try"}</Button>
                   <Link to={`/apis/${selected.id}`}>
-                     <Button className="cursor-pointer"  variant="ghost">Open <ExternalLink className="w-4 h-4 inline ml-1" /></Button>
+                    <Button className="cursor-pointer" variant="outline"><ExternalLink/> Open</Button>
                   </Link>
                 </div>
               </div>
@@ -1643,7 +1659,7 @@ export default function ApisPage() {
                 {/* Left / Primary details */}
                 <div className="lg:col-span-2 space-y-4">
                   {/* Key info */}
-                  <div className="grid grid-cols-1  gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <div className="p-4 rounded-lg overflow-y-auto np-scrollbar border">
                       <InfoRow icon={<LinkIcon />} label="Endpoint">
                         <div className="font-mono text-sm break-words">{selected.endpoint}</div>
@@ -1666,13 +1682,11 @@ export default function ApisPage() {
 
                     <div className="mt-4 text-sm font-semibold">Example Code</div>
                     <div className={clsx("relative mt-2 rounded-xl p-4 border", isDark ? "bg-black/30 border-zinc-800" : "bg-white/60 border-zinc-200")}>
-                      {/* Floating glass code box */}
                       <div className={clsx("p-3 rounded-lg shadow-md border", isDark ? "bg-black/60 border-zinc-700" : "bg-white border-zinc-200")}>
                         <pre className="text-xs overflow-auto" style={{ maxHeight: 240 }}>
                           <code>{selected.code}</code>
                         </pre>
                       </div>
-
                     </div>
                   </div>
                 </div>
@@ -1692,7 +1706,7 @@ export default function ApisPage() {
 
                       <InfoRow icon={<ExternalLink />} label="Docs / Link">
                         <div className="flex gap-2">
-                           <Button className="cursor-pointer"  variant="outline" size="sm" onClick={() => window.open(selected.endpoint, "_blank")}>Open</Button>
+                          <Button className="cursor-pointer" variant="outline" size="sm" onClick={() => window.open(selected.endpoint, "_blank")}>Open</Button>
                           <Button variant="ghost" size="sm" onClick={() => toast("No docs provided — use endpoint")}>Docs</Button>
                         </div>
                       </InfoRow>
@@ -1703,8 +1717,8 @@ export default function ApisPage() {
                     <div className="text-sm font-semibold mb-2">Test Console</div>
                     <div className="text-xs opacity-60 mb-2">Invoke the endpoint (GET) — may fail in-browser due to CORS.</div>
                     <div className="flex gap-2">
-                       <Button className="cursor-pointer" onClick={() => tryInvoke(selected.endpoint)} disabled={loadingInvoke}>{loadingInvoke ? "Running..." : "Invoke"}</Button>
-                       <Button className="cursor-pointer" variant="outline" onClick={() => copyEndpoint(selected.endpoint)}><Copy /></Button>
+                      <Button className="cursor-pointer" onClick={() => tryInvoke(selected.endpoint)} disabled={loadingInvoke}>{loadingInvoke ? "Running..." : "Invoke"}</Button>
+                      <Button className="cursor-pointer" variant="outline" onClick={() => copyEndpoint(selected.endpoint)}><Copy /></Button>
                     </div>
 
                     <AnimatePresence>
@@ -1742,3 +1756,7 @@ export default function ApisPage() {
     </div>
   );
 }
+
+/* ---------------------------
+   End of file
+   --------------------------- */

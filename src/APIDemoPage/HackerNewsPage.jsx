@@ -12,6 +12,7 @@ import {
   List,
   Star,
   Copy,
+  Check,
   ArrowRight,
   MessageSquare,
   Calendar,
@@ -19,7 +20,12 @@ import {
   Hash,
   X,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Menu,
+  Link as LinkIcon,
+  FileText,
+  Bell,
+  Zap
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -31,6 +37,24 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useTheme } from "@/components/theme-provider";
 import { showToast } from "../lib/ToastHelper";
+
+/* shadcn select & sheet (mobile sidebar) */
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem
+} from "@/components/ui/select";
+
+import {
+  Sheet,
+  SheetTrigger,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter
+} from "@/components/ui/sheet";
 
 /* ---------- Endpoint ---------- */
 const BASE_LIST_ENDPOINT = "https://hacker-news.firebaseio.com/v0/topstories.json";
@@ -100,13 +124,23 @@ export default function HackerNewsPage() {
   const [loadingComments, setLoadingComments] = useState({}); // id -> boolean
   const commentsCache = useRef({});
 
-  // UI effects
+  const [copied, setCopied] = useState(false); // global for copy animation
+  const copiedTimeout = useRef(null);
+
+  const [sheetOpen, setSheetOpen] = useState(false); // mobile sidebar
+  const [selectedTag, setSelectedTag] = useState("top"); // example select value
+
+  // UI: random picks
+  const [randomPicks, setRandomPicks] = useState([]);
+  const [loadingRandom, setLoadingRandom] = useState(false);
+
+  // UI effects: load top ids
   useEffect(() => {
     (async () => {
       setLoadingIds(true);
       try {
         const list = await fetchTopIds();
-        setIds(Array.isArray(list) ? list.slice(0, 100) : []);
+        setIds(Array.isArray(list) ? list.slice(0, 200) : []);
         // default to first story
         if (Array.isArray(list) && list.length > 0) {
           setSelectedId(list[0]);
@@ -144,8 +178,30 @@ export default function HackerNewsPage() {
     };
   }, [selectedId]);
 
+  // generate 10 random picks from ids (lazy fetch)
+  async function loadRandomPicks() {
+    if (!ids || ids.length === 0) return;
+    setLoadingRandom(true);
+    const picks = [];
+    const used = new Set();
+    while (picks.length < 10 && used.size < ids.length) {
+      const idx = Math.floor(Math.random() * ids.length);
+      const id = ids[idx];
+      used.add(id);
+      try {
+        const itm = commentsCache.current[id] || await fetchItem(id);
+        commentsCache.current[id] = itm;
+        picks.push(itm);
+      } catch {
+        // ignore
+      }
+    }
+    setRandomPicks(picks);
+    setLoadingRandom(false);
+  }
+
   /* Search among loaded ids by title - we'll fetch titles lazily as needed.
-     To keep it simple and performant, when searching we map through current top 100 ids,
+     To keep it simple and performant, when searching we map through current top ids,
      fetch their items (but only first 30 concurrently), and filter by title/author.
      This keeps page responsive while still allowing search. */
   async function handleSearch(e) {
@@ -250,6 +306,19 @@ export default function HackerNewsPage() {
     }
   }
 
+  function handleCopyJSON() {
+    const payload = rawResp || story;
+    if (!payload) {
+      showToast("info", "Nothing to copy");
+      return;
+    }
+    navigator.clipboard.writeText(prettyJSON(payload));
+    setCopied(true);
+    showToast("success", "Copied JSON");
+    if (copiedTimeout.current) clearTimeout(copiedTimeout.current);
+    copiedTimeout.current = setTimeout(() => setCopied(false), 2000); // reset after 2s
+  }
+
   /* Renderers */
   function StorySkeleton() {
     return (
@@ -260,7 +329,7 @@ export default function HackerNewsPage() {
             <div className="text-xs opacity-60">Fetching top story details</div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline"><Loader2 className="animate-spin" /> Refresh</Button>
+            <Button variant="outline" className="cursor-pointer"><Loader2 className="animate-spin" /> Refresh</Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -290,7 +359,7 @@ export default function HackerNewsPage() {
         <div className="text-sm mt-1" dangerouslySetInnerHTML={{ __html: c.text || "" }} />
         {c.kids && c.kids.length > 0 && (
           <div className="mt-2">
-            <Button size="sm" variant="ghost" onClick={() => toggleCommentExpand(c.id, c.kids)}>
+            <Button size="sm" variant="ghost" className="cursor-pointer" onClick={() => toggleCommentExpand(c.id, c.kids)}>
               {expandedComments[c.id] ? (<><ChevronUp className="w-4 h-4" /> Hide replies</>) : (<><ChevronDown className="w-4 h-4" /> View replies ({c.kids.length})</>)}
             </Button>
 
@@ -310,17 +379,79 @@ export default function HackerNewsPage() {
     );
   }
 
+  // small helper to display domain safely
+  function getDomain(url) {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return "self";
+    }
+  }
+
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
+    <div className={clsx("min-h-screen p-4 md:p-6 max-w-8xl pb-10 mx-auto")}>
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>Pulse — Hacker News</h1>
-          <p className="mt-1 text-sm opacity-70">Top stories from Hacker News (Firebase API). Browse, inspect, and explore comments.</p>
+      <header className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3">
+          {/* mobile menu (sheet) */}
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="p-2 md:hidden cursor-pointer" aria-label="Open menu">
+                <Menu />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-3">
+              <SheetHeader>
+                <SheetTitle>Top Stories</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4">
+                <ScrollArea style={{ height: "60vh" }}>
+                  <div className="space-y-2">
+                    {loadingIds ? (
+                      <>
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                      </>
+                    ) : (
+                      ids.slice(0, 200).map((id) => {
+                        const isActive = selectedId === id;
+                        const cached = commentsCache.current[id];
+                        const title = cached?.title || cached?.text || `Story ${id}`;
+                        return (
+                          <button
+                            key={id}
+                            onClick={() => { setSelectedId(id); setSheetOpen(false); }}
+                            className={clsx("w-full cursor-pointer text-left p-3 rounded-md flex items-center gap-3 border", isActive ? "bg-zinc-100/80 dark:bg-zinc-800/60 border-zinc-300 dark:border-zinc-700" : "hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50")}
+                            aria-pressed={isActive}
+                          >
+                            <div className="flex-1 text-sm w-50 truncate">{title}</div>
+                            <div className="text-xs opacity-60">{commentsCache.current[id] ? (commentsCache.current[id].score ?? "—") : <span className="inline-flex items-center gap-1"><Hash className="w-3 h-3" />{id}</span>}</div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+              <SheetFooter className="mt-4">
+                <div className="w-full flex justify-between">
+                  <Button className="cursor-pointer" variant="outline" onClick={() => { setSheetOpen(false); }}><X /> Close</Button>
+                  <Button className="cursor-pointer" variant="ghost" onClick={() => { loadRandomPicks(); }}><Zap /> Random 10</Button>
+                </div>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
+
+          <div>
+            <h1 className={clsx("text-2xl md:text-3xl font-extrabold")}>Pulse — Hacker News</h1>
+            <p className="mt-0.5 text-xs opacity-70">Top stories from Hacker News — browse, inspect, and explore.</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <form onSubmit={handleSearch} className={clsx("flex items-center gap-2 w-full md:w-[560px] rounded-lg px-2 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")} aria-label="Search stories">
+        {/* search + actions */}
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <form onSubmit={handleSearch} className={clsx("hidden md:flex items-center gap-2 w-[520px] rounded-lg px-3 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")} aria-label="Search stories">
             <Search className="opacity-60" />
             <Input
               placeholder="Search titles or authors in top stories..."
@@ -329,176 +460,216 @@ export default function HackerNewsPage() {
               className="border-0 shadow-none bg-transparent outline-none"
               aria-label="search input"
             />
-            <Button type="button" variant="outline" className="px-3" onClick={() => {
+            <Button type="button" variant="ghost" className="cursor-pointer" onClick={() => {
               setQuery("");
               // reset to default top
               if (ids && ids.length) setSelectedId(ids[0]);
             }}>Reset</Button>
-            <Button type="submit" variant="outline" className="px-3"><Search /></Button>
+            <Button type="submit" variant="outline" className="cursor-pointer"><Search /></Button>
           </form>
+
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" className="hidden md:flex cursor-pointer" onClick={() => { if (ids && ids.length) { setSelectedId(ids[0]); showToast("info", "Refreshed to top"); } }}>
+              <Loader2 className={loadingIds ? "animate-spin" : ""} /> Refresh
+            </Button>
+
+            <Select value={selectedTag} onValueChange={(v) => setSelectedTag(v)} aria-label="Filter">
+              <SelectTrigger className="w-[140px] cursor-pointer">
+                <SelectValue placeholder="Filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem className="cursor-pointer" value="top">Top</SelectItem>
+                <SelectItem className="cursor-pointer" value="new">New</SelectItem>
+                <SelectItem className="cursor-pointer" value="ask">Ask</SelectItem>
+                <SelectItem className="cursor-pointer" value="show">Show</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button variant="ghost" className="cursor-pointer" onClick={() => { loadRandomPicks(); }}><Zap /> Picks</Button>
+          </div>
         </div>
       </header>
 
       {/* Layout */}
-      <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+      <main className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Center: story viewer */}
-        <section className="lg:col-span-9 space-y-4">
+        <section className="lg:col-span-7 space-y-4">
           {loadingStory || !story ? <StorySkeleton /> : (
-            <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-              <CardHeader className={clsx("p-5 flex items-center flex-wrap gap-3 justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
-                <div>
-                  <CardTitle className="text-lg">Story</CardTitle>
-                  <div className="text-xs opacity-60">{story?.title ?? "Waiting for a story..."}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button className="cursor-pointer" variant="outline" onClick={() => {
-                    if (ids && ids.length) {
-                      setSelectedId(ids[0]);
-                    } else {
-                      showToast("info", "No top stories loaded");
-                    }
-                  }}><Loader2 className={loadingIds ? "animate-spin" : ""} /> Refresh</Button>
-                  <Button className="cursor-pointer" variant="ghost" onClick={() => setShowRaw(s => !s)}><List /> {showRaw ? "Hide" : "Raw"}</Button>
-                  <Button className="cursor-pointer" variant="ghost" onClick={() => setDialogOpen(true)}><ExternalLink /> Open in new</Button>
-                </div>
-              </CardHeader>
-
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Left: meta */}
-                  <aside className={clsx("p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    {/* HN has no image; show a strong title block or domain */}
-                    <div className="w-full h-48 flex items-center justify-center rounded-md bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-800 mb-3">
-                      <div className="text-center">
-                        <div className="text-sm opacity-70">Hacker News</div>
-                        <div className="text-lg font-semibold">{story.title}</div>
-                        <div className="text-xs opacity-60 mt-1">{story.url ? new URL(story.url).hostname : "self"}</div>
-                      </div>
+            <Card className={clsx("rounded-2xl overflow-hidden border shadow-sm", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
+              <CardHeader className={clsx("p-4 md:p-5 flex flex-wrap items-start gap-4 justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+                <div className=" min-w-0">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-full w-10 h-10 flex items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-200 dark:from-zinc-900 dark:to-zinc-800">
+                      <Star className="h-5 w-5" />
                     </div>
-
-                    <div className="text-xs opacity-60">By</div>
-                    <div className="font-medium">{story.by || "unknown"}</div>
-
-                    <div className="mt-3 text-xs opacity-60">Meta</div>
-                    <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
-                      <div className="p-2 rounded-md border">
-                        <div className="text-xs opacity-60">Score</div>
-                        <div className="font-medium">{story.score ?? "—"}</div>
-                      </div>
-                      <div className="p-2 rounded-md border">
-                        <div className="text-xs opacity-60">Comments</div>
-                        <div className="font-medium">{story.descendants ?? (story.kids ? story.kids.length : 0)}</div>
-                      </div>
-                      <div className="p-2 rounded-md border">
-                        <div className="text-xs opacity-60">Type</div>
-                        <div className="font-medium">{story.type ?? "—"}</div>
-                      </div>
-                      <div className="p-2 rounded-md border">
-                        <div className="text-xs opacity-60">Posted</div>
-                        <div className="font-medium">{timeAgo(story.time)}</div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex flex-col gap-2">
-                      <Button variant="outline" onClick={() => {
-                        if (story.url) window.open(story.url, "_blank");
-                        else showToast("info", "No external URL for this story");
-                      }}><ExternalLink /> Read original</Button>
-
-                      <Button variant="outline" onClick={() => {
-                        navigator.clipboard.writeText(prettyJSON(story));
-                        showToast("success", "Story JSON copied");
-                      }}><Copy /> Copy JSON</Button>
-                    </div>
-                  </aside>
-
-                  {/* Right: content */}
-                  <div className={clsx("p-4 rounded-xl border col-span-1 md:col-span-2", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <div className="text-sm font-semibold mb-2">Summary</div>
-                    <div className="text-sm leading-relaxed mb-3">{story.text ? <div dangerouslySetInnerHTML={{ __html: story.text }} /> : (story.title ? `${story.title}` : "No description available.")}</div>
-
-                    <Separator className="my-3" />
-
-                    <div className="text-sm font-semibold mb-2">Fields</div>
-                    <div className="space-y-2">
-                      <details className="rounded-md border p-2">
-                        <summary className="cursor-pointer text-sm font-medium flex items-center justify-between">
-                          <span>Basic fields</span>
-                          <span className="text-xs opacity-60">Expand</span>
-                        </summary>
-                        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {["id","title","by","url","score","time","type","descendants"].map(k => (
-                            <div key={k} className="p-2 rounded-md border">
-                              <div className="text-xs opacity-60">{k}</div>
-                              <div className="text-sm font-medium break-words">{typeof story[k] === "object" ? prettyJSON(story[k]) : (story[k] ?? "—")}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-
-                      <details className="rounded-md border p-2">
-                        <summary className="cursor-pointer text-sm font-medium flex items-center justify-between">
-                          <span>Raw JSON</span>
-                          <span className="text-xs opacity-60">View payload</span>
-                        </summary>
-                        <pre className="text-xs overflow-auto mt-2" style={{ maxHeight: 300 }}>{prettyJSON(rawResp || story)}</pre>
-                      </details>
-                    </div>
-
-                    <Separator className="my-3" />
-
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm font-semibold">Comments</div>
-                        <div className="text-xs opacity-60">{story.kids ? story.kids.length : 0} total</div>
-                      </div>
-
-                      <div>
-                        {!story.kids || story.kids.length === 0 ? (
-                          <div className="text-sm opacity-60">No comments available.</div>
-                        ) : (
-                          <div className="space-y-3">
-                            {story.kids.slice(0, 12).map((kidId) => {
-                              const c = commentsCache.current[kidId];
-                              return (
-                                <div key={kidId} className="p-3 rounded-md border">
-                                  {!c ? (
-                                    <div className="flex items-center gap-3">
-                                      <Skeleton className="h-8 w-full" />
-                                      <Button variant="ghost" onClick={async () => {
-                                        await loadComments([kidId]);
-                                      }}><ArrowRight /></Button>
-                                    </div>
-                                  ) : (
-                                    <Comment c={c} />
-                                  )}
-                                </div>
-                              );
-                            })}
-                            {story.kids.length > 12 && <div className="text-xs opacity-60">Showing first 12 comments. Expand in raw JSON to fetch more.</div>}
-                          </div>
-                        )}
+                    <div className="min-w-0">
+                      <h2 className="text-lg md:text-xl font-semibold leading-tight truncate">{story?.title}</h2>
+                      <div className="text-xs opacity-60 flex items-center gap-2">
+                        <User className="w-3 h-3" /> {story?.by || "unknown"} • <Calendar className="w-3 h-3" /> {timeAgo(story.time)} • <span className="inline-flex items-center gap-1"><LinkIcon className="w-3 h-3" /> {getDomain(story.url)}</span>
                       </div>
                     </div>
                   </div>
                 </div>
-              </CardContent>
 
-              <AnimatePresence>
-                {showRaw && rawResp && (
-                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={clsx("p-4 border-t", isDark ? "bg-black/30 border-zinc-800" : "bg-white/60 border-zinc-200")}>
-                    <pre className={clsx("text-xs overflow-auto", isDark ? "text-zinc-200" : "text-zinc-900")} style={{ maxHeight: 300 }}>
-                      {prettyJSON(rawResp)}
-                    </pre>
+                <div className="flex items-center gap-2">
+                  <Button className="cursor-pointer" variant="outline" onClick={() => {
+                    if (story.url) window.open(story.url, "_blank");
+                    else showToast("info", "No external URL for this story");
+                  }}><ExternalLink /> Read</Button>
+
+                  <motion.div whileTap={{ scale: 0.92 }}>
+                    <Tooltip content={copied ? "Copied" : "Copy JSON"}>
+                      <Button
+                        variant="ghost"
+                        className="cursor-pointer"
+                        onClick={handleCopyJSON}
+                        aria-label="Copy story JSON"
+                      >
+                        <AnimatePresence initial={false}>
+                          {copied ? (
+                            <motion.span key="check" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0, scale: 0 }} className="inline-flex items-center gap-2">
+                              <Check className="w-4 h-4" /> Copied
+                            </motion.span>
+                          ) : (
+                            <motion.span key="copy" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0, scale: 0 }} className="inline-flex items-center gap-2">
+                              <Copy className="w-4 h-4" /> Copy
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
+                      </Button>
+                    </Tooltip>
                   </motion.div>
-                )}
-              </AnimatePresence>
+
+                  <Button variant="ghost" className="cursor-pointer" onClick={() => setShowRaw(s => !s)}><List /> {showRaw ? "Hide Raw" : "Raw"}</Button>
+
+                  <Button variant="ghost" className="cursor-pointer" onClick={() => setDialogOpen(true)}><ExternalLink /></Button>
+                </div>
+              </CardHeader>
+
+              <CardContent className="p-4 md:p-5">
+                {/* improved preview layout */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <aside className={clsx("rounded-xl p-3 border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1">
+                        <div className="text-xs opacity-60">By</div>
+                        <div className="font-medium">{story.by || "unknown"}</div>
+
+                        <div className="mt-3 text-xs opacity-60">Meta</div>
+                        <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                          <div className="p-2 rounded-md border">
+                            <div className="text-xs opacity-60">Score</div>
+                            <div className="font-medium">{story.score ?? "—"}</div>
+                          </div>
+                          <div className="p-2 rounded-md border">
+                            <div className="text-xs opacity-60">Comments</div>
+                            <div className="font-medium">{story.descendants ?? (story.kids ? story.kids.length : 0)}</div>
+                          </div>
+                          <div className="p-2 rounded-md border">
+                            <div className="text-xs opacity-60">Type</div>
+                            <div className="font-medium">{story.type ?? "—"}</div>
+                          </div>
+                          <div className="p-2 rounded-md border">
+                            <div className="text-xs opacity-60">Posted</div>
+                            <div className="font-medium">{timeAgo(story.time)}</div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 space-y-2">
+                          <Button variant="outline" className="w-full cursor-pointer" onClick={() => { if (story.url) window.open(story.url, "_blank"); else showToast("info", "No external URL"); }}>
+                            <LinkIcon /> Open original
+                          </Button>
+
+                          <Button variant="ghost" className="w-full cursor-pointer" onClick={() => { navigator.clipboard.writeText(prettyJSON(story)); setCopied(true); if (copiedTimeout.current) clearTimeout(copiedTimeout.current); copiedTimeout.current = setTimeout(() => setCopied(false), 2000); }}>
+                            <FileText /> Copy payload
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </aside>
+
+                  <div className={clsx("p-3 rounded-xl border col-span-1 md:col-span-2", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageSquare className="w-4 h-4" />
+                      <div className="text-sm font-semibold">Summary</div>
+                    </div>
+                    <div className="text-sm leading-relaxed mb-3">
+                      {story.text ? <div dangerouslySetInnerHTML={{ __html: story.text }} /> : (story.title ? <div>{story.title}</div> : "No description available.")}
+                    </div>
+
+                    <Separator className="my-3" />
+
+                    <div className="flex items-center gap-2 mb-2">
+                      <Hash className="w-4 h-4" />
+                      <div className="text-sm font-semibold">Fields</div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {["id","title","by","url","score","time","type","descendants"].map(k => (
+                        <div key={k} className="p-2 rounded-md border">
+                          <div className="text-xs opacity-60 flex items-center gap-2"><span className="uppercase">{k}</span></div>
+                          <div className="text-sm font-medium break-words">{typeof story[k] === "object" ? prettyJSON(story[k]) : (story[k] ?? "—")}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <AnimatePresence>
+                      {showRaw && rawResp && (
+                        <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="mt-3 p-2 rounded-md border">
+                          <pre className={clsx("text-xs overflow-auto", isDark ? "text-zinc-200" : "text-zinc-900")} style={{ maxHeight: 240 }}>
+                            {prettyJSON(rawResp)}
+                          </pre>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                <Separator className="my-4" />
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4" />
+                      <div className="text-sm font-semibold">Comments</div>
+                    </div>
+                    <div className="text-xs opacity-60">{story.kids ? story.kids.length : 0} total</div>
+                  </div>
+
+                  <div>
+                    {!story.kids || story.kids.length === 0 ? (
+                      <div className="text-sm opacity-60">No comments available.</div>
+                    ) : (
+                      <div className="space-y-3">
+                        {story.kids.slice(0, 12).map((kidId) => {
+                          const c = commentsCache.current[kidId];
+                          return (
+                            <div key={kidId} className="p-3 rounded-md border">
+                              {!c ? (
+                                <div className="flex items-center gap-3">
+                                  <Skeleton className="h-8 w-full" />
+                                  <Button variant="ghost" className="cursor-pointer" onClick={async () => { await loadComments([kidId]); }}>
+                                    <ArrowRight />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Comment c={c} />
+                              )}
+                            </div>
+                          );
+                        })}
+                        {story.kids.length > 12 && <div className="text-xs opacity-60">Showing first 12 comments. Expand in raw JSON to fetch more.</div>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
             </Card>
           )}
         </section>
 
-        {/* Right: list / developer tools */}
-        <aside className={clsx("lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
+        {/* Right: list / developer tools + random picks */}
+        <aside className={clsx("lg:col-span-5 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
           <div>
             <div className="flex items-center justify-between">
               <div>
@@ -510,7 +681,7 @@ export default function HackerNewsPage() {
 
             <Separator className="my-3" />
 
-            <div className="max-h-[48vh] overflow-auto no-scrollbar space-y-2">
+            <div className="max-h-[36vh] overflow-auto no-scrollbar space-y-2">
               {loadingIds ? (
                 <>
                   <Skeleton className="h-10 w-full" />
@@ -544,9 +715,43 @@ export default function HackerNewsPage() {
             <div className="text-sm font-semibold mb-2">Developer</div>
             <div className="text-xs opacity-60">Endpoint examples & debugging</div>
             <div className="mt-2 space-y-2 grid grid-cols-1 gap-2">
-              <Button variant="outline" onClick={() => copyEndpoint()}><Copy /> Copy Endpoint</Button>
-              <Button variant="outline" onClick={() => downloadJSON()}><Download /> Download JSON</Button>
-              <Button variant="outline" onClick={() => setShowRaw(s => !s)}><List /> Toggle Raw</Button>
+              <Button variant="outline" onClick={() => copyEndpoint()} className="cursor-pointer"><Copy /> Copy Endpoint</Button>
+              <Button variant="outline" onClick={() => downloadJSON()} className="cursor-pointer"><Download /> Download JSON</Button>
+              <Button variant="outline" onClick={() => setShowRaw(s => !s)} className="cursor-pointer"><List /> Toggle Raw</Button>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold mb-1">Random Picks</div>
+                <div className="text-xs opacity-60">10 random stories from the top list</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" onClick={() => loadRandomPicks()} className="cursor-pointer"><Zap /></Button>
+              </div>
+            </div>
+
+            <div className="mt-2 max-h-[28vh] overflow-auto no-scrollbar space-y-2">
+              {loadingRandom ? (
+                <>
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </>
+              ) : randomPicks.length === 0 ? (
+                <div className="text-xs opacity-60">No picks yet — press the lightning icon to generate.</div>
+              ) : (
+                randomPicks.map((p) => (
+                  <button key={p.id} onClick={() => setSelectedId(p.id)} className="w-full text-left p-2 rounded-md border hover:bg-zinc-100/60 dark:hover:bg-zinc-800/50 cursor-pointer">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm truncate">{p.title}</div>
+                      <div className="text-xs opacity-60">{p.score ?? "—"}</div>
+                    </div>
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </aside>
@@ -554,7 +759,7 @@ export default function HackerNewsPage() {
 
       {/* External dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-3xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>{story?.title || "Open link"}</DialogTitle>
           </DialogHeader>
@@ -570,8 +775,8 @@ export default function HackerNewsPage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">External story (iframe)</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
-              <Button variant="outline" onClick={() => { if (story?.url) window.open(story.url, "_blank"); }}><ExternalLink /></Button>
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="cursor-pointer"><X /></Button>
+              <Button variant="outline" onClick={() => { if (story?.url) window.open(story.url, "_blank"); }} className="cursor-pointer"><ExternalLink /></Button>
             </div>
           </DialogFooter>
         </DialogContent>
