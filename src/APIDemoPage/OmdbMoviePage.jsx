@@ -23,7 +23,13 @@ import {
   Globe,
   Tag,
   Video,
-  Slash
+  Slash,
+  Menu,
+  Check,
+  X,
+  RefreshCw,
+  Code,
+  Sidebar
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -33,6 +39,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/components/theme-provider";
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"; // adjust path if needed
 
 /* ---------- OMDb endpoints ---------- */
 /*
@@ -53,6 +60,20 @@ function prettyJSON(obj) {
     return String(obj);
   }
 }
+
+// sample quick list (10 items). Replace with dynamic fetch if desired.
+const QUICK_TITLES = [
+  "Inception",
+  "The Matrix",
+  "Interstellar",
+  "The Dark Knight",
+  "Pulp Fiction",
+  "Fight Club",
+  "The Shawshank Redemption",
+  "Forrest Gump",
+  "The Lord of the Rings: The Fellowship of the Ring",
+  "The Godfather"
+];
 
 export default function OmdbMoviePage() {
   const { theme } = useTheme?.() ?? { theme: "system" };
@@ -75,7 +96,25 @@ export default function OmdbMoviePage() {
   const [showRaw, setShowRaw] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   const suggestTimer = useRef(null);
+
+  // copy button state: 'idle' | 'copying' | 'copied'
+  const [copyState, setCopyState] = useState("idle");
+
+  // sidebar quick list "randomized" state
+  const [quickList, setQuickList] = useState(shuffleArray(QUICK_TITLES));
+
+  function shuffleArray(arr) {
+    // simple fisher-yates clone
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
 
   /* ---------- fetch helpers ---------- */
   async function fetchMovieByTitle(t) {
@@ -137,7 +176,6 @@ export default function OmdbMoviePage() {
       const url = `${BASE}?apikey=${API_KEY}&s=${encodeURIComponent(q.trim())}`;
       const res = await fetch(url);
       const json = await res.json();
-      // OMDb search returns { Search: [...], totalResults: "N", Response: "True" } or { Response: "False", Error: "..." }
       const hits = json?.Search ?? [];
       setSuggestions(hits);
     } catch (err) {
@@ -161,12 +199,22 @@ export default function OmdbMoviePage() {
     e?.preventDefault?.();
     await fetchMovieByTitle(query);
     setShowSuggest(false);
+    setSheetOpen(false);
   }
 
   function copyEndpoint() {
+    if (copyState === "copying") return;
     const url = `${BASE}?apikey=${API_KEY}&t=${encodeURIComponent(query || DEFAULT_MOVIE)}&plot=full`;
-    navigator.clipboard.writeText(url);
-    showToast("success", "Endpoint copied");
+    setCopyState("copying");
+    navigator.clipboard.writeText(url).then(() => {
+      setCopyState("copied");
+      showToast("success", "Endpoint copied");
+      // reset after short delay
+      setTimeout(() => setCopyState("idle"), 1800);
+    }).catch(() => {
+      setCopyState("idle");
+      showToast("error", "Copy failed");
+    });
   }
 
   function downloadJSON() {
@@ -181,6 +229,11 @@ export default function OmdbMoviePage() {
     showToast("success", "JSON downloaded");
   }
 
+  function refreshQuickList() {
+    setQuickList(shuffleArray(QUICK_TITLES));
+    showToast("success", "Quick list refreshed");
+  }
+
   useEffect(() => {
     // initial load
     fetchMovieByTitle(DEFAULT_MOVIE);
@@ -192,16 +245,66 @@ export default function OmdbMoviePage() {
   const ratingList = Array.isArray(movie?.Ratings) ? movie.Ratings : [];
 
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
+    <div className={clsx("min-h-screen p-4 pb-10 md:p-6 max-w-8xl mx-auto")}>
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>Revolyx — Movie Details</h1>
-          <p className="mt-1 text-sm opacity-70">OMDb-powered movie inspector — complete fields, poster viewer, and developer tools.</p>
+      <header className="flex items-center flex-wrap justify-between gap-3 mb-4">
+        <div className="flex items-center gap-3">
+          {/* Mobile menu (sheet trigger) */}
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="p-2 md:hidden cursor-pointer" aria-label="Open quick list">
+                <Menu />
+              </Button>
+            </SheetTrigger>
+
+            <SheetContent side="left" className={clsx(isDark ? "bg-black/90" : "bg-white")}>
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                  <Sidebar /> Quick picks
+                </SheetTitle>
+                <div className="text-xs opacity-60 mt-1">Tap to load a movie</div>
+              </SheetHeader>
+
+              <div className="p-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <Button variant="ghost" className="flex-1 cursor-pointer" onClick={refreshQuickList}><RefreshCw /> Refresh</Button>
+                  <Button variant="outline" className="cursor-pointer" onClick={() => { setSheetOpen(false); }}><X /></Button>
+                </div>
+
+                <ScrollArea className="h-[60vh]">
+                  <div className="space-y-2 p-1">
+                    {quickList.map((t, i) => (
+                      <motion.button
+                        key={t + i}
+                        onClick={() => { fetchMovieByTitle(t); setSheetOpen(false); }}
+                        whileHover={{ scale: 1.02 }}
+                        className="w-full text-left p-3 rounded-md border hover:shadow cursor-pointer flex items-center gap-3"
+                      >
+                        <Film className="shrink-0" />
+                        <div className="flex-1">
+                          <div className="font-medium">{t}</div>
+                          <div className="text-xs opacity-60">Quick pick</div>
+                        </div>
+                        <ChevronRightIcon className="opacity-60" />
+                      </motion.button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+              <SheetFooter className="p-3">
+                <div className="text-xs opacity-60">Powered by OMDb</div>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
+
+          <div>
+            <h1 className="text-2xl md:text-3xl font-extrabold leading-tight">Revolyx — Movie Inspector</h1>
+            <p className="text-xs opacity-60 hidden md:block">OMDb-powered movie inspector — poster viewer, raw output, and dev tools.</p>
+          </div>
         </div>
 
-        <div className="w-full md:w-auto">
-          <form onSubmit={onSubmitSearch} className={clsx("flex items-center gap-2 w-full md:w-[640px] rounded-lg px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
+        <div className="flex items-center gap-2">
+          <form onSubmit={onSubmitSearch} className={clsx("flex items-center gap-2 sm:w-[640px] rounded-lg px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-60" />
             <Input
               placeholder={DEFAULT_MSG}
@@ -210,22 +313,35 @@ export default function OmdbMoviePage() {
               className="border-0 shadow-none bg-transparent outline-none"
               onFocus={() => setShowSuggest(true)}
             />
-            <Button type="submit" variant="outline" className="px-3">Search</Button>
-            <Button type="button" variant="ghost" onClick={() => fetchMovieByTitle(DEFAULT_MOVIE)} title="Load default">
+            <Button type="submit" variant="outline" className="px-3 cursor-pointer">Search</Button>
+            <Button type="button" variant="ghost" onClick={() => fetchMovieByTitle(DEFAULT_MOVIE)} title="Load default" className="cursor-pointer">
               <Film />
             </Button>
           </form>
+
+          <div className="flex items-center gap-2">
+            <motion.button
+              onClick={() => refreshQuickList()}
+              whileTap={{ scale: 0.95 }}
+              className="p-2 rounded-md border cursor-pointer"
+              title="Refresh quick list"
+            >
+              <RefreshCw />
+            </motion.button>
+          </div>
         </div>
+
+       
       </header>
 
-      {/* Suggestions dropdown */}
+      {/* Suggestions dropdown (small search area for mobile as well) */}
       <AnimatePresence>
         {showSuggest && suggestions.length > 0 && (
           <motion.ul
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
+            className={clsx("absolute z-50 left-4 right-4 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
           >
             {loadingSuggest && <li className="p-3 text-sm opacity-60">Searching…</li>}
             {suggestions.map((s, idx) => (
@@ -246,21 +362,56 @@ export default function OmdbMoviePage() {
 
       {/* Main layout */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* Left/Main: Movie viewer */}
-        <section className="lg:col-span-8">
+        {/* Left/Main: Desktop sidebar (quick picks) */}
+        <aside className={clsx("hidden lg:block lg:col-span-3 rounded-2xl p-3 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm font-semibold flex items-center gap-2"><Sidebar /> Quick picks</div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" onClick={refreshQuickList} className="p-2 cursor-pointer"><RefreshCw /></Button>
+            </div>
+          </div>
+
+          <ScrollArea className="h-[48vh]">
+            <div className="space-y-2">
+              {quickList.map((t, i) => (
+                <motion.button
+                  key={t + i}
+                  onClick={() => fetchMovieByTitle(t)}
+                  whileHover={{ scale: 1.01 }}
+                  className="w-full text-left p-3 rounded-md border hover:shadow cursor-pointer flex items-center gap-3"
+                >
+                  <Film className="shrink-0" />
+                  <div className="flex-1">
+                    <div className="font-medium">{t}</div>
+                    <div className="text-xs opacity-60">Quick pick</div>
+                  </div>
+                  <div className="text-xs opacity-60">Load</div>
+                </motion.button>
+              ))}
+            </div>
+          </ScrollArea>
+        </aside>
+
+        {/* Main content */}
+        <section className="lg:col-span-7">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-start justify-between gap-4", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+            <CardHeader className={clsx("p-4 flex flex-wrap items-start justify-between gap-4", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div>
-                <CardTitle className="text-lg">{movie ? `${movie.Title} ${movie?.Year ? `(${movie.Year})` : ""}` : "Movie details"}</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-3">
+                  <Film />
+                  <span>{movie ? `${movie.Title} ${movie?.Year ? `(${movie.Year})` : ""}` : "Movie details"}</span>
+                </CardTitle>
                 <div className="text-xs opacity-60">{movie?.Type ? `${movie.Type} • ${movie?.Runtime ?? "-"}` : "Loaded by OMDb"}</div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="ghost" onClick={() => fetchMovieByTitle(query)}><Loader2 className={loadingMovie ? "animate-spin" : ""} /> Refresh</Button>
-                <Button variant="ghost" onClick={() => setShowRaw(s => !s)}><List /> {showRaw ? "Hide Raw" : "Raw"}</Button>
-                <Button variant="ghost" onClick={() => setDialogOpen(true)} disabled={!posterAvailable}><ImageIcon /> Poster</Button>
-                <Button variant="outline" onClick={() => copyEndpoint()}><Copy /></Button>
-                <Button variant="outline" onClick={() => downloadJSON()}><Download /></Button>
+                <Button variant="ghost" onClick={() => fetchMovieByTitle(query)} className="cursor-pointer"><Loader2 className={loadingMovie ? "animate-spin" : ""} /> Refresh</Button>
+
+                <Button variant="ghost" onClick={() => setShowRaw(s => !s)} className="cursor-pointer"><Code /> {showRaw ? "Hide Raw" : "Raw"}</Button>
+
+                <Button variant="ghost" onClick={() => setDialogOpen(true)} disabled={!posterAvailable} className="cursor-pointer"><ImageIcon /> Poster</Button>
+
+                
               </div>
             </CardHeader>
 
@@ -270,20 +421,20 @@ export default function OmdbMoviePage() {
               ) : !movie ? (
                 <div className="py-12 text-center text-sm opacity-60">No movie found — try another title.</div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Poster & basic meta */}
-                  <div className={clsx("rounded-xl p-4 flex flex-col items-center", isDark ? "bg-black/20 border border-zinc-800" : "bg-white/70 border border-zinc-200")}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Poster */}
+                  <div className={clsx("rounded-xl p-3 flex flex-col items-center", isDark ? "bg-black/20 border border-zinc-800" : "bg-white/70 border border-zinc-200")}>
                     {posterAvailable ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={movie.Poster} alt={movie.Title} className="w-full rounded-md mb-4 object-cover shadow-sm" />
+                      <img src={movie.Poster} alt={movie.Title} className="w-full rounded-md mb-3 object-cover shadow-sm" />
                     ) : (
-                      <div className="w-full h-64 rounded-md mb-4 bg-zinc-100 flex items-center justify-center">
+                      <div className="w-full h-64 rounded-md mb-3 bg-zinc-100 flex items-center justify-center">
                         <Slash className="opacity-30" />
                       </div>
                     )}
 
                     <div className="text-center">
-                      <div className="text-xl font-semibold">{movie.Title}</div>
+                      <div className="text-lg font-semibold">{movie.Title}</div>
                       <div className="mt-1 text-sm opacity-70">{movie.Year} • {movie.Rated ?? "—"} • <Clock className="inline-block align-text-bottom" /> {movie.Runtime ?? "—"}</div>
                       <div className="mt-3 flex flex-wrap gap-2 justify-center">
                         {(movie.Genre || "").split(",").map(g => g.trim()).filter(Boolean).slice(0,6).map(g => (
@@ -304,23 +455,22 @@ export default function OmdbMoviePage() {
                     </div>
                   </div>
 
-                  {/* Details */}
-                  <div className={clsx("md:col-span-2 space-y-4")}>
+                  {/* Right: Details (takes 2 columns on md) */}
+                  <div className="md:col-span-2 space-y-4">
                     <div className="p-4 rounded-xl border" style={{ minHeight: 120 }}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-sm opacity-60">Plot</div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0"><Star /></div>
+                        <div className="flex-1">
+                          <div className="text-xs opacity-60">Plot</div>
                           <div className="mt-2 text-sm leading-relaxed">{movie.Plot ?? "—"}</div>
-                        </div>
-                        <div className="ml-4 text-right">
-                          <div className="text-xs opacity-60">Awards</div>
-                          <div className="font-medium">{movie.Awards ?? "—"}</div>
+                          <div className="mt-3 text-xs opacity-60"><Award className="inline-block mr-1" /> Awards: <span className="font-medium">{movie.Awards ?? "—"}</span></div>
                         </div>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="p-4 rounded-xl border">
+                        <div className="flex items-center gap-2 mb-2"><Users /> <div className="text-xs opacity-60">Crew</div></div>
                         <div className="text-xs opacity-60">Director</div>
                         <div className="font-medium">{movie.Director ?? "—"}</div>
 
@@ -332,6 +482,7 @@ export default function OmdbMoviePage() {
                       </div>
 
                       <div className="p-4 rounded-xl border">
+                        <div className="flex items-center gap-2 mb-2"><Globe /> <div className="text-xs opacity-60">Production</div></div>
                         <div className="text-xs opacity-60">Box Office</div>
                         <div className="font-medium">{movie.BoxOffice ?? "—"}</div>
 
@@ -340,14 +491,14 @@ export default function OmdbMoviePage() {
 
                         <div className="mt-3 text-xs opacity-60">Website</div>
                         <div className="font-medium">
-                          {movie.Website && movie.Website !== "N/A" ? <a href={movie.Website} target="_blank" rel="noreferrer" className="underline">{movie.Website}</a> : "—"}
+                          {movie.Website && movie.Website !== "N/A" ? <a href={movie.Website} target="_blank" rel="noreferrer" className="underline"><ExternalLink className="inline-block mr-1" /> {movie.Website}</a> : "—"}
                         </div>
                       </div>
                     </div>
 
                     <div className="p-4 rounded-xl border">
                       <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm opacity-60">Ratings</div>
+                        <div className="flex items-center gap-2"><Tag /> <div className="text-sm opacity-60">Ratings</div></div>
                         <div className="text-xs opacity-60">IMDB: {movie.imdbRating ?? "—"} ({movie.imdbVotes ?? "—"} votes)</div>
                       </div>
 
@@ -361,7 +512,6 @@ export default function OmdbMoviePage() {
                               {/\d+/.test(r.Value) && (
                                 <div className="h-2 rounded-full bg-zinc-200 mt-1 overflow-hidden">
                                   <div style={{ width: (() => {
-                                    // try parse percent-like or /10 style
                                     const v = r.Value;
                                     if (v.includes("%")) return v;
                                     const slash = v.split("/");
@@ -405,18 +555,18 @@ export default function OmdbMoviePage() {
         </section>
 
         {/* Right: Developer / Metadata */}
-        <aside className={clsx("lg:col-span-4 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
+        <aside className={clsx("lg:col-span-2 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
           <div>
             <div className="flex items-center justify-between mb-2">
-              <div className="text-sm font-semibold">Developer</div>
+              <div className="text-sm font-semibold flex items-center gap-2"><Code /> Developer</div>
               <div className="text-xs opacity-60">Endpoint</div>
             </div>
 
             <div className="text-sm opacity-70 mb-3">Use your OMDb API key. Prefer server-side proxy for production to keep the key secret.</div>
 
-            <div className="flex gap-2">
-              <Button className="flex-1" variant="outline" onClick={copyEndpoint}><Copy /> Copy Endpoint</Button>
-              <Button className="flex-1" variant="outline" onClick={downloadJSON}><Download /> Download</Button>
+            <div className="flex flex-col gap-2">
+              <Button className="flex-1 cursor-pointer" variant="outline" onClick={copyEndpoint}><Copy /> Copy Endpoint</Button>
+              <Button className="flex-1 cursor-pointer" variant="outline" onClick={downloadJSON}><Download /> Download</Button>
             </div>
           </div>
 
@@ -453,7 +603,7 @@ export default function OmdbMoviePage() {
 
       {/* Poster dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-3xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>{movie?.Title || "Poster"}</DialogTitle>
           </DialogHeader>
@@ -470,12 +620,21 @@ export default function OmdbMoviePage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">Poster source: OMDb</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}><ExternalLink /></Button>
-              <Button variant="outline" onClick={() => movie?.Website && window.open(movie.Website, "_blank")}><ExternalLink /> Open</Button>
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="cursor-pointer"><X /></Button>
+              <Button variant="outline" onClick={() => movie?.Website && window.open(movie.Website, "_blank")} className="cursor-pointer"><ExternalLink /> Open</Button>
             </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+/* local helper icon used in the quick list (small fallback) */
+function ChevronRightIcon(props) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+      <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
 import {
+  Menu,
   Search,
   ExternalLink,
   Copy,
@@ -19,7 +20,14 @@ import {
   Percent,
   Clock,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  ChevronDown,
+  RefreshCw,
+  Link as LinkIcon,
+  Check,
+  FileText,
+  Grid,
+  Layers
 } from "lucide-react";
 
 import {
@@ -38,16 +46,19 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useTheme } from "@/components/theme-provider";
 
 /**
- * Professional Mutual Fund page with Recharts AreaChart and custom tooltip.
- * - default fund id: 119551
- * - endpoints:
- *    GET https://api.mfapi.in/mf/{id}        -> full history + meta
- *    GET https://api.mfapi.in/mf/{id}/latest -> latest (meta + single data)
+ * Professional Mutual Fund page with:
+ *  - left sidebar (desktop) / sheet (mobile) containing 10 random NAV entries
+ *  - improved middle preview UI
+ *  - animated copy button with tick on success
+ *  - Header adjusted for mobile with menu icon opening the sheet
  *
- * Note: Ensure the UI component imports exist in your project.
+ * Endpoints:
+ *  GET https://api.mfapi.in/mf/{id}
+ *  GET https://api.mfapi.in/mf/{id}/latest
  */
 
 const API_BASE = "https://api.mfapi.in";
@@ -62,10 +73,8 @@ function prettyJSON(obj) {
   }
 }
 
-/* Convert API data (date:string dd-mm-yyyy, nav:string) into numeric nav and ISO date for the chart */
 function normalizeNavData(arr = []) {
   return (arr || []).map((r) => {
-    // Convert "17-11-2025" to "2025-11-17"
     const parts = (r.date || "").split("-");
     let iso = r.date;
     if (parts.length === 3) {
@@ -73,20 +82,19 @@ function normalizeNavData(arr = []) {
     }
     return {
       ...r,
-      iso: iso,
+      iso,
       navNum: Number(typeof r.nav === "string" ? r.nav.replace(/,/g, "") : r.nav) || 0,
     };
-  }).sort((a, b) => new Date(a.iso) - new Date(b.iso)); // oldest -> newest
+  }).sort((a, b) => new Date(a.iso) - new Date(b.iso));
 }
 
-/* compute percent change between two numeric values */
 function pctChange(prev, cur) {
   if (prev == null || cur == null || prev === 0) return null;
   return ((cur - prev) / prev) * 100;
 }
 
-/* Custom tooltip component for Recharts */
-function CustomTooltip({ active, payload, label }) {
+/* Custom tooltip for chart */
+function CustomTooltip({ active, payload }) {
   if (!active || !payload || payload.length === 0) return null;
   const point = payload[0].payload;
   const prevNav = payload[0].payload._prev || null;
@@ -120,24 +128,31 @@ export default function MFPage() {
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
 
+  // Search + suggestions
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggest, setShowSuggest] = useState(false);
   const [loadingSuggest, setLoadingSuggest] = useState(false);
 
-  const [currentFund, setCurrentFund] = useState(null); // full /mf/{id}
-  const [latest, setLatest] = useState(null); // /mf/{id}/latest response
+  // Fund data
+  const [currentFund, setCurrentFund] = useState(null);
+  const [latest, setLatest] = useState(null);
   const [rawResp, setRawResp] = useState(null);
   const [loadingFund, setLoadingFund] = useState(false);
   const [loadingLatest, setLoadingLatest] = useState(false);
 
+  // UI states
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showRaw, setShowRaw] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // copy animation state
+  const [copied, setCopied] = useState(false);
 
   const suggestTimer = useRef(null);
   const inputRef = useRef(null);
 
-  /* Fetch full fund history by id */
+  /* Fetch full fund */
   async function fetchFund(id) {
     if (!id) return;
     setLoadingFund(true);
@@ -161,7 +176,7 @@ export default function MFPage() {
     }
   }
 
-  /* Fetch latest endpoint */
+  /* Fetch latest */
   async function fetchLatest(id) {
     if (!id) return;
     setLoadingLatest(true);
@@ -169,7 +184,6 @@ export default function MFPage() {
       const url = `${API_BASE}/mf/${encodeURIComponent(id)}/latest`;
       const res = await fetch(url);
       if (!res.ok) {
-        // fallback: sometimes latest returns status 404 — ignore silently
         setLoadingLatest(false);
         return;
       }
@@ -182,7 +196,7 @@ export default function MFPage() {
     }
   }
 
-  /* Search suggestions (mf/search?q=...) */
+  /* Search endpoint */
   async function searchFunds(q) {
     if (!q || q.trim().length === 0) {
       setSuggestions([]);
@@ -217,7 +231,6 @@ export default function MFPage() {
   }
 
   function selectSuggestion(s) {
-    // s: {schemeCode, schemeName}
     const id = s.schemeCode || s.scheme_code || s.schemeId || s.id || s.scheme_code;
     const name = s.schemeName || s.scheme_name || s.name || s.scheme;
     if (id) {
@@ -230,18 +243,17 @@ export default function MFPage() {
     }
   }
 
+  /* initial */
   useEffect(() => {
-    // initial load default fund
     fetchFund(DEFAULT_SCHEME_ID);
     fetchLatest(DEFAULT_SCHEME_ID);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* Merge logic: create chart data array with navNum & _prev for tooltip pct change */
+  /* chart data merge logic */
   const chartData = useMemo(() => {
     const hist = normalizeNavData(currentFund?.data || []);
-    // If latest provided and it's newer than last entry, append or replace last
-    const latestEntry = latest?.data && Array.isArray(latest.data) ? latest.data[0] : null; // based on sample you gave
+    const latestEntry = latest?.data && Array.isArray(latest.data) ? latest.data[0] : null;
     const latestNormalized = latestEntry ? normalizeNavData([latestEntry])[0] : null;
 
     let merged = [...hist];
@@ -250,27 +262,24 @@ export default function MFPage() {
       if (!last || new Date(latestNormalized.iso) > new Date(last.iso)) {
         merged = [...merged, latestNormalized];
       } else if (last && latestNormalized && last.iso === latestNormalized.iso) {
-        // replace last
         merged[merged.length - 1] = latestNormalized;
       }
     }
 
-    // attach _prev navNum for change calculation
     for (let i = 0; i < merged.length; i++) {
       merged[i]._prev = i > 0 ? merged[i - 1].navNum : null;
     }
 
-    // produce a small window if too large for performance on chart
     return merged;
   }, [currentFund, latest]);
 
-  /* Derived stats */
+  /* Derived meta + stats */
   const meta = currentFund?.meta ?? (latest?.meta ?? {});
   const latestPoint = chartData.length ? chartData[chartData.length - 1] : null;
   const prevPoint = chartData.length > 1 ? chartData[chartData.length - 2] : null;
   const latestPct = prevPoint ? pctChange(prevPoint.navNum, latestPoint?.navNum) : null;
 
-  /* CSV download helper */
+  /* CSV download */
   function downloadCSV() {
     const arr = chartData || [];
     if (!arr.length) {
@@ -289,23 +298,101 @@ export default function MFPage() {
     toast.success("CSV downloaded");
   }
 
-  function copyJSON() {
+  /* animated copy */
+  async function copyJSON() {
     const payload = currentFund || latest || {};
-    navigator.clipboard.writeText(prettyJSON(payload));
-    toast.success("Copied JSON");
+    try {
+      await navigator.clipboard.writeText(prettyJSON(payload));
+      setCopied(true);
+      toast.success("Copied JSON");
+      // reset animation after 2s
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to copy");
+    }
+  }
+
+  /* 10 random NAV entries for sidebar / sheet */
+  const sampleNavs = useMemo(() => {
+    const src = chartData.length ? chartData : (currentFund?.data ? normalizeNavData(currentFund.data) : []);
+    if (!src || src.length === 0) return [];
+    const copy = [...src];
+    // choose up to 10 random unique samples (preferring recent)
+    const pick = [];
+    const attempts = Math.min(10, copy.length);
+    // sample by taking some recent plus randomness
+    const start = Math.max(0, copy.length - 30); // prefer last 30
+    for (let i = 0; i < attempts; i++) {
+      const idx = start + Math.floor(Math.random() * Math.max(1, copy.length - start));
+      const item = copy[idx];
+      if (item && !pick.find(p => p.iso === item.iso)) pick.push(item);
+      else {
+        // fallback linear pick
+        const fallback = copy[copy.length - 1 - i];
+        if (fallback && !pick.find(p => p.iso === fallback.iso)) pick.push(fallback);
+      }
+    }
+    return pick.slice(0, 10);
+  }, [chartData, currentFund]);
+
+  /* UI helpers */
+  function refreshAll() {
+    const id = meta.scheme_code || DEFAULT_SCHEME_ID;
+    fetchFund(id);
+    fetchLatest(id);
   }
 
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
+    <div className={clsx("min-h-screen p-4 md:p-6 pb-10 max-w-8xl mx-auto")}>
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>Fund Pulse — NAV Explorer</h1>
-          <p className="mt-1 text-sm opacity-70">Interactive NAV chart, latest snapshot, and full scheme metadata.</p>
+      <header className="flex items-center flex-wrap justify-between gap-4 mb-4">
+        <div className="flex items-center gap-3">
+          {/* Mobile menu / sheet trigger */}
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <div className="md:hidden">
+              <Button variant="ghost" className="p-2 cursor-pointer" onClick={() => setSheetOpen(true)}><Menu /></Button>
+            </div>
+            <SheetContent side="left" className={clsx("w-full max-w-sm p-0")}>
+              <SheetHeader className="p-4">
+                <SheetTitle className="text-lg flex items-center gap-2"><Grid className="w-5 h-5" /> Quick NAVs</SheetTitle>
+              </SheetHeader>
+              <div className={clsx("p-4", isDark ? "bg-black/90" : "bg-white")}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm font-semibold">Recent sample</div>
+                  <Button size="sm" variant="ghost" onClick={refreshAll} className="cursor-pointer"><RefreshCw /></Button>
+                </div>
+                <Separator />
+                <ScrollArea style={{ maxHeight: 420 }} className="mt-3 overflow-y-auto">
+                  <ul className="space-y-2">
+                    {sampleNavs.length === 0 && <li className="text-xs opacity-60">No entries</li>}
+                    {sampleNavs.map((r) => (
+                      <li key={r.iso} className="p-2 rounded-md border hover:shadow-sm cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm font-medium">{r.date}</div>
+                            <div className="text-xs opacity-60 mt-1">{r.nav}</div>
+                          </div>
+                          <div className={clsx("text-xs font-medium mt-0.5", r._prev != null && pctChange(r._prev, r.navNum) >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                            {r._prev != null ? `${pctChange(r._prev, r.navNum) >= 0 ? "+" : ""}${pctChange(r._prev, r.navNum).toFixed(2)}%` : "—"}
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </ScrollArea>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <div>
+            <h1 className="text-2xl md:text-3xl font-extrabold leading-tight">Fund Pulse</h1>
+            <div className="text-xs opacity-60 hidden md:block">Interactive NAV explorer — chart, recent NAVs, metadata</div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <form onSubmit={(e) => { e?.preventDefault?.(); if (suggestions.length) selectSuggestion(suggestions[0]); }} className={clsx("flex items-center gap-2 w-full md:w-[640px] rounded-lg px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
+        <div className=" ">
+          <form onSubmit={(e) => { e?.preventDefault?.(); if (suggestions.length) selectSuggestion(suggestions[0]); }} className={clsx("flex items-center gap-2 w-full rounded-lg px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-70" />
             <Input
               ref={inputRef}
@@ -316,67 +403,81 @@ export default function MFPage() {
               onFocus={() => setShowSuggest(true)}
               aria-label="Search mutual funds"
             />
-            <Button type="button" variant="outline" className="px-3" onClick={() => { fetchFund(DEFAULT_SCHEME_ID); fetchLatest(DEFAULT_SCHEME_ID); }}>Default</Button>
-            <Button type="submit" variant="outline" className="px-3"><Search /></Button>
+            <Button type="button" variant="outline" className="px-3 cursor-pointer" onClick={() => { fetchFund(DEFAULT_SCHEME_ID); fetchLatest(DEFAULT_SCHEME_ID); }}>Default</Button>
+            <Button type="submit" variant="outline" className="px-3 cursor-pointer"><Search /></Button>
           </form>
+
+          {/* Suggestions - mobile friendly placement */}
+          <AnimatePresence>
+            {showSuggest && suggestions.length > 0 && (
+              <motion.ul initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={clsx("absolute left-4 right-4 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl z-50 rounded-xl overflow-hidden shadow-xl mt-14", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
+                {loadingSuggest && <li className="p-3 text-sm opacity-60">Searching…</li>}
+                {suggestions.map((s, idx) => (
+                  <li key={s.schemeCode || s.scheme_code || idx} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => selectSuggestion(s)}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <div className="font-medium">{s.schemeName || s.name || `Scheme ${s.schemeCode || idx}`}</div>
+                        <div className="text-xs opacity-60">{s.schemeCode ? `Code: ${s.schemeCode}` : ""}</div>
+                      </div>
+                      <div className="text-xs opacity-60">{s.schemeCategory || s.plan || ""}</div>
+                    </div>
+                  </li>
+                ))}
+              </motion.ul>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Right actions (desktop) */}
+        <div className="hidden md:flex items-center gap-2">
+          <Button variant="ghost" className="cursor-pointer" onClick={refreshAll}><RefreshCw /></Button>
+          <Button variant="ghost" className="cursor-pointer" onClick={() => setShowRaw(s => !s)}><List /> {showRaw ? "Hide" : "Raw"}</Button>
+          <Button variant="ghost" className="cursor-pointer" onClick={() => setDialogOpen(true)}><BarChart2 /> Chart</Button>
         </div>
       </header>
 
-      {/* Suggestions */}
-      <AnimatePresence>
-        {showSuggest && suggestions.length > 0 && (
-          <motion.ul initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
-            {loadingSuggest && <li className="p-3 text-sm opacity-60">Searching…</li>}
-            {suggestions.map((s, idx) => (
-              <li key={s.schemeCode || s.scheme_code || idx} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => selectSuggestion(s)}>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <div className="font-medium">{s.schemeName || s.name || `Scheme ${s.schemeCode || idx}`}</div>
-                    <div className="text-xs opacity-60">{s.schemeCode ? `Code: ${s.schemeCode}` : ""}</div>
-                  </div>
-                  <div className="text-xs opacity-60">{s.schemeCategory || s.plan || ""}</div>
-                </div>
-              </li>
-            ))}
-          </motion.ul>
-        )}
-      </AnimatePresence>
-
-      {/* Main layout: left meta | center chart & details | right quick actions */}
-      <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* Left meta */}
-        <aside className={clsx("lg:col-span-3 space-y-4", isDark ? "bg-black/40 border border-zinc-800 rounded-2xl p-4" : "bg-white/90 border border-zinc-200 rounded-2xl p-4")}>
+      {/* Layout: left sidebar (desktop) | center content | right quick actions */}
+      <main className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Meta / sample navs (desktop) */}
+        <aside className={clsx("hidden lg:block lg:col-span-3 rounded-2xl p-4", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
           <div className="flex items-start gap-3">
             <div className="rounded-md p-3" style={{ background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)" }}>
               <Bank />
             </div>
-            <div>
+            <div className="flex-1">
               <div className="text-xs opacity-60">Scheme</div>
               <div className="text-lg font-semibold">{meta.scheme_name || "—"}</div>
               <div className="text-xs opacity-60">{meta.scheme_code ? `Code: ${meta.scheme_code}` : ""}</div>
             </div>
           </div>
 
-          <Separator />
+          <Separator className="my-4" />
 
-          <div className="grid grid-cols-1 gap-2">
-            <div>
-              <div className="text-xs opacity-60">Fund House</div>
-              <div className="font-medium">{meta.fund_house || meta.amc || "-"}</div>
-            </div>
-
-            <div>
-              <div className="text-xs opacity-60">Scheme Type</div>
-              <div className="font-medium">{meta.scheme_type || "-"}</div>
-            </div>
-
-            <div>
-              <div className="text-xs opacity-60">Category</div>
-              <div className="font-medium">{meta.scheme_category || "-"}</div>
-            </div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-semibold flex items-center gap-2"><FileText className="w-4 h-4" /> Sample NAVs</div>
+            <Button variant="ghost" size="sm" className="cursor-pointer" onClick={refreshAll}><RefreshCw /></Button>
           </div>
 
-          <Separator />
+          <ScrollArea className="overflow-y-auto" style={{ maxHeight: 420 }}>
+            <ul className="space-y-2">
+              {sampleNavs.length === 0 && <li className="text-xs opacity-60">No sample NAVs</li>}
+              {sampleNavs.map((r) => (
+                <li key={r.iso} className="p-3 rounded-lg border hover:shadow-sm cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium">{r.date}</div>
+                      <div className="text-xs opacity-60 mt-1">{r.nav}</div>
+                    </div>
+                    <div className={clsx("text-xs font-medium", r._prev != null && pctChange(r._prev, r.navNum) >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                      {r._prev != null ? `${pctChange(r._prev, r.navNum) >= 0 ? "+" : ""}${pctChange(r._prev, r.navNum).toFixed(2)}%` : "—"}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </ScrollArea>
+
+          <Separator className="my-4" />
 
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
@@ -388,7 +489,7 @@ export default function MFPage() {
               <div className="font-medium">{latestPoint ? latestPoint.date : (currentFund?.data?.[0]?.date ?? "-")}</div>
             </div>
             <div className="flex items-center justify-between">
-              <div className="text-xs opacity-60">Change (latest)</div>
+              <div className="text-xs opacity-60">Change</div>
               <div className={clsx("font-medium", latestPct == null ? "" : (latestPct >= 0 ? "text-emerald-400" : "text-rose-400"))}>
                 {latestPct == null ? "—" : `${latestPct >= 0 ? "+" : ""}${latestPct.toFixed(2)}%`}
               </div>
@@ -396,19 +497,27 @@ export default function MFPage() {
           </div>
         </aside>
 
-        {/* Center: Chart + details */}
+        {/* Center — main preview, chart, recent list */}
         <section className="lg:col-span-6">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+            <CardHeader className={clsx("p-5 flex items-center flex-wrap gap-3 justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div>
-                <CardTitle className="text-lg">{meta.scheme_name || "Fund Details"}</CardTitle>
-                <div className="text-xs opacity-60">{meta.scheme_type ? `${meta.scheme_type} • ${meta.scheme_category || ""}` : "Scheme metadata"}</div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Layers className="w-5 h-5 opacity-80" />
+                  <span>{meta.scheme_name || "Fund Details"}</span>
+                </CardTitle>
+                <div className="text-xs opacity-60 flex items-center gap-3 mt-1">
+                  <span className="flex items-center gap-1"><Percent className="w-3 h-3" /> {meta.scheme_type || "—"}</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {meta.scheme_category || "-"}</span>
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="ghost" className="cursor-pointer" onClick={() => { if (meta.scheme_code) { fetchFund(meta.scheme_code); fetchLatest(meta.scheme_code); } }}><Loader2 className={loadingFund || loadingLatest ? "animate-spin" : ""} /> Refresh</Button>
-                <Button variant="ghost" onClick={() => setShowRaw(s => !s)}><List /> {showRaw ? "Hide" : "Raw"}</Button>
-                <Button variant="ghost" onClick={() => setDialogOpen(true)}><BarChart2 /> Chart</Button>
+                <Button variant="ghost" className={clsx("cursor-pointer", (loadingFund || loadingLatest) && "opacity-80")} onClick={() => { if (meta.scheme_code) { fetchFund(meta.scheme_code); fetchLatest(meta.scheme_code); } else { fetchFund(DEFAULT_SCHEME_ID); fetchLatest(DEFAULT_SCHEME_ID); } }}>
+                  <motion.span animate={{ rotate: (loadingFund || loadingLatest) ? 360 : 0 }} transition={{ duration: 1 }}><Loader2 className={clsx((loadingFund || loadingLatest) ? "animate-spin" : "")} /></motion.span>
+                  <span className="ml-2">Refresh</span>
+                </Button>
+
               </div>
             </CardHeader>
 
@@ -418,28 +527,27 @@ export default function MFPage() {
               ) : !chartData || chartData.length === 0 ? (
                 <div className="py-12 text-center text-sm opacity-60">No NAV data available for chart.</div>
               ) : (
-                <div className="space-y-4">
-                  {/* Highlight box */}
-                  <div className="rounded-xl p-4 border" style={{ background: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)" }}>
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="text-xs opacity-60">Scheme</div>
-                        <div className="text-2xl font-semibold leading-tight">{meta.scheme_name}</div>
-                        <div className="text-xs opacity-60 mt-1">{meta.scheme_code ? `Code: ${meta.scheme_code}` : ""}</div>
-                      </div>
+                <div className="space-y-5">
+                  {/* Highlight / summary */}
+                  <div className={clsx("rounded-xl p-4 border flex  items-start justify-between gap-4", isDark ? "bg-black/30 border-zinc-800" : "bg-white/95 border-zinc-200")}>
+                    <div>
+                      <div className="text-xs opacity-60 flex items-center gap-2"><LinkIcon className="w-3 h-3" /> Scheme</div>
+                      <div className="text-2xl font-semibold leading-tight">{meta.scheme_name}</div>
+                      <div className="text-xs opacity-60 mt-1">{meta.scheme_code ? `Code: ${meta.scheme_code}` : ""}</div>
+                      <div className="mt-3 text-sm text-muted-foreground opacity-70">{meta.fund_house ? `House: ${meta.fund_house}` : ""}</div>
+                    </div>
 
-                      <div className="text-right">
-                        <div className="text-xs opacity-60">Latest NAV</div>
-                        <div className="text-xl font-semibold">{latestPoint ? latestPoint.nav : (chartData[chartData.length - 1]?.nav || "-")}</div>
-                        <div className="text-xs opacity-60 mt-1">{latestPoint ? latestPoint.date : "-"}</div>
-                        <div className={clsx("text-sm mt-2 font-medium", latestPct == null ? "" : latestPct >= 0 ? "text-emerald-400" : "text-rose-400")}>
-                          {latestPct == null ? "—" : `${latestPct >= 0 ? "+" : ""}${latestPct.toFixed(2)}%`} since prior
-                        </div>
+                    <div className="text-right">
+                      <div className="text-xs opacity-60">Latest NAV</div>
+                      <div className="text-xl font-semibold">{latestPoint ? latestPoint.nav : (chartData[chartData.length - 1]?.nav || "-")}</div>
+                      <div className="text-xs opacity-60 mt-1">{latestPoint ? latestPoint.date : "-"}</div>
+                      <div className={clsx("text-sm mt-2 font-medium", latestPct == null ? "" : latestPct >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                        {latestPct == null ? "—" : `${latestPct >= 0 ? "+" : ""}${latestPct.toFixed(2)}%`} since prior
                       </div>
                     </div>
                   </div>
 
-                  {/* Area Chart */}
+                  {/* Chart */}
                   <div className="rounded-xl border p-3" style={{ height: 320 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={chartData} margin={{ top: 8, right: 24, left: 0, bottom: 8 }}>
@@ -461,7 +569,7 @@ export default function MFPage() {
                   {/* Recent NAV table */}
                   <div className="rounded-xl border overflow-hidden">
                     <div className={clsx("p-3 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
-                      <div className="font-semibold">Recent NAVs</div>
+                      <div className="font-semibold flex items-center gap-2"><FileText className="w-4 h-4" /> Recent NAVs</div>
                       <div className="text-xs opacity-60">Latest {Math.min(12, chartData.length)} entries</div>
                     </div>
 
@@ -478,7 +586,7 @@ export default function MFPage() {
                           {chartData.slice(-12).reverse().map((r, i) => {
                             const change = r._prev != null ? pctChange(r._prev, r.navNum) : null;
                             return (
-                              <tr key={r.date + i} className="border-t">
+                              <tr key={r.date + i} className="border-t hover:bg-zinc-50 dark:hover:bg-zinc-800/40 cursor-pointer">
                                 <td className="p-3">{r.date}</td>
                                 <td className="p-3 font-medium">{r.nav}</td>
                                 <td className={clsx("p-3", change == null ? "opacity-60" : (change >= 0 ? "text-emerald-400" : "text-rose-400"))}>
@@ -507,8 +615,8 @@ export default function MFPage() {
           </Card>
         </section>
 
-        {/* Right quick actions */}
-        <aside className={clsx("lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
+        {/* Right quick actions & identifiers (desktop) */}
+        <aside className={clsx("hidden lg:block lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm font-semibold">Quick Actions</div>
@@ -520,10 +628,10 @@ export default function MFPage() {
           <Separator />
 
           <div className="grid grid-cols-1 gap-2">
-            <Button variant="outline" onClick={() => downloadCSV()}><Download /> Download CSV</Button>
-            <Button variant="outline" onClick={() => copyJSON()}><Copy /> Copy JSON</Button>
-            <Button variant="outline" onClick={() => { if (meta.scheme_code) window.open(`${API_BASE}/mf/${meta.scheme_code}`, "_blank"); else toast("No external link"); }}><ExternalLink /> Open API Source</Button>
-            <Button variant="outline" onClick={() => setDialogOpen(true)}><BarChart2 /> Large Chart</Button>
+            <Button variant="outline" onClick={() => downloadCSV()} className="cursor-pointer"><Download /> Download CSV</Button>
+            <Button variant="outline" onClick={copyJSON} className="cursor-pointer"><Copy /> Copy JSON</Button>
+            <Button variant="outline" onClick={() => { if (meta.scheme_code) window.open(`${API_BASE}/mf/${meta.scheme_code}`, "_blank"); else toast("No external link"); }} className="cursor-pointer"><ExternalLink /> Open API Source</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(true)} className="cursor-pointer"><BarChart2 /> Large Chart</Button>
           </div>
 
           <Separator />
@@ -544,7 +652,7 @@ export default function MFPage() {
 
       {/* Large chart dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-5xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-5xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>{meta.scheme_name || "NAV Chart"}</DialogTitle>
           </DialogHeader>

@@ -11,7 +11,7 @@ import {
   Star,
   X,
   ExternalLink,
-  Copy,
+  Copy as CopyIcon,
   Download,
   Loader2,
   Heart,
@@ -21,7 +21,13 @@ import {
   List,
   CheckCircle,
   Menu,
-  Loader
+  Loader,
+  RefreshCw,
+  Clock,
+  Layers,
+  Tag,
+  ChevronRight,
+  Check
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -30,7 +36,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { useTheme } from "@/components/theme-provider";
 
 /* ---------- Endpoints (TheMealDB) ---------- */
@@ -60,6 +66,26 @@ function extractIngredients(meal) {
   return res;
 }
 
+/* helper: fetch N random meals (TheMealDB random returns single item) */
+async function fetchNRandomMeals(n = 10) {
+  const promises = Array.from({ length: n }).map(() =>
+    fetch(RANDOM_MEAL).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+  );
+  const results = await Promise.all(promises);
+  // flatten to meal objects, drop nulls, dedupe by id
+  const meals = results
+    .map((j) => (j?.meals && j.meals[0]) || null)
+    .filter(Boolean);
+  const seen = new Set();
+  const unique = [];
+  for (const m of meals) {
+    if (!m || seen.has(m.idMeal)) continue;
+    seen.add(m.idMeal);
+    unique.push(m);
+  }
+  return unique;
+}
+
 /* ---------- Component ---------- */
 export default function MealPage() {
   const { theme } = useTheme?.() ?? { theme: "system" };
@@ -83,31 +109,36 @@ export default function MealPage() {
   const [showRaw, setShowRaw] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // sidebar / sheet list
+  const [sideMeals, setSideMeals] = useState([]);
+  const [loadingSide, setLoadingSide] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const [copied, setCopied] = useState(false);
+  const [copyAnimating, setCopyAnimating] = useState(false);
+
   const suggestTimer = useRef(null);
   const favLoadedRef = useRef(false);
 
   /* Persist favorites */
-// Load once
-useEffect(() => {
-  let saved = [];
-  try {
-    saved = JSON.parse(localStorage.getItem("revolyx-meal-favs") || "[]");
-  } catch {
-    saved = [];
-  }
-  setFavorites(Array.isArray(saved) ? saved : []);
-  favLoadedRef.current = true;
-}, []);
+  useEffect(() => {
+    let saved = [];
+    try {
+      saved = JSON.parse(localStorage.getItem("revolyx-meal-favs") || "[]");
+    } catch {
+      saved = [];
+    }
+    setFavorites(Array.isArray(saved) ? saved : []);
+    favLoadedRef.current = true;
+  }, []);
 
-// Save only after load finish
-useEffect(() => {
-  if (!favLoadedRef.current) return;
-  localStorage.setItem("revolyx-meal-favs", JSON.stringify(favorites));
-}, [favorites]);
-
+  useEffect(() => {
+    if (!favLoadedRef.current) return;
+    localStorage.setItem("revolyx-meal-favs", JSON.stringify(favorites));
+  }, [favorites]);
 
   /* ---------- fetch helpers ---------- */
-  async function fetchRandomMeal() {
+  async function fetchRandomMeal(setAsCurrent = true) {
     setLoadingMeal(true);
     try {
       const res = await fetch(RANDOM_MEAL);
@@ -118,9 +149,11 @@ useEffect(() => {
       }
       const json = await res.json();
       const meal = (json?.meals && json.meals[0]) || null;
-      setCurrentMeal(meal);
-      setRawResp(json);
-      showToast("success", `Serving: ${meal?.strMeal || "mystery meal"} 🍽️`);
+      if (setAsCurrent) {
+        setCurrentMeal(meal);
+        setRawResp(json);
+        showToast("success", `Serving: ${meal?.strMeal || "mystery meal"} 🍽️`);
+      }
     } catch (err) {
       console.error(err);
       showToast("error", "Failed to fetch random meal");
@@ -190,7 +223,6 @@ useEffect(() => {
       showToast("info", DEFAULT_MSG);
       return;
     }
-    // Use search endpoint and choose first result if any
     setLoadingSuggest(true);
     try {
       const url = `${SEARCH_MEAL}?s=${encodeURIComponent(query)}`;
@@ -218,8 +250,8 @@ useEffect(() => {
       return;
     }
     const id = currentMeal.idMeal;
-    setFavorites(prev => {
-      if (prev.some(f => f.id === id)) {
+    setFavorites((prev) => {
+      if (prev.some((f) => f.id === id)) {
         showToast("info", "Already saved");
         return prev;
       }
@@ -230,7 +262,7 @@ useEffect(() => {
   }
 
   function removeFavorite(id) {
-    setFavorites(prev => prev.filter(f => f.id !== id));
+    setFavorites((prev) => prev.filter((f) => f.id !== id));
     showToast("info", "Removed favorite");
   }
 
@@ -239,10 +271,25 @@ useEffect(() => {
   }
 
   /* Export / copy */
-  function copyRecipeToClipboard() {
+  async function copyRecipeToClipboard() {
     if (!currentMeal) return showToast("info", "No recipe to copy");
-    navigator.clipboard.writeText(prettyJSON(currentMeal));
-    showToast("success", "Recipe JSON copied");
+    try {
+      await navigator.clipboard.writeText(prettyJSON(currentMeal));
+      setCopied(true);
+      setCopyAnimating(true);
+      showToast("success", "Recipe JSON copied");
+      // reset animation after 1.8s
+      setTimeout(() => {
+        setCopyAnimating(false);
+      }, 300);
+      // reset tick after a bit
+      setTimeout(() => {
+        setCopied(false);
+      }, 1800);
+    } catch (err) {
+      console.error(err);
+      showToast("error", "Copy failed");
+    }
   }
 
   function downloadJSON() {
@@ -262,24 +309,102 @@ useEffect(() => {
   /* Derived data */
   const ingredients = useMemo(() => extractIngredients(currentMeal), [currentMeal]);
 
-  /* Small UX: when page mounts, load a random meal for immediate content */
+  /* Small UX: when page mounts, load a random meal for immediate content and populate sidebar */
   useEffect(() => {
-    fetchRandomMeal();
+    (async () => {
+      await fetchRandomMeal(true);
+      await refreshSidebarMeals();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  async function refreshSidebarMeals() {
+    setLoadingSide(true);
+    try {
+      const list = await fetchNRandomMeals(10);
+      setSideMeals(list);
+    } catch (err) {
+      console.error(err);
+      showToast("error", "Failed to load sidebar meals");
+    } finally {
+      setLoadingSide(false);
+    }
+  }
+
   /* ---------- UI ---------- */
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
+    <div className={clsx("min-h-screen p-4 md:p-6 pb-10 max-w-8xl mx-auto")}>
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>Revolyx — Recipes </h1>
-          <p className="mt-1 text-sm opacity-70">Random meals, curated recipes</p>
+      <header className="flex items-start flex-wrap md:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          {/* Mobile menu trigger */}
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild>
+              <button className="md:hidden p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer" aria-label="Open menu">
+                <Menu />
+              </button>
+            </SheetTrigger>
+
+            <SheetContent side="left" className={clsx("w-[320px] p-0", isDark ? "bg-black/90" : "bg-white")}>
+              <SheetHeader className="p-4 border-b">
+                <div className="flex items-center justify-between">
+                  <SheetTitle className="text-lg font-semibold">Random Meals</SheetTitle>
+                  <div className="text-xs opacity-60">Tap to load</div>
+                </div>
+              </SheetHeader>
+
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Button variant="ghost" onClick={() => refreshSidebarMeals()} className="cursor-pointer">
+                    <RefreshCw className={loadingSide ? "animate-spin" : ""} />
+                    <span className="ml-2 text-sm">Refresh</span>
+                  </Button>
+                  <Button variant="outline" onClick={() => { setSheetOpen(false); fetchRandomMeal(); }} className="cursor-pointer">
+                    <Loader2 /> Surprise
+                  </Button>
+                </div>
+
+                <ScrollArea style={{ height: "60vh" }}>
+                  <div className="space-y-2">
+                    {loadingSide && <div className="text-sm opacity-60 p-2">Loading…</div>}
+                    {sideMeals.map((m) => (
+                      <button
+                        key={m.idMeal}
+                        onClick={() => {
+                          lookupMealById(m.idMeal);
+                          setSheetOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+                      >
+                        <img src={m.strMealThumb} alt={m.strMeal} className="w-12 h-8 object-cover rounded-sm" />
+                        <div className="flex-1 text-left">
+                          <div className="font-medium text-sm">{m.strMeal}</div>
+                          <div className="text-xs opacity-60">{m.strCategory || "—"} • {m.strArea || "—"}</div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 opacity-50" />
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+
+              <SheetFooter className="p-4 border-t flex justify-between items-center">
+                <div className="text-xs opacity-60">Powered by TheMealDB</div>
+                <div>
+                  <Button variant="ghost" onClick={() => setSheetOpen(false)} className="cursor-pointer"><X /></Button>
+                </div>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
+
+          <div>
+            <h1 className={clsx("text-2xl md:text-3xl font-extrabold")}>Revolyx — Recipes</h1>
+            <p className="mt-0.5 text-sm opacity-70">Random meals, curated recipes • fast preview</p>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <form onSubmit={handleSearchSubmit} className={clsx("flex items-center gap-2 w-full md:w-[480px] rounded-lg px-2 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
+          <form onSubmit={handleSearchSubmit} className={clsx("flex items-center gap-2 w-full md:w-[520px] rounded-lg px-3 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-60" />
             <Input
               placeholder="Search recipes, e.g. 'rice', 'tuna', 'Arrabiata'..."
@@ -294,12 +419,13 @@ useEffect(() => {
             <Button type="submit" variant="outline" className="px-3 cursor-pointer"><Search /></Button>
           </form>
         </div>
+
       </header>
 
-      {/* suggestions */}
+      {/* suggestions (desktop dropdown) */}
       <AnimatePresence>
         {showSuggest && suggestions.length > 0 && (
-          <motion.ul initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_240px)] md:right-auto max-w-3xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
+          <motion.ul initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className={clsx("absolute z-50 left-4 right-4 md:left-[calc(50%_-_260px)] md:right-auto max-w-3xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
             {loadingSuggest && <li className="p-3 text-sm opacity-60">Searching…</li>}
             {suggestions.map((s, idx) => (
               <li key={s.idMeal || idx} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => { setCurrentMeal(s); setRawResp({ meals: [s] }); setShowSuggest(false); }}>
@@ -319,62 +445,70 @@ useEffect(() => {
 
       {/* Layout */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* Left: favorites / quick actions */}
-        {/* <aside className={clsx("lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-sm font-semibold">Saved Recipes</div>
-              <div className="text-xs opacity-60">Your pantry</div>
-            </div>
-
-            {favorites.length === 0 ? (
-              <div className="text-sm opacity-60 p-3">No saved recipes yet — save tasty ones with the star.</div>
-            ) : (
-              <div className="space-y-2">
-                {favorites.map((f) => (
-                  <div key={f.id} className="flex items-center gap-3 p-2 rounded-md border">
-                    <img src={f.thumb} alt={f.name} className="w-12 h-10 object-cover rounded-sm" />
-                    <div className="flex-1">
-                      <div className="font-medium">{f.name}</div>
-                      <div className="text-xs opacity-60">ID {f.id}</div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" onClick={() => chooseFavorite(f)}><ExternalLink /></Button>
-                      <Button variant="ghost" onClick={() => removeFavorite(f.id)}><X /></Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )
-            }
+        {/* Left: favorites / quick actions (desktop only) */}
+        <aside className={clsx("hidden lg:block lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold">Random Meals</div>
+            <div className="text-xs opacity-60">Tap to load</div>
           </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => refreshSidebarMeals()} className="cursor-pointer">
+              <RefreshCw className={loadingSide ? "animate-spin" : ""} />
+              <span className="ml-2 text-sm">Refresh</span>
+            </Button>
+            <Button variant="outline" onClick={() => fetchRandomMeal()} className="cursor-pointer"><Loader2 /> Surprise</Button>
+          </div>
+
+          <ScrollArea style={{ height: 560 }}>
+            <div className="space-y-2 mt-3">
+              {loadingSide && <div className="text-sm opacity-60 p-2">Loading…</div>}
+              {sideMeals.map((m) => (
+                <div key={m.idMeal} className="flex items-center gap-3 p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer" onClick={() => lookupMealById(m.idMeal)}>
+                  <img src={m.strMealThumb} alt={m.strMeal} className="w-14 h-10 object-cover rounded-sm" />
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{m.strMeal}</div>
+                    <div className="text-xs opacity-60">{m.strCategory || "—"} • {m.strArea || "—"}</div>
+                  </div>
+                  <div className="text-xs opacity-60">#{m.idMeal}</div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
 
           <Separator />
 
           <div>
             <div className="text-sm font-semibold mb-2">Quick Actions</div>
             <div className="grid grid-cols-1 gap-2">
-              <Button variant="outline" onClick={() => fetchRandomMeal()}><Loader2 /> Random Meal</Button>
-              <Button variant="outline" onClick={() => { if (currentMeal) saveFavorite(); else showToast("info", "Load a recipe first"); }}><Star /> Save</Button>
-              <Button variant="outline" onClick={() => { copyRecipeToClipboard(); }}><Copy /> Copy JSON</Button>
-              <Button variant="outline" onClick={() => { downloadJSON(); }}><Download /> Download</Button>
+              <Button variant="outline" onClick={() => fetchRandomMeal()} className="cursor-pointer"><Loader2 /> Random Meal</Button>
+              <Button variant="outline" onClick={() => { if (currentMeal) saveFavorite(); else showToast("info", "Load a recipe first"); }} className="cursor-pointer"><Star /> Save</Button>
+              <Button variant="outline" onClick={() => { copyRecipeToClipboard(); }} className="cursor-pointer">
+                {copied ? <Check className="text-green-500" /> : <CopyIcon />} Copy JSON
+              </Button>
+              <Button variant="outline" onClick={() => { downloadJSON(); }} className="cursor-pointer"><Download /> Download</Button>
             </div>
           </div>
-        </aside> */}
+        </aside>
 
         {/* Center: recipe viewer */}
-        <section className="lg:col-span-9 space-y-4">
+        <section className="lg:col-span-6 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
             <CardHeader className={clsx("p-5 flex items-center flex-wrap gap-3 justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div>
-                <CardTitle className="text-lg">Recipe</CardTitle>
-                <div className="text-xs opacity-60">{currentMeal?.strMeal || "Waiting for a dish..."}</div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 opacity-80" />
+                  Recipe
+                </CardTitle>
+                <div className="text-xs opacity-60 flex items-center gap-2">
+                  <span>{currentMeal?.strMeal || "Waiting for a dish..."}</span>
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button className="cursor-pointer " variant="outline" onClick={() => fetchRandomMeal()}><Loader className={loadingMeal?"animate-spin":""} /> Random Meal</Button>
-                <Button className="cursor-pointer" variant="ghost" onClick={() => setShowRaw(s => !s)}><List /> {showRaw ? "Hide" : "Raw"}</Button>
-                <Button className="cursor-pointer" variant="ghost" onClick={() => setDialogOpen(true)}><ImageIcon /> View Image</Button>
+                <Button className="cursor-pointer" variant="outline" onClick={() => fetchRandomMeal()}><Loader className={loadingMeal ? "animate-spin" : ""} /> Random</Button>
+                <Button className="cursor-pointer" variant="ghost" onClick={() => setShowRaw((s) => !s)}><List /> {showRaw ? "Hide Raw" : "Raw"}</Button>
+                <Button className="cursor-pointer" variant="ghost" onClick={() => setDialogOpen(true)}><ImageIcon /> View</Button>
               </div>
             </CardHeader>
 
@@ -384,45 +518,58 @@ useEffect(() => {
               ) : !currentMeal ? (
                 <div className="py-12 text-center text-sm opacity-60">No recipe loaded — try search or random.</div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Left column: image + meta */}
-                  <div className={clsx("p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  {/* Image / meta */}
+                  <div className={clsx("md:col-span-5 p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
                     <img src={currentMeal.strMealThumb} alt={currentMeal.strMeal} className="w-full rounded-md object-cover mb-3" />
                     <div className="text-lg font-semibold">{currentMeal.strMeal}</div>
-                    <div className="text-xs opacity-60">{currentMeal.strCategory} • {currentMeal.strArea} • {currentMeal.strTags || "No tags"}</div>
+                    <div className="text-xs opacity-60 flex items-center gap-2">
+                      <Tag className="w-4 h-4" /> <span>{currentMeal.strTags || "No tags"}</span>
+                    </div>
 
                     <div className="mt-3 space-y-2 text-sm">
-                      <div>
-                        <div className="text-xs opacity-60">Category</div>
-                        <div className="font-medium">{currentMeal.strCategory || "—"}</div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-xs opacity-60">Category</div>
+                          <div className="font-medium">{currentMeal.strCategory || "—"}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs opacity-60">Origin</div>
+                          <div className="font-medium">{currentMeal.strArea || "—"}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-xs opacity-60">Cuisine</div>
-                        <div className="font-medium">{currentMeal.strArea || "—"}</div>
-                      </div>
+
                       <div>
                         <div className="text-xs opacity-60">Source</div>
                         <div className="font-medium overflow-auto no-scrollbar">{currentMeal.strSource || "—"}</div>
                       </div>
                     </div>
 
-                    <div className="mt-4 flex flex-col gap-2">
-                      
+                    <div className="mt-4 flex gap-2">
                       <Button className="cursor-pointer" variant="outline" onClick={() => { if (currentMeal.strYoutube) window.open(currentMeal.strYoutube, "_blank"); else showToast("info", "No YouTube tutorial"); }}><ExternalLink /> Watch</Button>
+
+                      <Button variant="ghost" onClick={() => downloadJSON()} className="cursor-pointer"><Download /></Button>
                     </div>
                   </div>
 
-                  {/* Center/Right: Ingredients and Instructions */}
-                  <div className={clsx("p-4 rounded-xl border col-span-1 md:col-span-2", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-semibold">Ingredients</div>
-                      <div className="text-xs opacity-60">{ingredients.length} items</div>
+                  {/* Ingredients + instructions */}
+                  <div className={clsx("md:col-span-7 p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5" />
+                        <div>
+                          <div className="text-sm font-semibold">Ingredients</div>
+                          <div className="text-xs opacity-60">{ingredients.length} items</div>
+                        </div>
+                      </div>
+
+                      <div className="text-xs opacity-60">Prep: {currentMeal?.strTags?.split(",")[0] || "—"}</div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                       {ingredients.map((it, idx) => (
                         <div key={idx} className="p-2 rounded-md border flex items-start gap-3">
-                          <CheckCircle className="w-4 h-4 opacity-70 mt-1" />
+                          <div className="mt-1 text-xs opacity-80">•</div>
                           <div>
                             <div className="font-medium">{it.ingredient}</div>
                             <div className="text-xs opacity-60">{it.measure}</div>
@@ -431,18 +578,21 @@ useEffect(() => {
                       ))}
                     </div>
 
-                    <Separator className="my-3" />
+                    <Separator />
 
-                    <div>
-                      <div className="text-sm font-semibold mb-2">Instructions</div>
+                    <div className="mt-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Layers className="w-4 h-4" />
+                        <div className="text-sm font-semibold">Instructions</div>
+                      </div>
                       <div className="text-sm leading-relaxed whitespace-pre-line">{currentMeal.strInstructions}</div>
                     </div>
 
                     {currentMeal.strTags && (
                       <>
                         <Separator className="my-3" />
-                        <div>
-                          <div className="text-sm font-semibold mb-2">Tags</div>
+                        <div className="flex items-center gap-2">
+                          <Tag className="w-4 h-4" />
                           <div className="text-xs opacity-60">{currentMeal.strTags}</div>
                         </div>
                       </>
@@ -462,27 +612,6 @@ useEffect(() => {
               )}
             </AnimatePresence>
           </Card>
-
-          {/* Extra: full data panel (similar to forecast card) */}
-          {/* <Card className={clsx("rounded-2xl p-4 border", isDark ? "bg-black/30 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-lg font-semibold">Recipe Details</div>
-              <div className="text-xs opacity-60">All fields from API</div>
-            </div>
-
-            {currentMeal ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {Object.keys(currentMeal).map((k) => (
-                  <div key={k} className="p-2 rounded-md border">
-                    <div className="text-xs opacity-60">{k}</div>
-                    <div className="text-sm font-medium break-words">{currentMeal[k] ?? "—"}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-sm opacity-60 p-6">Load a recipe to see details</div>
-            )}
-          </Card> */}
         </section>
 
         {/* Right: meta / developer / quick list */}
@@ -495,7 +624,7 @@ useEffect(() => {
 
             {currentMeal ? (
               <div className="space-y-3">
-                <div className="p-3 rounded-md border flex items-center gap-3">
+                <div className="p-3 rounded-md border flex items-center gap-3 cursor-default">
                   <BookOpen className="w-4 h-4" />
                   <div>
                     <div className="text-xs opacity-60">Meal</div>
@@ -503,7 +632,7 @@ useEffect(() => {
                   </div>
                 </div>
 
-                <div className="p-3 rounded-md border flex items-center gap-3">
+                <div className="p-3 rounded-md border flex items-center gap-3 cursor-default">
                   <MapPin className="w-4 h-4" />
                   <div>
                     <div className="text-xs opacity-60">Origin</div>
@@ -511,7 +640,7 @@ useEffect(() => {
                   </div>
                 </div>
 
-                <div className="p-3 rounded-md border flex items-center gap-3">
+                <div className="p-3 rounded-md border flex items-center gap-3 cursor-default">
                   <Menu className="w-4 h-4" />
                   <div>
                     <div className="text-xs opacity-60">Category</div>
@@ -530,7 +659,7 @@ useEffect(() => {
             <div className="text-sm font-semibold mb-2">Developer</div>
             <div className="text-xs opacity-60">Endpoint examples & debugging</div>
             <div className="mt-2 space-y-2 grid grid-cols-1 gap-2">
-              <Button className="cursor-pointer" variant="outline" onClick={() => { navigator.clipboard.writeText(RANDOM_MEAL); showToast("success", "Endpoint copied"); }}><Copy /> Copy Random Endpoint</Button>
+              <Button className="cursor-pointer" variant="outline" onClick={() => { navigator.clipboard.writeText(RANDOM_MEAL); showToast("success", "Endpoint copied"); }}><CopyIcon /> Copy Random Endpoint</Button>
               <Button className="cursor-pointer" variant="outline" onClick={() => downloadJSON()}><Download /> Download JSON</Button>
               <Button className="cursor-pointer" variant="outline" onClick={() => setShowRaw((s) => !s)}><List /> Toggle Raw</Button>
             </div>
@@ -540,7 +669,7 @@ useEffect(() => {
 
       {/* Image dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-3xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>{currentMeal?.strMeal || "Image"}</DialogTitle>
           </DialogHeader>
@@ -557,8 +686,8 @@ useEffect(() => {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">Image provided by TheMealDB</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
-              <Button variant="outline" onClick={() => { if (currentMeal?.strMealThumb) window.open(currentMeal.strMealThumb, "_blank"); }}><ExternalLink /></Button>
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="cursor-pointer"><X /></Button>
+              <Button variant="outline" onClick={() => { if (currentMeal?.strMealThumb) window.open(currentMeal.strMealThumb, "_blank"); }} className="cursor-pointer"><ExternalLink /></Button>
             </div>
           </DialogFooter>
         </DialogContent>

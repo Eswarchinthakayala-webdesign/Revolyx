@@ -1248,6 +1248,8 @@ fetch("https://api.gold-api.com/symbols")
   .then(res => res.json())
   .then(console.log);`,
 },
+
+,
 {
   id: "worms",
   name: "WoRMS (World Register of Marine Species)",

@@ -123,6 +123,7 @@ import GoldApiPage from './APIDemoPage/GoldApiPage'
 import GoldApiPage2 from './APIDemoPage/GoldApiPage2'
 import FDAAnimalVetPage from './APIDemoPage/FDAAnimalVetPage'
 import WormsPage from './APIDemoPage/WormsPage'
+import OpenAQPage from './APIDemoPage/OpenAQPage'
 
 const router=createBrowserRouter([
   {
@@ -164,6 +165,11 @@ const router=createBrowserRouter([
        {
         path:"/flow-chart",
         element:<FlowchartPage/>
+      },
+      {
+        path:"/apis/openaq-v3",
+        element:<OpenAQPage/>
+
       },
        {
         path:"/all-icons",

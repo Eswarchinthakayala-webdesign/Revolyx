@@ -243,8 +243,8 @@ export default function OpenFoodPage() {
               }}
               className="border-0 shadow-none bg-transparent outline-none"
             />
-            <Button type="button" variant="outline" className="px-3" onClick={() => fetchProduct(endpoint || barcode)}><Search /> Fetch</Button>
-            <Button type="button" variant="ghost" className="px-3" onClick={() => { setBarcode(DEFAULT_BARCODE); setEndpoint(DEFAULT_ENDPOINT); fetchProduct(DEFAULT_BARCODE); }}><RotateIcon /></Button>
+            <Button  type="button" variant="outline" className="px-3 cursor-pointer" onClick={() => fetchProduct(endpoint || barcode)}><Search /> Fetch</Button>
+            <Button  type="button" variant="ghost" className="px-3 cursor-pointer" onClick={() => { setBarcode(DEFAULT_BARCODE); setEndpoint(DEFAULT_ENDPOINT); fetchProduct(DEFAULT_BARCODE); }}><RotateIcon /></Button>
           </form>
         </div>
       </header>
@@ -254,7 +254,7 @@ export default function OpenFoodPage() {
         {/* Main product viewer */}
         <section className="lg:col-span-9 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-center gap-4 justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+            <CardHeader className={clsx("p-5 flex items-center flex-wrap gap-4 justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-md overflow-hidden bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
                   {product?.image ? (
@@ -277,10 +277,10 @@ export default function OpenFoodPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => setShowRaw(s => !s)}><List /> {showRaw ? "Hide JSON" : "Raw"}</Button>
-                <Button variant="ghost" onClick={() => setDialogOpen(true)}><ImageIcon /> Image</Button>
-                <Button variant="outline" onClick={() => downloadJSON()}><Download /></Button>
-                <Button variant="ghost" onClick={() => copySummary()}><Clipboard /></Button>
+                <Button className="cursor-pointer" variant="outline" onClick={() => setShowRaw(s => !s)}><List /> {showRaw ? "Hide JSON" : "Raw"}</Button>
+                <Button className="cursor-pointer" variant="ghost" onClick={() => setDialogOpen(true)}><ImageIcon /> Image</Button>
+                <Button className="cursor-pointer" variant="outline" onClick={() => downloadJSON()}><Download /></Button>
+                <Button className="cursor-pointer" variant="ghost" onClick={() => copySummary()}><Clipboard /></Button>
               </div>
             </CardHeader>
 
@@ -334,7 +334,7 @@ export default function OpenFoodPage() {
                     </div>
 
                     <div className="mt-4">
-                      <Button variant="outline" onClick={() => { if (product.url) window.open(product.url, "_blank"); else showToast("info", "No product page available"); }}><CornerUpRight /> View on OpenFoodFacts</Button>
+                      <Button className="cursor-pointer" variant="outline" onClick={() => { if (product.url) window.open(product.url, "_blank"); else showToast("info", "No product page available"); }}><CornerUpRight /> View on OpenFoodFacts</Button>
                     </div>
                   </div>
 
@@ -387,7 +387,7 @@ export default function OpenFoodPage() {
                     </div>
 
                     <div className="mt-4">
-                      <Button variant="ghost" onClick={() => setShowRaw(s => !s)}><List /> {showRaw ? "Hide raw" : "Show raw"}</Button>
+                      <Button className="cursor-pointer" variant="ghost" onClick={() => setShowRaw(s => !s)}><List /> {showRaw ? "Hide raw" : "Show raw"}</Button>
                     </div>
                   </div>
 
@@ -468,9 +468,9 @@ export default function OpenFoodPage() {
             <div className="text-sm break-words mb-2">{safe(endpoint)}</div>
 
             <div className="mt-2 space-y-2">
-              <Button variant="outline" onClick={() => downloadJSON()}><Download /> Export JSON</Button>
-              <Button variant="ghost" onClick={() => { navigator.clipboard.writeText(endpoint); showToast("success", "Endpoint copied"); }}><Clipboard /> Copy Endpoint</Button>
-              <Button variant="ghost" onClick={() => { if (product?.url) window.open(product.url, "_blank"); else showToast("info", "No product page"); }}><ExternalLink /> Open product page</Button>
+              <Button className="cursor-pointer" variant="outline" onClick={() => downloadJSON()}><Download /> Export JSON</Button>
+              <Button className="cursor-pointer" variant="ghost" onClick={() => { navigator.clipboard.writeText(endpoint); showToast("success", "Endpoint copied"); }}><Clipboard /> Copy Endpoint</Button>
+              <Button className="cursor-pointer" variant="ghost" onClick={() => { if (product?.url) window.open(product.url, "_blank"); else showToast("info", "No product page"); }}><ExternalLink /> Open product page</Button>
             </div>
           </div>
 
@@ -491,7 +491,7 @@ export default function OpenFoodPage() {
 
       {/* Image dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-3xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>{product?.name || "Product image"}</DialogTitle>
           </DialogHeader>
@@ -508,8 +508,8 @@ export default function OpenFoodPage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">Image from OpenFoodFacts</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}><AlertCircle /></Button>
-              <Button variant="outline" onClick={() => { if (product?.url) window.open(product.url, "_blank"); }}><ExternalLink /></Button>
+              <Button className="cursor-pointer" variant="ghost" onClick={() => setDialogOpen(false)}><AlertCircle /></Button>
+              <Button className="cursor-pointer" variant="outline" onClick={() => { if (product?.url) window.open(product.url, "_blank"); }}><ExternalLink /></Button>
             </div>
           </DialogFooter>
         </DialogContent>

@@ -14,7 +14,16 @@ import {
   List,
   Menu,
   Share2,
-  ChevronRight
+  ChevronRight,
+  Check,
+  RefreshCw,
+  User,
+  Zap,
+  BarChart,
+  Info,
+  FileText,
+  Eye,
+  Star,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +35,26 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/components/theme-provider";
 import { showToast } from "../lib/ToastHelper";
 
+/* If you have the Sheet component available (shadcn/ui pattern), import it.
+   If the names differ in your project, adapt them. */
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+
+import {
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+} from "recharts";
 /* -------------------- Endpoint -------------------- */
 const ENDPOINT = "https://api.opendota.com/api/heroStats";
 
@@ -42,6 +71,18 @@ function pluralize(n, s) {
   return `${n} ${s}${n === 1 ? "" : "s"}`;
 }
 
+function sampleArray(arr, n) {
+  if (!arr || arr.length === 0) return [];
+  const copy = arr.slice();
+  const result = [];
+  for (let i = 0; i < Math.min(n, copy.length); i++) {
+    const idx = Math.floor(Math.random() * copy.length);
+    result.push(copy.splice(idx, 1)[0]);
+  }
+  return result;
+}
+
+/* -------------------- Component -------------------- */
 export default function OpenDotaPage() {
   const { theme } = useTheme?.() ?? { theme: "system" };
   const isDark =
@@ -60,6 +101,13 @@ export default function OpenDotaPage() {
   const [loadingSuggest, setLoadingSuggest] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // new states
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+  const [sidebarList, setSidebarList] = useState([]); // 10 random items for left sidebar / mobile sheet
+  const [copied, setCopied] = useState(false);
+  const [showRaw, setShowRaw] = useState(false);
+  const [copyAnimating, setCopyAnimating] = useState(false);
+
   const suggestTimer = useRef(null);
   const searchInputRef = useRef(null);
 
@@ -75,9 +123,12 @@ export default function OpenDotaPage() {
         if (!mounted) return;
         setHeroes(json || []);
         setRawResp(json);
+        // default selected
         if (Array.isArray(json) && json.length > 0) {
           setSelected(json[0]);
         }
+        // seed sidebar
+        setSidebarList(sampleArray(json || [], 10));
       } catch (err) {
         console.error(err);
         showToast("error", "Failed to fetch hero stats");
@@ -135,18 +186,31 @@ export default function OpenDotaPage() {
     }
   }
 
-  function handleSelectHero(hero) {
+  function handleSelectHero(hero, opts = {}) {
     setSelected(hero);
     setShowSuggest(false);
     setQuery(hero.localized_name || hero.name || "");
-    // Scroll to top of details if needed
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // if user requested close mobile sheet, do so
+    if (opts.closeSheet) setMobileSheetOpen(false);
+    // Scroll to top of details
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   function handleCopyJSON() {
-    if (!selected) return showToast("info", "No hero selected");
-    navigator.clipboard.writeText(prettyJSON(selected));
-    showToast("success", "Hero JSON copied to clipboard");
+    const payload = selected;
+    if (!payload) return showToast("info", "No hero selected");
+    navigator.clipboard.writeText(prettyJSON(payload)).then(() => {
+      setCopied(true);
+      setCopyAnimating(true);
+      showToast("success", "Hero JSON copied to clipboard");
+      // reset animation after 2s
+      setTimeout(() => {
+        setCopyAnimating(false);
+        setTimeout(() => setCopied(false), 150); // give a little gap
+      }, 1600);
+    });
   }
 
   function handleDownloadJSON() {
@@ -181,6 +245,12 @@ export default function OpenDotaPage() {
     return Array.from(set);
   }, [heroes]);
 
+  /* refresh 10-random list */
+  function refreshSidebar() {
+    setSidebarList(sampleArray(heroes || [], 10));
+    showToast("info", "Sidebar refreshed");
+  }
+
   /* small helper to render stat row */
   function StatRow({ label, value, suffix }) {
     return (
@@ -190,18 +260,107 @@ export default function OpenDotaPage() {
       </div>
     );
   }
+  function RadarTooltip({ active, payload, label }) {
+  if (!active || !payload || payload.length === 0) return null;
+  // show small card
+  return (
+    <div className="bg-white border text-xs p-2 rounded shadow-md dark:bg-zinc-900 dark:border-zinc-700">
+      <div className="flex items-center gap-2 mb-1">
+        <Star size={14} />
+        <div className="font-semibold">{label}</div>
+      </div>
+      <div className="text-xs opacity-80">
+        {payload.map((p, i) => (
+          <div key={i} className="flex items-center justify-between">
+            <div>{p.name}</div>
+            <div className="font-medium">{p.value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+  /* UI helpers for progress bars */
+  function StatBar({ value = 0, max = 100 }) {
+    const pct = Math.max(0, Math.min(100, Math.round((value / max) * 100)));
+    return (
+      <div className="w-full bg-zinc-100 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+        <div className="h-2 rounded-full transition-all" style={{ width: `${pct}%`, background: "linear-gradient(90deg,#7c3aed,#06b6d4)" }} />
+      </div>
+    );
+  }
+    const radarData = useMemo(() => {
+    if (!selected) return [];
+    // map a few meaningful fields (normalize occasionally)
+    return [
+      { subject: "Str", A: selected?.base_str ?? 0, fullMark: 30 },
+      { subject: "Agi", A: selected?.base_agi ?? 0, fullMark: 30 },
+      { subject: "Int", A: selected?.base_int ?? 0, fullMark: 30 },
+      { subject: "Str Gain", A: selected?.str_gain ?? 0, fullMark: 6 },
+      { subject: "Agi Gain", A: selected?.agi_gain ?? 0, fullMark: 6 },
+      { subject: "Int Gain", A: selected?.int_gain ?? 0, fullMark: 6 },
+    ];
+  }, [selected]);
 
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
+    <div className={clsx("min-h-screen p-4 md:p-6 max-w-8xl mx-auto")}>
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>OpenDota — Hero Explorer</h1>
-          <p className="mt-1 text-sm opacity-70">Browse hero stats, compare numeric attributes, and inspect the API response.</p>
+      <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          {/* mobile menu trigger */}
+          <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="p-2 md:hidden cursor-pointer" aria-label="Open heroes">
+                <Menu />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className={clsx(isDark ? "bg-black/90" : "bg-white")}>
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2"><User /> Heroes</SheetTitle>
+              </SheetHeader>
+              <div className="p-2">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-semibold">Quick list</div>
+                  <Button size="sm" variant="ghost" onClick={() => refreshSidebar()} className="cursor-pointer"><RefreshCw size={16} /></Button>
+                </div>
+                <ScrollArea className="h-[60vh]">
+                  <div className="grid gap-2 p-1">
+                    {(sidebarList || []).map(h => (
+                      <button key={h.id} onClick={() => handleSelectHero(h, { closeSheet: true })} className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer">
+                        <img src={`https://cdn.cloudflare.steamstatic.com${h.icon}`} alt={h.localized_name} className="w-12 h-8 object-cover rounded-sm" />
+                        <div className="flex-1 text-left">
+                          <div className="text-sm font-medium">{h.localized_name}</div>
+                          <div className="text-xs opacity-60">{h.primary_attr?.toUpperCase?.()} • {h.attack_type}</div>
+                        </div>
+                        <ChevronRight size={16} className="opacity-60" />
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+
+              <SheetFooter>
+                <div className="w-full flex items-center justify-between">
+                  <div className="text-xs opacity-60">Data from OpenDota</div>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" onClick={() => { navigator.clipboard.writeText(ENDPOINT); showToast("success", "Endpoint copied"); }} className="cursor-pointer"><List /></Button>
+                    <Button variant="ghost" onClick={() => setMobileSheetOpen(false)} className="cursor-pointer">Close</Button>
+                  </div>
+                </div>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
+
+          <div>
+            <h1 className={clsx("text-2xl md:text-3xl font-extrabold leading-tight")}>OpenDota — <span className="">Hero Explorer</span></h1>
+            <p className="text-xs md:text-sm opacity-70 mt-1 hidden md:block">Browse hero stats, compare attributes and quickly export or inspect the API response.</p>
+          </div>
         </div>
 
+        {/* search (desktop) */}
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <form onSubmit={(e)=>{e.preventDefault(); setShowSuggest(true); runSuggest(query);}} className={clsx("flex items-center gap-2 w-full md:w-[560px] rounded-lg px-3 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
+          <form onSubmit={(e) => { e.preventDefault(); setShowSuggest(true); runSuggest(query); }} className={clsx("flex items-center gap-2 w-full md:w-[560px] rounded-lg px-3 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-60" />
             <Input
               ref={searchInputRef}
@@ -211,7 +370,7 @@ export default function OpenDotaPage() {
               className="border-0 shadow-none bg-transparent outline-none"
               onFocus={() => setShowSuggest(true)}
             />
-            <Button type="submit" variant="outline" className="px-3"><Search /></Button>
+            <Button type="submit" variant="outline" className="px-3 cursor-pointer"><Search /></Button>
           </form>
         </div>
       </header>
@@ -223,16 +382,16 @@ export default function OpenDotaPage() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_280px)] md:right-auto max-w-4xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
+            className={clsx("absolute z-50 left-4 right-4 md:left-[calc(50%_-_280px)] md:right-auto max-w-4xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
           >
             {loadingSuggest && <li className="p-3 text-sm opacity-60">Searching…</li>}
             {!loadingSuggest && suggestions.map((s) => (
               <li key={s.id || s.name} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => handleSelectHero(s)}>
                 <div className="flex items-center gap-3">
-            <img src={`https://cdn.cloudflare.steamstatic.com${s.img}`} alt={s.localized_name} className="w-12 h-8 object-cover rounded-sm" />
+                  <img src={`https://cdn.cloudflare.steamstatic.com${s.img}`} alt={s.localized_name} className="w-12 h-8 object-cover rounded-sm" />
                   <div className="flex-1">
                     <div className="font-medium">{s.localized_name}</div>
-                    <div className="text-xs opacity-60">{s.primary_attr?.toUpperCase?.() ?? "-" } • {s.attack_type ?? "-"}</div>
+                    <div className="text-xs opacity-60 flex items-center gap-2"><Info size={12} /> {s.primary_attr?.toUpperCase?.() ?? "-"} • {s.attack_type ?? "-"}</div>
                   </div>
                   <div className="text-xs opacity-60">{(s.roles || []).join(", ")}</div>
                 </div>
@@ -245,24 +404,28 @@ export default function OpenDotaPage() {
 
       {/* Layout - Left + Center + Right */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* Left: quick list of heroes (compact) */}
-        <aside className={clsx("lg:col-span-3 rounded-2xl p-3 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
+        {/* Left: quick list of heroes (compact) - desktop only */}
+        <aside className={clsx("hidden lg:block lg:col-span-3 rounded-2xl p-3 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
           <div className="flex items-center justify-between mb-3">
-            <div className="text-sm font-semibold">Heroes</div>
-            <div className="text-xs opacity-60">{pluralize(heroes?.length || 0, "heroes")}</div>
+            <div className="text-sm font-semibold">Quick Heroes</div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" onClick={refreshSidebar} className="cursor-pointer px-2"><RefreshCw /></Button>
+              <div className="text-xs opacity-60">{pluralize(heroes?.length || 0, "heroes")}</div>
+            </div>
           </div>
 
           <ScrollArea className="h-[66vh]">
             <div className="grid grid-cols-1 gap-2 p-3">
               {loading ? (
                 <div className="py-12 text-center"><Loader2 className="animate-spin mx-auto" /></div>
-              ) : (heroes || []).slice(0, 60).map(h => (
+              ) : (sidebarList || []).map(h => (
                 <button
                   key={h.id}
                   onClick={() => handleSelectHero(h)}
-                  className={clsx("flex cursor-pointer items-center gap-3 w-full text-left p-2 rounded-lg transition", selected?.id === h.id ? "ring-2 ring-zinc-500/30" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50")}
+                  className={clsx("flex items-center gap-3 w-full text-left p-2 rounded-lg transition cursor-pointer",
+                    selected?.id === h.id ? "ring-2 ring-zinc-500/30" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50")}
                 >
-                  <img src={`https://cdn.cloudflare.steamstatic.com${h.icon}`}  alt={h.localized_name} className="w-10 h-6 object-cover rounded-sm" />
+                  <img src={`https://cdn.cloudflare.steamstatic.com${h.icon}`} alt={h.localized_name} className="w-10 h-6 object-cover rounded-sm" />
                   <div className="flex-1">
                     <div className="text-sm font-medium">{h.localized_name}</div>
                     <div className="text-xs opacity-60">{h.primary_attr?.toUpperCase?.()} • {h.attack_type}</div>
@@ -277,21 +440,29 @@ export default function OpenDotaPage() {
         {/* Center: detailed hero view */}
         <section className="lg:col-span-6 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-start gap-4", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+            <CardHeader className={clsx("p-5 flex flex-col md:flex-row items-start gap-4", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div className="flex items-center gap-4">
                 <div className="w-20 h-20 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center">
-                 <img src={`https://cdn.cloudflare.steamstatic.com${selected?.img}`}  alt={selected?.localized_name} className="object-cover w-full h-full" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`https://cdn.cloudflare.steamstatic.com${selected?.img}`} alt={selected?.localized_name} className="object-cover w-full h-full" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold">{selected?.localized_name ?? "Select a hero"}</h2>
-                  <div className="text-xs opacity-60">{selected?.name ?? "—"} • {selected?.primary_attr?.toUpperCase?.()} • {selected?.attack_type}</div>
-                  <div className="mt-1 text-xs opacity-60">{(selected?.roles || []).join(", ")}</div>
+                  <h2 className="text-2xl font-bold flex items-center gap-3">
+                    {selected?.localized_name ?? "Select a hero"}
+                    {selected && <span className="text-xs opacity-60 ml-2">#{selected.id}</span>}
+                  </h2>
+                  <div className="text-xs opacity-60 flex items-center gap-3 mt-1">
+                    <User size={14} /> <span>{selected?.name ?? "—"}</span>
+                    <Zap size={14} /> <span>{selected?.primary_attr?.toUpperCase?.() ?? "—"}</span>
+                    <BarChart size={14} /> <span>{selected?.attack_type ?? "—"}</span>
+                  </div>
+                  <div className="mt-2 text-xs opacity-60 flex items-center gap-2"><Info size={14} /> {(selected?.roles || []).join(", ")}</div>
                 </div>
               </div>
 
               <div className="ml-auto flex items-center gap-2">
-                <Button variant="outline" className="px-3" onClick={() => setDialogOpen(true)}><ImageIcon /> View Image</Button>
-                <Button variant="outline" className="px-3" onClick={() => openExternalHeroPage(selected)}><ExternalLink /> Open</Button>
+                <Button variant="outline" className="px-3 cursor-pointer" onClick={() => setDialogOpen(true)}><ImageIcon /> View Image</Button>
+                <Button variant="outline" className="px-3 cursor-pointer" onClick={() => openExternalHeroPage(selected)}><ExternalLink /> Open</Button>
               </div>
             </CardHeader>
 
@@ -302,13 +473,22 @@ export default function OpenDotaPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* left: core summary */}
                   <div className={clsx("p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <div className="text-sm font-semibold mb-2">Overview</div>
+                    <div className="text-sm font-semibold mb-3 flex items-center gap-2"><User /> Overview</div>
+
                     <div className="text-sm leading-relaxed mb-3">
-                      <div><span className="text-xs opacity-60">Primary:</span> <span className="font-medium">{selected.primary_attr?.toUpperCase?.() ?? "—"}</span></div>
-                      <div><span className="text-xs opacity-60">Attack:</span> <span className="font-medium">{selected.attack_type ?? "—"}</span></div>
-                      <div><span className="text-xs opacity-60">Roles:</span> <span className="font-medium">{(selected.roles || []).join(", ") || "—"}</span></div>
-                      <div className="mt-2 text-xs opacity-60">Base health / mana / armor / move speed</div>
-                      <div className="mt-1 grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="text-xs opacity-60">Primary</div>
+                        <div className="font-medium">{selected.primary_attr?.toUpperCase?.() ?? "—"}</div>
+
+                        <div className="text-xs opacity-60">Attack</div>
+                        <div className="font-medium">{selected.attack_type ?? "—"}</div>
+
+                        <div className="text-xs opacity-60">Roles</div>
+                        <div className="font-medium">{(selected.roles || []).join(", ") || "—"}</div>
+                      </div>
+
+                      <div className="mt-3 text-xs opacity-60">Base health / mana / armor / movespeed</div>
+                      <div className="mt-2 grid grid-cols-1 gap-2">
                         <StatRow label="Base Str" value={selected?.base_str ?? "—"} />
                         <StatRow label="Base Agi" value={selected?.base_agi ?? "—"} />
                         <StatRow label="Base Int" value={selected?.base_int ?? "—"} />
@@ -318,11 +498,12 @@ export default function OpenDotaPage() {
                         <StatRow label="Armor" value={selected?.base_armor ?? "—"} />
                       </div>
                     </div>
+                
 
                     <Separator className="my-3" />
 
                     <div>
-                      <div className="text-sm font-semibold mb-2">Attack</div>
+                      <div className="text-sm font-semibold mb-2 flex items-center gap-2"><Zap /> Attack</div>
                       <div className="grid grid-cols-1 gap-2">
                         <StatRow label="Attack Range" value={selected?.attack_range ?? "—"} />
                         <StatRow label="Projectile Speed" value={selected?.projectile_speed ?? "—"} />
@@ -334,20 +515,30 @@ export default function OpenDotaPage() {
 
                   {/* right: detailed numeric and fields */}
                   <div className={clsx("p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <div className="text-sm font-semibold mb-2">Detailed Stats</div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm font-semibold flex items-center gap-2"><BarChart /> Detailed Stats</div>
+                      <div className="text-xs opacity-60">numeric values</div>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <div className="p-2 rounded-md border">
                         <div className="text-xs opacity-60">Base strength gain</div>
                         <div className="text-sm font-medium">{selected?.str_gain ?? "—"}</div>
+                        <div className="mt-2"><StatBar value={selected?.str_gain ?? 0} max={6} /></div>
                       </div>
+
                       <div className="p-2 rounded-md border">
                         <div className="text-xs opacity-60">Base agility gain</div>
                         <div className="text-sm font-medium">{selected?.agi_gain ?? "—"}</div>
+                        <div className="mt-2"><StatBar value={selected?.agi_gain ?? 0} max={6} /></div>
                       </div>
+
                       <div className="p-2 rounded-md border">
                         <div className="text-xs opacity-60">Base intelligence gain</div>
                         <div className="text-sm font-medium">{selected?.int_gain ?? "—"}</div>
+                        <div className="mt-2"><StatBar value={selected?.int_gain ?? 0} max={6} /></div>
                       </div>
+
                       <div className="p-2 rounded-md border">
                         <div className="text-xs opacity-60">Turn rate</div>
                         <div className="text-sm font-medium">{selected?.turn_rate ?? "—"}</div>
@@ -359,13 +550,19 @@ export default function OpenDotaPage() {
                       </div>
 
                       <div className="p-2 rounded-md border col-span-1 sm:col-span-2">
-                        <div className="text-xs opacity-60">Raw fields (click to view)</div>
-                        <div className="mt-2 flex gap-2">
-                          <Button variant="ghost" onClick={() => setDialogOpen(true)}><ImageIcon /> Icon</Button>
-                          <Button variant="ghost" onClick={() => handleCopyJSON()}><Copy /> Copy JSON</Button>
-                          <Button variant="ghost" onClick={() => handleDownloadJSON()}><Download /> Download</Button>
-                          <Button variant="ghost" onClick={() => openExternalHeroPage(selected)}><ExternalLink /> Open</Button>
-                        </div>
+                        <div className="text-xs opacity-60">Actions</div>
+                        <div style={{ height: 220 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                          <PolarGrid />
+                          <PolarAngleAxis dataKey="subject" />
+                          <PolarRadiusAxis angle={30} domain={[0, "dataMax"]} />
+                          <Radar name={selected?.localized_name ?? "Hero"} dataKey="A" stroke="#7c3aed" fill="#7c3aed" fillOpacity={0.25} />
+                          <RechartsTooltip content={<RadarTooltip />} />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
+                      
                       </div>
                     </div>
                   </div>
@@ -374,13 +571,13 @@ export default function OpenDotaPage() {
             </CardContent>
           </Card>
 
-          {/* Raw JSON viewer (collapsible style) */}
+          {/* Raw JSON viewer (collapsible) */}
           <AnimatePresence>
-            {selected && rawResp && (
+            {selected && rawResp && showRaw && (
               <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/30 border-zinc-800" : "bg-white/60 border-zinc-200")}>
                 <div className="p-4">
                   <div className="flex items-center justify-between">
-                    <div className="text-sm font-semibold">API Response (excerpt)</div>
+                    <div className="text-sm font-semibold flex items-center gap-2"><FileText /> API Response (excerpt)</div>
                     <div className="text-xs opacity-60">Showing selected hero object</div>
                   </div>
 
@@ -399,10 +596,10 @@ export default function OpenDotaPage() {
             <div className="text-sm font-semibold mb-2">Quick Actions</div>
             <div className="text-xs opacity-60 mb-2">Tools for working with the selected hero</div>
             <div className="grid grid-cols-1 gap-2">
-              <Button variant="outline" onClick={() => handleCopyJSON()}><Copy /> Copy selected JSON</Button>
-              <Button variant="outline" onClick={() => handleDownloadJSON()}><Download /> Download JSON</Button>
-              <Button variant="outline" onClick={() => openExternalHeroPage(selected)}><ExternalLink /> Open on OpenDota</Button>
-              <Button variant="outline" onClick={() => { navigator.clipboard.writeText(`${ENDPOINT}`); showToast("success", "Endpoint copied"); }}><List /> Copy Endpoint</Button>
+              <Button variant="outline" onClick={() => handleCopyJSON()} className="cursor-pointer"><Copy /> Copy selected JSON</Button>
+              <Button variant="outline" onClick={() => handleDownloadJSON()} className="cursor-pointer"><Download /> Download JSON</Button>
+              <Button variant="outline" onClick={() => openExternalHeroPage(selected)} className="cursor-pointer"><ExternalLink /> Open on OpenDota</Button>
+              <Button variant="outline" onClick={() => { navigator.clipboard.writeText(`${ENDPOINT}`); showToast("success", "Endpoint copied"); }} className="cursor-pointer"><List /> Copy Endpoint</Button>
             </div>
           </div>
 
@@ -413,10 +610,9 @@ export default function OpenDotaPage() {
             <div className="text-xs opacity-60 mb-2">Click a role to show a subset in the left list.</div>
             <div className="flex flex-wrap gap-2">
               {roles.map(r => (
-                <Button key={r} variant="ghost" className="px-2 py-1 text-xs" onClick={() => {
+                <Button key={r} variant="ghost" className="px-2 py-1 text-xs cursor-pointer" onClick={() => {
                   const filtered = (heroes || []).filter(h => (h.roles || []).includes(r));
                   if (filtered.length > 0) {
-                    // show filtered list in left by temporarily selecting the first and scrolling
                     setSelected(filtered[0]);
                     setQuery(filtered[0].localized_name || filtered[0].name || "");
                     showToast("info", `Showing ${filtered.length} heroes with role ${r}`);
@@ -437,7 +633,7 @@ export default function OpenDotaPage() {
 
       {/* Image dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-3xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>{selected?.localized_name || "Icon"}</DialogTitle>
           </DialogHeader>
@@ -445,7 +641,7 @@ export default function OpenDotaPage() {
           <div style={{ height: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
             {selected?.img || selected?.icon ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={`https://cdn.cloudflare.steamstatic.com${selected.img}`}  alt={selected?.localized_name} style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "contain" }} />
+              <img src={`https://cdn.cloudflare.steamstatic.com${selected.img}`} alt={selected?.localized_name} style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "contain" }} />
             ) : (
               <div className="h-full flex items-center justify-center">No image</div>
             )}
@@ -454,8 +650,8 @@ export default function OpenDotaPage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">Image from OpenDota</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}>Close</Button>
-              <Button variant="outline" onClick={() => { if (selected) openExternalHeroPage(selected); }}><ExternalLink /></Button>
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="cursor-pointer">Close</Button>
+              <Button variant="outline" onClick={() => { if (selected) openExternalHeroPage(selected); }} className="cursor-pointer"><ExternalLink /></Button>
             </div>
           </DialogFooter>
         </DialogContent>

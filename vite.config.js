@@ -103,6 +103,12 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/aviation/, ""),
       },
+      "/openaq": {
+        target: "https://api.openaq.org/v3",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/openaq/, ""),
+      },
       
     }
   }

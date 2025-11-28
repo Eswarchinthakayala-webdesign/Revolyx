@@ -6,8 +6,9 @@ import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 
 import {
+  Menu,
   Search,
-  Image,
+  Image as ImageIcon,
   ExternalLink,
   Download,
   Copy,
@@ -16,6 +17,14 @@ import {
   X,
   ArrowRightCircle,
   Info,
+  Check,
+  Clock,
+  MapPin,
+  Tag,
+  Calendar,
+  User,
+  FileText,
+  RefreshCw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +35,16 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/components/theme-provider";
 import { showToast } from "../lib/ToastHelper";
+
+// shadcn sheet components (mobile sidebar)
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+} from "@/components/ui/sheet";
 
 /* ---------- Constants ---------- */
 const NASA_ENDPOINT = "https://images-api.nasa.gov/search";
@@ -47,14 +66,6 @@ function prettyJSON(obj) {
   return JSON.stringify(obj, null, 2);
 }
 
-/**
- * Normalize NASA collection item to a friendly object:
- * - id: nasa_id or generated
- * - title, description, date_created, center, keywords, photographer
- * - thumb: first link with rel === 'preview' or links[0]
- * - hrefs: array of available links from `links` (images)
- * - raw: original raw item
- */
 function normalizeNasaItems(collectionJson) {
   if (!collectionJson?.collection?.items) return [];
   const items = collectionJson.collection.items;
@@ -64,7 +75,7 @@ function normalizeNasaItems(collectionJson) {
     const thumbLink = links.find((l) => (l.rel && l.rel.toLowerCase().includes("preview")) || (l.render === "image")) || links[0] || null;
     const hrefs = (links || []).map((l) => l.href).filter(Boolean);
     return {
-      id: data?.nasa_id || data?.title?.slice(0, 30) + "-" + idx,
+      id: data?.nasa_id || (data?.title?.slice(0, 30) + "-" + idx),
       title: data?.title || "Untitled",
       description: data?.description || data?.photographer || data?.secondary_creator || "No description",
       date_created: data?.date_created,
@@ -77,6 +88,16 @@ function normalizeNasaItems(collectionJson) {
       metadata: data,
     };
   });
+}
+
+/* pick up to n random elements from an array deterministically (but shuffled) */
+function pickRandom(arr = [], n = 10) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, n);
 }
 
 /* ---------- Component ---------- */
@@ -103,6 +124,12 @@ export default function NASAImagesPage() {
   const [dialogImage, setDialogImage] = useState(null);
   const [showRaw, setShowRaw] = useState(false);
 
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // copy animation state
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef(null);
+
   const debounceRef = useRef(null);
   const suggestionsListRef = useRef(null);
   const inputRef = useRef(null);
@@ -123,7 +150,6 @@ export default function NASAImagesPage() {
       const normalized = normalizeNasaItems(json).slice(0, limit);
       setRawResp(json);
       setSuggestions(normalized);
-      // default current: first item (if query same as default or requested explicitly)
       if (normalized.length > 0) {
         setCurrent(normalized[0]);
       } else {
@@ -163,8 +189,11 @@ export default function NASAImagesPage() {
   }
 
   useEffect(() => {
-    // initial load for default query
     fetchNasa(DEFAULT_QUERY);
+    // cleanup copy timer on unmount
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -182,6 +211,8 @@ export default function NASAImagesPage() {
     setCurrent(item);
     setShowSuggest(false);
     setRawResp(item.raw ? { collection: { items: [item.raw] } } : null);
+    // close sheet on mobile
+    setSheetOpen(false);
   }
 
   async function handleSearchSubmit(e) {
@@ -203,16 +234,23 @@ export default function NASAImagesPage() {
 
   function openOriginal() {
     if (!current) return showToast("info", "No item selected");
-    // NASA provides asset endpoints with many sizes; open first href
     const first = current.hrefs && current.hrefs[0];
     if (first) window.open(first, "_blank");
     else showToast("info", "No image URL available");
   }
 
-  function copyJSON() {
+  async function copyJSON() {
     if (!current) return showToast("info", "No item selected");
-    navigator.clipboard.writeText(prettyJSON(current.metadata || current));
-    showToast("success", "Metadata copied to clipboard");
+    try {
+      navigator.clipboard.writeText(prettyJSON(current.metadata || current));
+      setCopied(true);
+      showToast("success", "Metadata copied to clipboard");
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error(err);
+      showToast("error", "Failed to copy");
+    }
   }
 
   function downloadJSON() {
@@ -233,7 +271,6 @@ export default function NASAImagesPage() {
     const active = suggestionsListRef.current?.querySelector("[data-active='true']");
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      // move focus to first suggestion or next
       if (!active) {
         const first = suggestionsListRef.current?.querySelector("[data-suggestion-index='0']");
         first?.focus();
@@ -249,28 +286,84 @@ export default function NASAImagesPage() {
     if (!current) return [];
     const md = current.metadata || {};
     return [
-      { label: "Title", value: current.title },
-      { label: "Center", value: md.center || "—" },
-      { label: "Date created", value: safeDate(md.date_created) },
-      { label: "Photographer", value: md.photographer || "—" },
-      { label: "Keywords", value: (md.keywords || []).join(", ") || "—" },
-      { label: "Description", value: md.description || "—" },
-      { label: "NASA ID", value: md.nasa_id || "—" },
-      { label: "Location", value: md.location || "—" },
+      { label: "Title", value: current.title, icon: FileText },
+      { label: "Center", value: md.center || "—", icon: MapPin },
+      { label: "Date created", value: safeDate(md.date_created), icon: Calendar },
+      { label: "Photographer", value: md.photographer || "—", icon: User },
+      { label: "Keywords", value: (md.keywords || []).join(", ") || "—", icon: Tag },
+      { label: "Description", value: md.description || "—", icon: Info },
+      { label: "NASA ID", value: md.nasa_id || "—", icon: Clock },
+      { label: "Location", value: md.location || "—", icon: MapPin },
     ];
   }, [current]);
 
+  // 10 random items for sidebar (prefer suggestions; fallback to normalized from rawResp)
+  const sidebarItems = useMemo(() => {
+    const source = suggestions.length ? suggestions : (normalizeNasaItems(rawResp) || []);
+    return pickRandom(source, 10);
+  }, [suggestions, rawResp]);
+
   /* ---------- Render ---------- */
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
+    <div className={clsx("min-h-screen pb-10 p-4 md:p-6 max-w-8xl mx-auto")}>
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>NASA Images & Data</h1>
-          <p className="mt-1 text-sm opacity-70">Search NASA's public image library — preview, inspect metadata, and download.</p>
+      <header className="flex items-center flex-wrap justify-between gap-4 mb-4 md:mb-6">
+        <div className="flex items-center gap-3">
+          {/* Mobile menu / sheet trigger */}
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="p-2 md:hidden cursor-pointer" aria-label="Open results">
+                <Menu />
+              </Button>
+            </SheetTrigger>
+
+            <SheetContent side="left" className="w-[320px] p-3 overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Results</SheetTitle>
+              </SheetHeader>
+
+              <div className="mt-2">
+                <div className="text-xs opacity-60 mb-2">Tap any thumbnail to select</div>
+                <ScrollArea className="overflow-y-auto" style={{ maxHeight: "60vh" }}>
+                  <div className="grid grid-cols-1 gap-2">
+                    {sidebarItems.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => onSelectSuggestion(s)}
+                        className="flex items-center gap-3 p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer"
+                      >
+                        {s.thumb ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={s.thumb} alt={s.title} className="w-14 h-10 object-cover rounded-sm" />
+                        ) : (
+                          <div className="w-14 h-10 bg-zinc-100 dark:bg-zinc-900/30 flex items-center justify-center"><ImageIcon /></div>
+                        )}
+                        <div className="text-sm text-left min-w-0">
+                          <div className="font-medium truncate">{s.title}</div>
+                          <div className="text-xs opacity-60 truncate">{safeDate(s.date_created)}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
+
+                <SheetFooter className="mt-4">
+                  <Button variant="outline" className="w-full cursor-pointer" onClick={() => { fetchNasa(query || DEFAULT_QUERY); setSheetOpen(false); }}>
+                    <RefreshCw className="mr-2" /> Refresh
+                  </Button>
+                </SheetFooter>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <div>
+            <h1 className="text-2xl md:text-3xl font-extrabold">NASA Images & Data</h1>
+            <p className="text-xs opacity-70">Search NASA's public image library — preview, inspect metadata, and download.</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        {/* Search bar (responsive) */}
+        <div className="flex-1 md:flex-none">
           <form onSubmit={handleSearchSubmit} className={clsx("flex items-center gap-2 w-full md:w-[640px] rounded-lg px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-60" />
             <Input
@@ -283,22 +376,22 @@ export default function NASAImagesPage() {
               onKeyDown={onInputKeyDown}
               className="border-0 shadow-none bg-transparent outline-none"
             />
-            <Button type="button" variant="outline" className="px-3" onClick={() => { setQuery(DEFAULT_QUERY); fetchNasa(DEFAULT_QUERY); }}>
+            <Button type="button" variant="ghost" className="px-3 hidden md:inline-flex cursor-pointer" onClick={() => { setQuery(DEFAULT_QUERY); fetchNasa(DEFAULT_QUERY); }}>
               <ArrowRightCircle className="mr-2" /> Default
             </Button>
-            <Button type="submit" variant="outline" className="px-3"><Search /></Button>
+            <Button type="submit" variant="outline" className="px-3 cursor-pointer"><Search /></Button>
           </form>
         </div>
       </header>
 
-      {/* Suggestions (absolute, attached to header input area) */}
+      {/* Suggestions (absolute for desktop input) */}
       <AnimatePresence>
         {showSuggest && suggestions.length > 0 && (
           <motion.ul
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
+            className={clsx("absolute z-50 left-4 right-4 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
             role="listbox"
             aria-label="Search suggestions"
             ref={suggestionsListRef}
@@ -318,7 +411,7 @@ export default function NASAImagesPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={s.thumb} alt={s.title} className="w-14 h-10 object-cover rounded-sm flex-shrink-0" />
                 ) : (
-                  <div className="w-14 h-10 rounded-sm bg-zinc-100 dark:bg-zinc-800/40 flex items-center justify-center"><Image /></div>
+                  <div className="w-14 h-10 rounded-sm bg-zinc-100 dark:bg-zinc-800/40 flex items-center justify-center"><ImageIcon /></div>
                 )}
 
                 <div className="flex-1 min-w-0">
@@ -332,21 +425,62 @@ export default function NASAImagesPage() {
         )}
       </AnimatePresence>
 
-      {/* Layout: left (image), center (details & fields), right (quick actions) */}
+      {/* Main layout */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* Left: large image + summary (1 col on small, 4 on md) */}
-        <section className="lg:col-span-4 space-y-4">
+        {/* Left sidebar (desktop) */}
+        <aside className={clsx("hidden lg:block lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-semibold">Results</div>
+              <div className="text-xs opacity-60">10 quick thumbnails</div>
+            </div>
+            <Button variant="ghost" className="cursor-pointer" onClick={() => fetchNasa(query || DEFAULT_QUERY)}><RefreshCw /></Button>
+          </div>
+
+          <ScrollArea style={{ maxHeight: 520 }} className="rounded-md overflow-y-auto border p-2">
+            <div className="grid grid-cols-1 gap-2">
+              {sidebarItems.map((s) => (
+                <button key={s.id} onClick={() => onSelectSuggestion(s)} className="flex items-center gap-3 p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer">
+                  {s.thumb ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={s.thumb} alt={s.title} className="w-14 h-10 object-cover rounded-sm" />
+                  ) : (
+                    <div className="w-14 h-10 bg-zinc-100 dark:bg-zinc-900/30 flex items-center justify-center"><ImageIcon /></div>
+                  )}
+                  <div className="text-sm text-left min-w-0">
+                    <div className="font-medium truncate">{s.title}</div>
+                    <div className="text-xs opacity-60 truncate">{safeDate(s.date_created)}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
+        </aside>
+
+        {/* Middle: preview (primary) */}
+        <section className="lg:col-span-6 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+            <CardHeader className={clsx("p-4 flex items-start justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div>
-                <CardTitle className="text-lg">Preview</CardTitle>
-                <div className="text-xs opacity-60">{current?.title ?? "No image selected"}</div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ImageIcon />
+                  Preview
+                </CardTitle>
+                <div className="text-xs opacity-60 mt-1">{current?.title ?? "No image selected"}</div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => fetchNasa(query || DEFAULT_QUERY)}><Loader2 className={loadingItem ? "animate-spin" : ""} /> Refresh</Button>
-                <Button variant="ghost" onClick={() => setShowRaw((s) => !s)}><List /> {showRaw ? "Hide" : "Raw"}</Button>
-                <Button variant="ghost" onClick={() => openImageInDialog(current?.thumb)}><Image /> View</Button>
+                <Button variant="outline" onClick={() => fetchNasa(query || DEFAULT_QUERY)} className="cursor-pointer">
+                  <RefreshCw className={loadingItem ? "animate-spin" : ""} /> Refresh
+                </Button>
+
+                <Button variant="ghost" onClick={() => setShowRaw((s) => !s)} className="cursor-pointer">
+                  <List /> {showRaw ? "Hide raw" : "Show raw"}
+                </Button>
+
+                <Button variant="ghost" onClick={() => openImageInDialog(current?.thumb)} className="cursor-pointer">
+                  <ImageIcon /> View
+                </Button>
               </div>
             </CardHeader>
 
@@ -356,30 +490,77 @@ export default function NASAImagesPage() {
               ) : !current ? (
                 <div className="py-12 text-center text-sm opacity-60">No item selected — search or pick a suggestion.</div>
               ) : (
-                <div className="space-y-3">
-                  <div className={clsx("rounded-xl overflow-hidden", isDark ? "bg-black/20 border border-zinc-800" : "bg-white/70 border border-zinc-200")}>
+                <div className="space-y-4">
+                  {/* image with overlay info */}
+                  <div className="relative rounded-xl overflow-hidden border">
                     {current.thumb ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={current.thumb} alt={current.title} className="w-full h-[40vh] object-cover" />
+                      <img src={current.thumb} alt={current.title} className="w-full h-[52vh] md:h-[48vh] object-cover" />
                     ) : (
-                      <div className="w-full h-[40vh] flex items-center justify-center bg-zinc-100 dark:bg-zinc-900/30">
-                        <Image />
+                      <div className="w-full h-[48vh] flex items-center justify-center bg-zinc-100 dark:bg-zinc-900/30">
+                        <ImageIcon />
                       </div>
                     )}
+
+                    <div className="absolute left-4 bottom-4 bg-white/80 dark:bg-black/70 backdrop-blur-md rounded-md p-3 flex items-start gap-3 border" style={{ maxWidth: "min(92%, 680px)" }}>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs opacity-60">Title</div>
+                        <div className="font-semibold truncate">{current.title}</div>
+                        <div className="text-xs opacity-60 mt-1">{current.photographer ? `By ${current.photographer}` : (current.center ? current.center : "")} • {safeDate(current.date_created)}</div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button variant="outline" onClick={() => openImageInDialog(current.hrefs?.[0] || current.thumb)} className="cursor-pointer">
+                          <ExternalLink />
+                        </Button>
+                        <Button variant="outline" onClick={downloadJSON} className="cursor-pointer">
+                          <Download />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
 
-                  <div>
-                    <div className="text-sm text-xs opacity-60">Title</div>
-                    <div className="font-semibold text-lg">{current.title}</div>
-                    <div className="text-xs opacity-60 mt-1">{current.photographer ? `By ${current.photographer}` : (current.center ? current.center : "")} • {safeDate(current.date_created)}</div>
-                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className={clsx("col-span-2 p-4 rounded-lg border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-sm font-semibold flex items-center gap-2">
+                            <Info /> Description
+                          </div>
+                          <div className="text-sm mt-2 text-zinc-700 dark:text-zinc-200 leading-relaxed">
+                            {current.description || "No description available."}
+                          </div>
+                        </div>
 
-                  <div className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-200">{current.description}</div>
+                        <div className="ml-4 flex flex-col items-end gap-2">
+                       
 
-                  <div className="mt-3 flex flex-col gap-2">
-                    <Button variant="outline" onClick={() => openImageInDialog(current.hrefs?.[0] || current.thumb)}><ExternalLink /> Open image</Button>
-                    <Button variant="outline" onClick={copyJSON}><Copy /> Copy metadata</Button>
-                    <Button variant="outline" onClick={downloadJSON}><Download /> Download JSON</Button>
+                          <Button variant="ghost" onClick={() => setDialogImage(current.hrefs?.[0] || current.thumb) || setDialogOpen(true)} className="cursor-pointer">
+                            <ImageIcon /> Preview
+                          </Button>
+                        </div>
+                      </div>
+
+                      <Separator className="my-4" />
+
+                    </div>
+
+                    <div className={clsx("p-4 rounded-lg border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                      <div className="text-sm font-semibold mb-2 flex items-center gap-2"><Tag /> Details</div>
+                      <div className="grid grid-cols-1 gap-2">
+                        {detailsGrid.slice(0, 5).map((d) => {
+                          const Icon = d.icon || Info;
+                          return (
+                            <div key={d.label} className="flex items-start gap-3">
+                              <div className="p-2 rounded-md bg-zinc-100 dark:bg-zinc-900/30"><Icon /></div>
+                              <div>
+                                <div className="text-xs opacity-60">{d.label}</div>
+                                <div className="text-sm font-medium break-words">{d.value ?? "—"}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -397,80 +578,35 @@ export default function NASAImagesPage() {
           </Card>
         </section>
 
-        {/* Center: large detailed metadata (primary content) */}
-        <section className="lg:col-span-5 space-y-4">
-          <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
-              <CardTitle className="text-lg">Details & Metadata</CardTitle>
-              <div className="text-xs opacity-60 mt-1">Comprehensive metadata parsed from the NASA response</div>
-            </CardHeader>
-
-            <CardContent>
-              {!current ? (
-                <div className="py-12 text-center text-sm opacity-60">Select an item to inspect full metadata.</div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {detailsGrid.map((d) => (
-                      <div key={d.label} className={clsx("p-3 rounded-lg border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                        <div className="text-xs opacity-60">{d.label}</div>
-                        <div className="text-sm font-medium break-words">{d.value ?? "—"}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Separator />
-
-                  <div>
-                    <div className="text-sm font-semibold mb-2">Available Images</div>
-                    <ScrollArea style={{ maxHeight: 160 }} className="rounded-md border p-2">
-                      <div className="flex gap-2">
-                        {(current.hrefs && current.hrefs.length > 0) ? current.hrefs.map((h, i) => (
-                          <button key={h} onClick={() => openImageInDialog(h)} className="flex-shrink-0 rounded-md overflow-hidden w-36 h-24 border hover:scale-105 transition-transform">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={h} alt={`${current.title} - ${i}`} className="w-full h-full object-cover" />
-                          </button>
-                        )) : (
-                          <div className="text-xs opacity-60">No additional images</div>
-                        )}
-                      </div>
-                    </ScrollArea>
-                  </div>
-
-                  <div>
-                    <div className="text-sm font-semibold mb-2">Full raw metadata</div>
-                    <pre className="text-xs overflow-auto rounded-md border p-2" style={{ maxHeight: 220 }}>
-                      {prettyJSON(current.raw || current.metadata || current)}
-                    </pre>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Right: quick actions & search results list (compact) */}
+        {/* Right: quick actions & compact results (desktop) */}
         <aside className={clsx("lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
           <div>
-            <div className="text-sm font-semibold mb-2">Quick Actions</div>
-            <div className="text-xs opacity-60 mb-2">Useful operations for the selected item</div>
-            <div className="space-y-2">
-              <Button className="w-full" variant="outline" onClick={openOriginal}><ExternalLink /> Open original</Button>
-              <Button className="w-full" variant="outline" onClick={() => openImageInDialog(current?.thumb)}><Image /> Open preview</Button>
-              <Button className="w-full" variant="outline" onClick={copyJSON}><Copy /> Copy metadata</Button>
-              <Button className="w-full" variant="outline" onClick={downloadJSON}><Download /> Download JSON</Button>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold">Quick Actions</div>
+                <div className="text-xs opacity-60">Useful operations for the selected item</div>
+              </div>
+
+              <Button variant="ghost" className="cursor-pointer" onClick={() => setShowRaw((s) => !s)}><List /></Button>
+            </div>
+
+            <div className="space-y-2 mt-3">
+              <Button className="w-full justify-start cursor-pointer" variant="outline" onClick={openOriginal}><ExternalLink /> <span className="ml-2">Open original</span></Button>
+              <Button className="w-full justify-start cursor-pointer" variant="outline" onClick={() => openImageInDialog(current?.thumb)}><ImageIcon /> <span className="ml-2">Open preview</span></Button>
+              <Button className="w-full justify-start cursor-pointer" variant="outline" onClick={copyJSON}><Copy /> <span className="ml-2">Copy metadata</span></Button>
+              <Button className="w-full justify-start cursor-pointer" variant="outline" onClick={downloadJSON}><Download /> <span className="ml-2">Download JSON</span></Button>
             </div>
           </div>
 
           <Separator />
 
           <div>
-            <div className="text-sm font-semibold mb-2">Results</div>
-            <div className="text-xs opacity-60 mb-2">Click any thumbnail to make it primary</div>
+            <div className="text-sm font-semibold mb-2">Results (compact)</div>
+            <div className="text-xs opacity-60 mb-2">Click a thumbnail to make it primary</div>
             <div className="grid grid-cols-1 gap-2">
               {suggestions.slice(0, 6).map((s) => (
-                <button key={s.id} onClick={() => onSelectSuggestion(s)} className="flex items-center gap-3 p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50">
-                  {s.thumb ? (<img src={s.thumb} alt={s.title} className="w-14 h-10 object-cover rounded-sm" />) : (<div className="w-14 h-10 bg-zinc-100 dark:bg-zinc-900/30 flex items-center justify-center"><Image /></div>)}
+                <button key={s.id} onClick={() => onSelectSuggestion(s)} className="flex items-center gap-3 p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer">
+                  {s.thumb ? (<img src={s.thumb} alt={s.title} className="w-14 h-10 object-cover rounded-sm" />) : (<div className="w-14 h-10 bg-zinc-100 dark:bg-zinc-900/30 flex items-center justify-center"><ImageIcon /></div>)}
                   <div className="text-sm text-left">
                     <div className="font-medium truncate w-36">{s.title}</div>
                     <div className="text-xs opacity-60">{safeDate(s.date_created)}</div>
@@ -484,7 +620,7 @@ export default function NASAImagesPage() {
 
       {/* Image dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-4xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-4xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>{current?.title || "Image"}</DialogTitle>
           </DialogHeader>
@@ -501,8 +637,8 @@ export default function NASAImagesPage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">Image from NASA</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
-              <Button variant="outline" onClick={() => { if (dialogImage) window.open(dialogImage, "_blank"); }}><ExternalLink /></Button>
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="cursor-pointer"><X /></Button>
+              <Button variant="outline" onClick={() => { if (dialogImage) window.open(dialogImage, "_blank"); }} className="cursor-pointer"><ExternalLink /></Button>
             </div>
           </DialogFooter>
         </DialogContent>
