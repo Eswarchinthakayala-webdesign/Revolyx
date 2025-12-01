@@ -22,7 +22,14 @@ import {
   CloudSun,
   CloudMoon,
   Star,
-  StarHalf
+  StarHalf,
+  Menu,
+  RefreshCw,
+  Check,
+  FileText,
+  Map,
+  MapPinOff,
+  BrushCleaningIcon
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -31,13 +38,11 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 import { useTheme } from "@/components/theme-provider";
-import { showToast } from "../lib/ToastHelper"; // reuse if available
-
-// Leaflet imports (map)
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css"; // ensure this is loaded in your app (or import in layout)
+import { showToast } from "../lib/ToastHelper";
 
 // Helper: pretty JSON
 function prettyJSON(obj) {
@@ -48,11 +53,6 @@ function prettyJSON(obj) {
   }
 }
 
-/**
- * DEFAULT DATA (from your example)
- * id: "sunrise_sunset"
- * lat: 36.7201600, lng: -4.4203400
- */
 const DEFAULT = {
   id: "sunrise_sunset",
   name: "Sunrise & Sunset Times",
@@ -60,7 +60,6 @@ const DEFAULT = {
   lat: 36.72016,
   lng: -4.42034,
   description: "Get daily sunrise and sunset times for any latitude and longitude. No API key required.",
-  previewImage: "/api_previews/sunrise_sunset.png",
   endpoint: "https://api.sunrise-sunset.org/json"
 };
 
@@ -78,32 +77,43 @@ export default function SunriseSunsetPage() {
   const [showSuggest, setShowSuggest] = useState(false);
   const [loadingSuggest, setLoadingSuggest] = useState(false);
 
-  // Selected place and API responses
+  // Selected place + responses
   const [place, setPlace] = useState({
     display_name: "Málaga, Spain",
     lat: String(DEFAULT.lat),
     lon: String(DEFAULT.lng),
+    type: "city"
   });
   const [sunResp, setSunResp] = useState(null);
   const [rawSunResp, setRawSunResp] = useState(null);
 
   const [loadingSun, setLoadingSun] = useState(false);
-  const [rawVisible, setRawVisible] = useState(false);
+  const [rawVisibleInline, setRawVisibleInline] = useState(false);
   const [rawDialogOpen, setRawDialogOpen] = useState(false);
   const [mapDialogOpen, setMapDialogOpen] = useState(false);
+
+  // sidebar / mobile sheet
+  const [randomList, setRandomList] = useState([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // copy animation
+  const [copied, setCopied] = useState(false);
+
+  const [selectedPlace, setSelectedPlace] = useState(null);
+
 
   // debounce
   const timerRef = useRef(null);
 
-  // On mount: load default sunrise info
   useEffect(() => {
     fetchSunriseForCoords(DEFAULT.lat, DEFAULT.lng);
+    fetchRandomPlaces();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* --------------------------
-     Functions: Search (Nominatim)
-     -------------------------- */
+     Search (Nominatim)
+  -------------------------- */
   async function searchPlaces(q) {
     if (!q || !q.trim()) {
       setSuggestions([]);
@@ -112,14 +122,12 @@ export default function SunriseSunsetPage() {
     setLoadingSuggest(true);
     try {
       const encoded = encodeURIComponent(q.trim());
-      // Nominatim public geocoding
       const url = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=6&addressdetails=1`;
       const res = await fetch(url, {
         headers: { "User-Agent": "sunrise-sunset-app/1.0 (+your-email-or-domain)" }
       });
       if (!res.ok) {
         setSuggestions([]);
-        setLoadingSuggest(false);
         return;
       }
       const json = await res.json();
@@ -136,22 +144,20 @@ export default function SunriseSunsetPage() {
     setQuery(v);
     setShowSuggest(true);
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      searchPlaces(v);
-    }, 300);
+    timerRef.current = setTimeout(() => searchPlaces(v), 300);
   }
 
   function chooseSuggestion(s) {
     if (!s) return;
-    setPlace(s);
-    setShowSuggest(false);
+    setPlace({ display_name: s.display_name, lat: s.lat, lon: s.lon, type: s.type });
     setQuery(s.display_name);
+    setShowSuggest(false);
     fetchSunriseForCoords(Number(s.lat), Number(s.lon), s);
   }
 
   /* --------------------------
      Fetch sunrise-sunset.org
-     -------------------------- */
+  -------------------------- */
   async function fetchSunriseForCoords(lat, lng, placeObj = null) {
     setLoadingSun(true);
     setSunResp(null);
@@ -167,9 +173,7 @@ export default function SunriseSunsetPage() {
       }
       const json = await res.json();
       setRawSunResp(json);
-      // api returns {results: {...}, status: "OK"}
       const results = json?.results || {};
-      // convert ISO UTC times to Date objects to present both UTC and local times
       const converted = {};
       Object.entries(results).forEach(([k, v]) => {
         try {
@@ -177,15 +181,14 @@ export default function SunriseSunsetPage() {
             original: v,
             utc: new Date(v),
             local: new Date(v).toLocaleString(),
-            localTimeOnly: new Date(v).toLocaleTimeString(),
+            localTimeOnly: new Date(v).toLocaleTimeString()
           };
         } catch {
           converted[k] = { original: v };
         }
       });
       setSunResp({ raw: results, converted });
-      // optional toast
-      showToast?.("success", `Sun times loaded for ${placeObj?.display_name ?? (place?.display_name ?? "location")}`);
+      showToast?.("success", `Sun times loaded for ${placeObj?.display_name ?? place?.display_name ?? "location"}`);
     } catch (err) {
       console.error("sun API error", err);
       showToast?.("error", "Failed to fetch sunrise/sunset");
@@ -195,28 +198,20 @@ export default function SunriseSunsetPage() {
   }
 
   /* --------------------------
-     Quick actions
-     -------------------------- */
-  function copyCoords() {
-    const lat = place.lat ?? place?.lat ?? DEFAULT.lat;
-    const lon = place.lon ?? place?.lon ?? DEFAULT.lng;
+     Copy / download / open helpers
+  -------------------------- */
+  async function copyCoords() {
+    const lat = place.lat ?? DEFAULT.lat;
+    const lon = place.lon ?? DEFAULT.lng;
     const txt = `${lat}, ${lon}`;
-    navigator.clipboard.writeText(txt);
-    showToast?.("success", "Coordinates copied");
-  }
-
-  function openInOSM() {
-    const lat = place.lat ?? place?.lat ?? DEFAULT.lat;
-    const lon = place.lon ?? place?.lon ?? DEFAULT.lng;
-    const url = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=13/${lat}/${lon}`;
-    window.open(url, "_blank");
-  }
-
-  function openInGoogleMaps() {
-    const lat = place.lat ?? place?.lat ?? DEFAULT.lat;
-    const lon = place.lon ?? place?.lon ?? DEFAULT.lng;
-    const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
-    window.open(url, "_blank");
+    try {
+      await navigator.clipboard.writeText(txt);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+      showToast?.("success", "Coordinates copied");
+    } catch {
+      showToast?.("error", "Copy failed");
+    }
   }
 
   function downloadJSON() {
@@ -230,10 +225,65 @@ export default function SunriseSunsetPage() {
     showToast?.("success", "Downloaded JSON");
   }
 
+  function openInGoogleMaps() {
+    const lat = place.lat ?? DEFAULT.lat;
+    const lon = place.lon ?? DEFAULT.lng;
+    const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+    window.open(url, "_blank");
+  }
+
+  function openInOSM() {
+    const lat = place.lat ?? DEFAULT.lat;
+    const lon = place.lon ?? DEFAULT.lng;
+    const url = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=12/${lat}/${lon}`;
+    window.open(url, "_blank");
+  }
+
   /* --------------------------
-     Icons mapping + display order (Option 1)
-     -------------------------- */
-  const timeFields = useMemo(() => ([
+     Random places (reverse geocode random coords)
+     Generates 10 picks for the sidebar/mobile sheet
+  -------------------------- */
+  async function fetchRandomPlaces() {
+    try {
+      const picks = [];
+      const maxAttempts = 30;
+      let attempts = 0;
+      while (picks.length < 10 && attempts < maxAttempts) {
+        attempts++;
+        // random lat in [-60, 75], lon in [-180, 180]
+        const lat = (Math.random() * 135 - 60).toFixed(6);
+        const lon = (Math.random() * 360 - 180).toFixed(6);
+        // reverse geocode
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10&addressdetails=1`;
+        try {
+          const res = await fetch(url, {
+            headers: { "User-Agent": "sunrise-sunset-app/1.0 (+your-email-or-domain)" }
+          });
+          if (!res.ok) continue;
+          const j = await res.json();
+          // ensure display_name exists and not duplicate
+          if (j?.display_name && !picks.some((p) => p.display_name === j.display_name)) {
+            picks.push({
+              display_name: j.display_name,
+              lat: String(lat),
+              lon: String(lon),
+              type: j?.type || "place"
+            });
+          }
+        } catch (e) {
+          // ignore failed reverse geocode
+        }
+      }
+      setRandomList(picks);
+    } catch (err) {
+      console.error("random places error", err);
+    }
+  }
+
+  /* --------------------------
+     Time fields + render helper
+  -------------------------- */
+  const timeFields = useMemo(() => [
     { key: "astronomical_twilight_begin", label: "Astronomical Dawn", Icon: Star, color: "text-violet-400" },
     { key: "nautical_twilight_begin", label: "Nautical Dawn", Icon: CloudSun, color: "text-sky-400" },
     { key: "civil_twilight_begin", label: "Civil Dawn", Icon: Sunrise, color: "text-amber-300" },
@@ -243,18 +293,14 @@ export default function SunriseSunsetPage() {
     { key: "civil_twilight_end", label: "Civil Dusk", Icon: Sunset, color: "text-orange-300" },
     { key: "nautical_twilight_end", label: "Nautical Dusk", Icon: CloudMoon, color: "text-indigo-400" },
     { key: "astronomical_twilight_end", label: "Astronomical Dusk", Icon: StarHalf, color: "text-purple-400" },
-    { key: "day_length", label: "Day Length", Icon: Clock, color: "text-blue-400" },
-  ]), []);
+    { key: "day_length", label: "Day Length", Icon: Clock, color: "text-blue-400" }
+  ], [isDark]);
 
-  /* --------------------------
-     Small render helpers
-     -------------------------- */
   function renderTimeRow(item) {
     const { key, label, Icon, color } = item;
     const conv = sunResp?.converted?.[key];
     if (!conv) return null;
 
-    // day_length is numeric seconds in API; convert to hh:mm:ss if present
     if (key === "day_length") {
       const seconds = Number(sunResp?.raw?.day_length ?? conv?.original ?? 0);
       const h = Math.floor(seconds / 3600);
@@ -293,17 +339,82 @@ export default function SunriseSunsetPage() {
     );
   }
 
+  /* --------------------------
+     Google Maps iframe helper (no API key required)
+     -------------------------- */
+  function googleMapsEmbedSrc(lat, lon, zoom = 12) {
+    // Using maps?q= with output=embed — reliable for coordinate preview
+    return `https://www.google.com/maps?q=${lat},${lon}&z=${zoom}&output=embed`;
+  }
+
+  /* --------------------------
+     Render
+  -------------------------- */
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
+    <div className={clsx("min-h-screen pb-10 p-4 md:p-6 max-w-8xl mx-auto")}>
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>Sunrise & Sunset — Location Explorer</h1>
-          <p className="mt-1 text-sm opacity-70">Find places, view coordinates and get sunrise / sunset times. No API keys required.</p>
+      <header className="flex items-start flex-wrap md:items-center justify-between gap-4 mb-4">
+        <div className="flex items-center gap-3">
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild className="md:hidden">
+              <Button variant="ghost" className="p-2 rounded-md cursor-pointer"><Menu /></Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-full max-w-xs p-3">
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-lg font-semibold">Locations</div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => fetchRandomPlaces()} className="cursor-pointer"><RefreshCw /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => setSheetOpen(false)} className="cursor-pointer"><X /></Button>
+                  </div>
+                </div>
+
+                <ScrollArea style={{ height: 620 }}>
+                 <div className="space-y-2">
+  {randomList.map((r, idx) => {
+    const isSelected = selectedPlace?.display_name === r.display_name;
+
+    return (
+      <div
+        key={`${r.display_name}-${idx}`}
+        className={`
+          flex items-start gap-3 p-2 rounded-md cursor-pointer
+          hover:bg-zinc-100 dark:hover:bg-zinc-800
+          ${isSelected ? "border border-zinc-500 bg-zinc-500/10 dark:bg-zinc-500/20" : "border border-transparent"}
+        `}
+        onClick={() => { 
+          setSelectedPlace(r); 
+          setSheetOpen(false); 
+          fetchSunriseForCoords(Number(r.lat), Number(r.lon), r); 
+        }}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="font-medium">{r.display_name}</div>
+          <div className="text-xs opacity-60">{r.lat} • {r.lon}</div>
+        </div>
+        <Badge className="ml-2 glassy-badge">#{idx + 1}</Badge>
+      </div>
+    );
+  })}
+
+  {randomList.length === 0 && (
+    <div className="text-sm opacity-60 p-2">No picks yet — try refresh.</div>
+  )}
+</div>
+
+                </ScrollArea>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <div>
+            <h1 className={clsx("text-2xl md:text-3xl font-extrabold")}>Sunrise & Sunset — Explorer</h1>
+            <p className="text-xs opacity-70">Find places, preview coordinates and view sun times.</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <form onSubmit={(e) => { e.preventDefault(); if (suggestions.length > 0) chooseSuggestion(suggestions[0]); }} className={clsx("flex items-center gap-2 w-full md:w-[560px] rounded-lg px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
+        <form onSubmit={(e) => { e.preventDefault(); if (suggestions.length > 0) chooseSuggestion(suggestions[0]); }} className={clsx("relative w-full md:w-[640px]")}>
+          <div className={clsx("flex items-center gap-2 rounded-lg px-3 py-2 shadow-sm", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-60" />
             <Input
               placeholder="Search a place (city, address, landmark)…"
@@ -312,147 +423,177 @@ export default function SunriseSunsetPage() {
               className="border-0 shadow-none bg-transparent outline-none"
               onFocus={() => setShowSuggest(true)}
             />
-            <Button type="submit" variant="outline" className="px-3"><Search /></Button>
-          </form>
-        </div>
+            <Button type="submit" variant="outline" className="px-3 cursor-pointer"><Search /></Button>
+            <Button variant="ghost" onClick={() => { setRawVisibleInline((s) => !s); }} className="ml-2 cursor-pointer" title="Toggle raw inline"><FileText /></Button>
+          </div>
+
+          <AnimatePresence>
+            {showSuggest && (suggestions.length > 0 || loadingSuggest) && (
+              <motion.ul
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className={clsx("absolute left-0 right-0 mt-2 max-h-80 overflow-auto rounded-xl shadow-2xl z-50", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
+              >
+                {loadingSuggest && <li className="p-3 text-sm opacity-60">Searching…</li>}
+                {suggestions.map((s, idx) => (
+                  <li key={s.place_id ?? s.osm_id ?? idx} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => chooseSuggestion(s)}>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{s.display_name}</div>
+                        <div className="text-xs opacity-60 mt-1">Lat: {s.lat} • Lon: {s.lon}</div>
+                      </div>
+                      <div className="text-xs opacity-60">{s.type ?? ""}</div>
+                    </div>
+                  </li>
+                ))}
+              </motion.ul>
+            )}
+          </AnimatePresence>
+        </form>
       </header>
 
-      {/* Suggestions dropdown */}
-      <AnimatePresence>
-        {showSuggest && (suggestions.length > 0 || loadingSuggest) && (
-          <motion.ul initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={clsx("absolute z-5 -6  right-6 max-w-4xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
-            {loadingSuggest && <li className="p-3 text-sm opacity-60">Searching…</li>}
-            {suggestions.map((s, idx) => (
-              <li
-                key={s.place_id ?? s.osm_id ?? idx}
-                className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer"
-                onClick={() => chooseSuggestion(s)}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
-                    <div className="font-medium">{s.display_name}</div>
-                    <div className="text-xs opacity-60 mt-1">Lat: {s.lat} • Lon: {s.lon}</div>
-                  </div>
-                  <div className="text-xs opacity-60">{s.type ?? ""}</div>
-                </div>
-              </li>
-            ))}
-          </motion.ul>
-        )}
-      </AnimatePresence>
-
-      {/* Layout: left=map, center=details, right=quick actions */}
+      {/* Layout */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* Left: Map */}
-        <section className="lg:col-span-4 space-y-4">
-          <Card className={clsx("rounded-2xl overflow-hidden border h-fit", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
+        {/* Left (desktop) — random picks */}
+        <aside className={clsx("hidden lg:block lg:col-span-3 space-y-4 rounded-2xl p-4", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold flex items-center gap-2"><Map /> Random Picks</div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => fetchRandomPlaces()} className="cursor-pointer"><RefreshCw /></Button>
+              <Button variant="ghost" size="sm" onClick={() => { setRandomList([]); }} className="cursor-pointer"><BrushCleaningIcon /></Button>
+            </div>
+          </div>
+
+          <ScrollArea className="overflow-y-auto" style={{ maxHeight: 520 }}>
+         <div className="space-y-2">
+  {randomList.map((r, idx) => {
+    const isSelected = selectedPlace?.display_name === r.display_name;
+
+    return (
+      <div
+        key={`${r.display_name}-${idx}`}
+        className={`
+          flex items-start gap-3 p-2 rounded-md cursor-pointer
+          hover:bg-zinc-100 dark:hover:bg-zinc-800
+          ${isSelected ? "border border-zinc-500 bg-zinc-500/10 dark:bg-zinc-500/20" : "border border-transparent"}
+        `}
+        onClick={() => { 
+          setSelectedPlace(r); 
+          setSheetOpen(false); 
+          fetchSunriseForCoords(Number(r.lat), Number(r.lon), r); 
+        }}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="font-medium">{r.display_name}</div>
+          <div className="text-xs opacity-60">{r.lat} • {r.lon}</div>
+        </div>
+        <Badge className="ml-2 glassy-badge">#{idx + 1}</Badge>
+      </div>
+    );
+  })}
+
+  {randomList.length === 0 && (
+    <div className="text-sm opacity-60 p-2">No picks yet — try refresh.</div>
+  )}
+</div>
+
+          </ScrollArea>
+
+          <Separator />
+
+          <div>
+            <div className="text-sm font-semibold mb-2">About</div>
+            <div className="text-xs opacity-70">
+              Uses Nominatim for geocoding and sunrise-sunset.org for sun times. Map preview uses Google Maps embed for fast previews.
+            </div>
+          </div>
+        </aside>
+
+        {/* Center: main preview */}
+        <section className={clsx("lg:col-span-6 space-y-4")}>
+          <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
             <CardHeader className={clsx("p-4 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div>
-                <CardTitle className="text-lg">Map</CardTitle>
-                <div className="text-xs opacity-60">Street map (OpenStreetMap tiles)</div>
-              </div>
-              <div className="text-sm opacity-60">Marker: {place?.display_name ? place.display_name.split(",")[0] : "—"}</div>
-            </CardHeader>
-
-            <CardContent className="p-0">
-              <div style={{ height: "420px" }} className="w-full">
-                <MapContainer center={[Number(place.lat), Number(place.lon)]} zoom={12} style={{ height: "100%", width: "100%" }} key={`${place.lat}-${place.lon}`}>
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  <Marker position={[Number(place.lat), Number(place.lon)]}>
-                    <Popup>
-                      <div className="max-w-xs">
-                        <div className="font-medium">{place.display_name}</div>
-                        <div className="text-xs opacity-70">Lat: {place.lat} • Lon: {place.lon}</div>
-                      </div>
-                    </Popup>
-                  </Marker>
-                </MapContainer>
-              </div>
-
-              <div className="p-4 flex gap-2">
-                <Button onClick={() => setMapDialogOpen(true)} variant="outline"><Globe /> View Large</Button>
-                <Button onClick={() => { openInOSM(); }} variant="ghost"><MapPin /> Open OSM</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Center: Details (large content) */}
-        <section className="lg:col-span-5 space-y-4">
-          <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
-              <div>
-                <CardTitle className="text-lg">Place & Sun Times</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-3"><Sun /> Place & Sun Times</CardTitle>
                 <div className="text-xs opacity-60">{place?.display_name ?? "Select a place to view details"}</div>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" onClick={() => setRawVisible((s) => !s)}><Globe /> Raw</Button>
-                <Button variant="outline" onClick={() => fetchSunriseForCoords(Number(place.lat), Number(place.lon))}><Loader2 className={loadingSun ? "animate-spin" : ""} /> Refresh</Button>
+                <Button variant="ghost" onClick={() => setRawVisibleInline((s) => !s)} className="cursor-pointer"><FileText /></Button>
+                <Button variant="outline" onClick={() => fetchSunriseForCoords(Number(place.lat), Number(place.lon))} className="cursor-pointer"><Loader2 className={loadingSun ? "animate-spin" : ""} /> Refresh</Button>
+                <Button variant="ghost" onClick={() => setMapDialogOpen(true)} className="cursor-pointer"><Map /></Button>
               </div>
             </CardHeader>
 
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* left small column: basic place meta */}
-                <div className={clsx("p-3 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                  <div className="text-xs opacity-60">Name</div>
-                  <div className="font-semibold">{place.display_name}</div>
-
-                  <div className="mt-3">
-                    <div className="text-xs opacity-60">Coordinates</div>
-                    <div className="font-medium">Lat: {place.lat} • Lon: {place.lon}</div>
+            <CardContent className="p-5">
+              <div className="flex flex-col-reverse  gap-4">
+                {/* Left: map preview iframe */}
+                <div className={clsx("rounded-xl overflow-hidden border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                  <div className="relative" style={{ paddingTop: "56.25%" }}>
+                    <iframe
+                      title="Google Maps Preview"
+                      src={googleMapsEmbedSrc(place.lat || DEFAULT.lat, place.lon || DEFAULT.lng, 12)}
+                      style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: 0 }}
+                      loading="lazy"
+                    />
                   </div>
 
-                  <div className="mt-3">
-                    <div className="text-xs opacity-60">Type</div>
-                    <div className="font-medium">{place.type ?? "—"}</div>
-                  </div>
+                  <div className="p-3 flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs opacity-60">Coordinates</div>
+                      <div className="font-medium">{place.lat} • {place.lon}</div>
+                    </div>
 
-                  <div className="mt-4 flex flex-col gap-2">
-                    <Button onClick={copyCoords} variant="outline"><Copy /> Copy coordinates</Button>
-                    <div className="flex flex-col  gap-2">
-                      <Button onClick={openInOSM} variant="outline"><MapPin /> Open OSM</Button>
-                      <Button onClick={openInGoogleMaps} variant="outline"><ExternalLink /> Google Maps</Button>
+                    <div className="flex flex-col gap-2">
+                    
+
+                      <Button variant="outline" onClick={() => openInGoogleMaps()} className="cursor-pointer"><ExternalLink /> Open</Button>
                     </div>
                   </div>
                 </div>
 
-                {/* right: sunrise/sunset times and extra */}
-                <div className={clsx("p-3 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                  <div className="text-xs opacity-60 mb-2">Sunrise & Sunset (local time)</div>
+                {/* Right: details & times */}
+                <div className={clsx("rounded-xl p-3 border flex flex-col gap-3", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                  <div className="flex items-start gap-3">
+                    <div>
+                      <div className="text-xs opacity-60">Place</div>
+                      <div className="font-semibold">{place.display_name}</div>
+                      <div className="text-xs opacity-60 mt-1">{place.type}</div>
+                    </div>
+                    <div className="ml-auto text-right">
+                      <Badge className="glassy-badge">Preview</Badge>
+                      <div className="text-xs opacity-60 mt-1">Source: sunrise-sunset.org</div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="text-xs opacity-60">Times (local)</div>
 
                   {loadingSun ? (
-                    <div className="py-8 text-center"><Loader2 className="animate-spin mx-auto" /></div>
+                    <div className="py-6 text-center"><Loader2 className="animate-spin mx-auto" /></div>
                   ) : !sunResp ? (
-                    <div className="py-6 text-sm opacity-60">No sun data — try selecting a place or refresh.</div>
+                    <div className="py-4 text-sm opacity-60">No sun data — select a place or refresh.</div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2 sm:grid grid-cols-2 gap-2">
                       {timeFields.map((t) => renderTimeRow(t))}
                     </div>
                   )}
 
-                  <Separator className="my-3" />
-
-                  <div className="text-xs opacity-60">Notes</div>
-                  <div className="text-sm mt-1 opacity-70">
-                    Times are from <span className="font-medium">sunrise-sunset.org</span>. API returns UTC ISO timestamps; displayed here as local time for clarity.
+                  <div className="mt-3 flex gap-2 items-center">
+                    <Button onClick={() => setRawDialogOpen(true)} variant="outline" className="cursor-pointer"><Globe /> Raw</Button>
+                    <Button onClick={downloadJSON} variant="ghost" className="cursor-pointer"><Download /> Export</Button>
+                    <div className="ml-auto text-xs opacity-60">Updated: {rawSunResp?.status ?? "—"}</div>
                   </div>
                 </div>
               </div>
 
-
-
-              {/* Inline raw toggle area */}
+              {/* Inline Raw JSON (collapsible) */}
               <AnimatePresence>
-                {rawVisible && rawSunResp && (
-                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={clsx("mt-3 p-3 rounded-md border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <div className="text-sm font-medium mb-2">Raw API</div>
-                    <pre className={clsx("text-xs overflow-auto", isDark ? "text-zinc-200" : "text-zinc-900")} style={{ maxHeight: 240 }}>
-                      {prettyJSON(rawSunResp)}
-                    </pre>
+                {rawVisibleInline && rawSunResp && (
+                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={clsx("mt-4 p-3 rounded-md border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                    <div className="text-sm font-medium mb-2 flex items-center gap-2"><FileText /> Raw API response</div>
+                    <pre className={clsx("text-xs overflow-auto", isDark ? "text-zinc-200" : "text-zinc-900")} style={{ maxHeight: 240 }}>{prettyJSON(rawSunResp)}</pre>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -460,34 +601,37 @@ export default function SunriseSunsetPage() {
           </Card>
         </section>
 
-        {/* Right: Quick actions */}
-        <aside className={clsx("lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
-          <div className="text-sm font-semibold">Quick Actions</div>
-          <div className="text-xs opacity-60">Common utilities for this place</div>
+        {/* Right: quick actions */}
+        <aside className={clsx("lg:col-span-3 rounded-2xl p-4 space-y-4", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold">Quick Actions</div>
+            <Button variant="ghost" size="sm" onClick={() => fetchRandomPlaces()} className="cursor-pointer"><RefreshCw /></Button>
+          </div>
 
-          <div className="mt-3 space-y-2">
-            <Button onClick={copyCoords} className="w-full"><Copy /> Copy coordinates</Button>
-            <Button onClick={downloadJSON} className="w-full" variant="outline"><Download /> Download JSON</Button>
-            <Button onClick={() => setRawDialogOpen(true)} className="w-full" variant="ghost"><Globe /> View raw API</Button>
-            <Button onClick={() => fetchSunriseForCoords(Number(place.lat), Number(place.lon))} className="w-full"><Loader2 className={loadingSun ? "animate-spin" : ""} /> Refresh times</Button>
-            <Button onClick={openInOSM} variant="ghost" className="w-full"><MapPin /> Open on OSM</Button>
-            <Button onClick={openInGoogleMaps} variant="ghost" className="w-full"><ExternalLink /> Google Maps</Button>
+          <div className="text-xs opacity-60">Tools for this location</div>
+          <div className="mt-2 space-y-2">
+            <Button onClick={copyCoords} className="w-full cursor-pointer"><Copy /> Copy coordinates</Button>
+            <Button onClick={downloadJSON} className="w-full cursor-pointer" variant="outline"><Download /> Download JSON</Button>
+            <Button onClick={() => setRawDialogOpen(true)} className="w-full cursor-pointer" variant="ghost"><FileText /> View raw</Button>
+            <Button onClick={() => fetchSunriseForCoords(Number(place.lat), Number(place.lon))} className="w-full cursor-pointer"><Loader2 className={loadingSun ? "animate-spin" : ""} /> Refresh times</Button>
+            <Button onClick={() => openInGoogleMaps()} className="w-full cursor-pointer" variant="ghost"><ExternalLink /> Open in Google Maps</Button>
+            <Button onClick={() => openInOSM()} className="w-full cursor-pointer" variant="ghost"><MapPin /> Open in OSM</Button>
           </div>
 
           <Separator />
 
           <div>
-            <div className="text-xs opacity-60">About</div>
-            <div className="text-sm mt-1 opacity-70">
-              This UI uses OpenStreetMap for tiles & Nominatim for geocoding (place search). Sunrise data is from sunrise-sunset.org (no API key).
+            <div className="text-sm font-semibold mb-1">Notes</div>
+            <div className="text-xs opacity-70">
+              This UI uses Nominatim (OpenStreetMap) for geocoding and <span className="font-medium">sunrise-sunset.org</span> for times. Map preview uses Google Maps embed.
             </div>
           </div>
         </aside>
       </main>
 
-      {/* Dialog: raw response */}
+      {/* Raw response dialog */}
       <Dialog open={rawDialogOpen} onOpenChange={setRawDialogOpen}>
-        <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-3xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>Raw API response</DialogTitle>
           </DialogHeader>
@@ -508,32 +652,27 @@ export default function SunriseSunsetPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: large map view */}
+      {/* Map dialog (large Google Maps preview) */}
       <Dialog open={mapDialogOpen} onOpenChange={setMapDialogOpen}>
-        <DialogContent className={clsx("max-w-6xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-6xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>Map — {place.display_name}</DialogTitle>
           </DialogHeader>
 
           <div style={{ height: "75vh", width: "100%" }}>
-            <MapContainer center={[Number(place.lat), Number(place.lon)]} zoom={12} style={{ height: "100%", width: "100%" }} key={`map-dialog-${place.lat}-${place.lon}`}>
-              <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <Marker position={[Number(place.lat), Number(place.lon)]}>
-                <Popup>
-                  <div className="max-w-xs">
-                    <div className="font-medium">{place.display_name}</div>
-                    <div className="text-xs opacity-70">Lat: {place.lat} • Lon: {place.lon}</div>
-                  </div>
-                </Popup>
-              </Marker>
-            </MapContainer>
+            <iframe
+              title="Google Maps Large"
+              src={googleMapsEmbedSrc(place.lat || DEFAULT.lat, place.lon || DEFAULT.lng, 12)}
+              style={{ width: "100%", height: "100%", border: 0 }}
+              loading="lazy"
+            />
           </div>
 
           <DialogFooter className="flex justify-between items-center p-4 border-t">
-            <div className="text-xs opacity-60">OpenStreetMap tiles</div>
+            <div className="text-xs opacity-60">Google Maps preview</div>
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => setMapDialogOpen(false)}><X /></Button>
-              <Button variant="outline" onClick={() => { openInOSM(); }}><ExternalLink /></Button>
+              <Button variant="outline" onClick={() => openInGoogleMaps()}><ExternalLink /></Button>
             </div>
           </DialogFooter>
         </DialogContent>

@@ -4,34 +4,30 @@
 import React, { useEffect, useState } from "react";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
-
 import {
   Laugh,
   RefreshCcw,
   Copy,
-  Bookmark,
-  BookmarkCheck,
+  Check,
   Menu,
-  Trash2,
   Code,
   ChevronDown,
   ChevronUp,
+  Search,
 } from "lucide-react";
 
 import { showToast } from "../lib/ToastHelper";
 
-/* shadcn ui components */
+/* shadcn ui */
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-
 import { useTheme } from "@/components/theme-provider";
 
-const JOKE_ENDPOINT =
-  "https://v2.jokeapi.dev/joke/Programming?type=single";
+const JOKE_ENDPOINT = "https://v2.jokeapi.dev/joke/Programming?type=single";
 
 export default function JokeAPIPage() {
   const { theme } = useTheme?.() ?? { theme: "system" };
@@ -43,33 +39,24 @@ export default function JokeAPIPage() {
 
   const [joke, setJoke] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const [savedJokes, setSavedJokes] = useState([]);
+  const [randomJokes, setRandomJokes] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
   const [showCode, setShowCode] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filtered, setFiltered] = useState([]);
 
-  /** Load saved jokes */
-  useEffect(() => {
-    try {
-      const local = JSON.parse(localStorage.getItem("saved_jokes") || "[]");
-      setSavedJokes(local);
-    } catch {
-      console.error("Localstorage read failed");
-    }
-  }, []);
-
-  /** Fetch a programming joke */
-  async function fetchJoke() {
+  /** Fetch main joke */
+  async function fetchJoke(selectedJoke) {
     try {
       setLoading(true);
-
-      const resp = await fetch(JOKE_ENDPOINT);
-      if (!resp.ok) throw new Error("API failed");
-
-      const data = await resp.json();
-      setJoke(data?.joke || "No joke found");
-
+      if (selectedJoke) {
+        setJoke(selectedJoke);
+      } else {
+        const resp = await fetch(JOKE_ENDPOINT);
+        const data = await resp.json();
+        setJoke(data?.joke || "No joke found");
+      }
       showToast("success", "Fetched a new joke!");
     } catch (err) {
       showToast("error", "Failed to fetch joke");
@@ -78,74 +65,78 @@ export default function JokeAPIPage() {
     }
   }
 
-  /** Save joke */
-  function saveJoke() {
-    if (!joke) return;
-
-    if (savedJokes.includes(joke)) {
-      showToast("info", "Already saved");
-      return;
+  /** Load 10 random jokes */
+  async function fetchRandomJokes() {
+    try {
+      const requests = Array.from({ length: 10 }, () =>
+        fetch(JOKE_ENDPOINT).then((res) => res.json())
+      );
+      const results = await Promise.all(requests);
+      const list = results.map((d) => d.joke);
+      setRandomJokes(list);
+      setFiltered(list);
+    } catch {
+      console.error("Random jokes fetch failed");
     }
-
-    const updated = [...savedJokes, joke];
-    setSavedJokes(updated);
-    localStorage.setItem("saved_jokes", JSON.stringify(updated));
-
-    showToast("success", "Joke saved!");
   }
 
-  /** Remove saved joke */
-  function removeSaved(j) {
-    const updated = savedJokes.filter((x) => x !== j);
-    setSavedJokes(updated);
-    localStorage.setItem("saved_jokes", JSON.stringify(updated));
-
-    showToast("info", "Joke removed");
-  }
-
-  /** Copy joke */
+  /** Copy */
   function copyJoke() {
     navigator.clipboard.writeText(joke);
-    showToast("success", "Copied to clipboard");
+    setCopied(true);
+    showToast("success", "Copied!");
+    setTimeout(() => setCopied(false), 1500);
   }
 
-  /** Copy endpoint */
   function copyEndpoint() {
     navigator.clipboard.writeText(JOKE_ENDPOINT);
     showToast("success", "Endpoint copied");
   }
 
+  /** Search filter */
+  function handleSearch(text) {
+    setSearch(text);
+    if (!text.trim()) {
+      setFiltered(randomJokes);
+    } else {
+      setFiltered(
+        randomJokes.filter((j) =>
+          j.toLowerCase().includes(text.toLowerCase())
+        )
+      );
+    }
+  }
+
   useEffect(() => {
     fetchJoke();
+    fetchRandomJokes();
   }, []);
 
   return (
-    <div
-      className={clsx(
-        "min-h-screen p-6 max-w-8xl mx-auto"
-      )}
-    >
+    <div className={clsx("min-h-screen pb-10 p-4 md:p-6 max-w-8xl mx-auto")}>
       {/* HEADER */}
-      <header className="flex justify-between items-center mb-8">
+      <header className="flex justify-between items-center mb-6 md:mb-10">
         <div>
           <h1
             className={clsx(
-              "text-3xl md:text-4xl font-extrabold",
+              "text-3xl md:text-4xl font-extrabold flex items-center gap-2",
               isDark ? "text-white" : "text-black"
             )}
           >
-            Revolyx · Programming Joke API
+            <Laugh size={28} /> Revolyx · Programming Jokes
           </h1>
+
           <p
             className={clsx(
-              "opacity-60 text-sm mt-1",
+              "opacity-70 text-sm mt-1 flex items-center gap-1",
               isDark ? "text-zinc-400" : "text-zinc-600"
             )}
           >
-            Fetch hilarious programming jokes instantly.
+            Instant programming humor at your fingertips
           </p>
         </div>
 
+        {/* MOBILE SIDEBAR BUTTON */}
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetTrigger asChild>
             <Button
@@ -153,102 +144,115 @@ export default function JokeAPIPage() {
               variant="outline"
               onClick={() => setSidebarOpen(true)}
             >
-              <Menu />
+              <Menu size={20} /> Jokes
             </Button>
           </SheetTrigger>
 
+          {/* FIXED HEIGHT SIDEBAR */}
           <SheetContent
             side="left"
-            className={clsx( "p-4",isDark ? "bg-black text-white" : "bg-white text-black")}
+            className={clsx(
+              "p-0 w-80 h-screen flex flex-col",
+              isDark ? "bg-zinc-900 text-white" : "bg-white text-black"
+            )}
           >
-            <Sidebar savedJokes={savedJokes} removeSaved={removeSaved} isDark={isDark} />
+            <Sidebar
+              jokes={filtered}
+              original={randomJokes}
+              fetchJoke={fetchJoke}
+              fetchRandomJokes={fetchRandomJokes}
+              isDark={isDark}
+              search={search}
+              handleSearch={handleSearch}
+              closeSidebar={() => setSidebarOpen(false)}
+            />
           </SheetContent>
         </Sheet>
       </header>
 
       {/* MAIN GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* LEFT SIDEBAR (Desktop) */}
+        {/* DESKTOP SIDEBAR */}
         <aside
           className={clsx(
-            "hidden lg:block p-4 rounded-xl border h-[80vh]",
-            isDark ? "border-zinc-800 bg-black/40" : "border-zinc-200 bg-zinc-50"
+            "hidden lg:flex flex-col p-0 rounded-2xl border h-[80vh] overflow-hidden",
+            isDark ? "border-zinc-800 bg-zinc-900/40" : "border-zinc-200 bg-zinc-50"
           )}
         >
-          <Sidebar savedJokes={savedJokes} removeSaved={removeSaved} isDark={isDark} />
+          <Sidebar
+            jokes={filtered}
+            original={randomJokes}
+            fetchJoke={fetchJoke}
+            fetchRandomJokes={fetchRandomJokes}
+            isDark={isDark}
+            search={search}
+            handleSearch={handleSearch}
+          />
         </aside>
 
-        {/* RIGHT SIDE CONTENT */}
+        {/* MAIN CONTENT */}
         <section className="lg:col-span-3 space-y-8">
-
-          {/* JOKE PREVIEW CARD */}
           <Card
             className={clsx(
-              "rounded-2xl border shadow-lg transition",
-              isDark ? "bg-black/40 border-zinc-800" : "bg-white border-zinc-200"
+              "rounded-2xl border shadow-lg",
+              isDark ? "bg-zinc-900/50 border-zinc-800" : "bg-white border-zinc-200"
             )}
           >
             <CardHeader className="p-6">
-              <CardTitle className="flex items-center gap-2 text-xl font-bold">
-                <Laugh /> Programming Joke
+              <CardTitle className="flex items-center gap-3 text-xl font-bold">
+                <Laugh size={20} /> Joke Preview
               </CardTitle>
             </CardHeader>
 
-            <CardContent className="p-6 space-y-4">
-
-              {/* JOKE TEXT */}
+            <CardContent className="p-6 space-y-6">
+              {/* JOKE */}
               <motion.div
                 key={joke}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={clsx(
-                  "text-lg leading-relaxed rounded-xl p-4",
+                  "text-lg leading-relaxed rounded-xl p-6 transition-colors duration-200 cursor-pointer select-none text-center",
                   isDark ? "bg-zinc-900 text-zinc-100" : "bg-zinc-100 text-zinc-700"
                 )}
               >
-                {loading ? (
-                  <div className="animate-pulse text-sm opacity-70">Loading joke...</div>
-                ) : (
-                  <>{joke}</>
-                )}
+                {loading ? "Loading..." : joke}
               </motion.div>
 
-              {/* ACTION BUTTONS */}
-              <div className="flex flex-wrap gap-3 mt-4">
-                <Button
-                  variant="outline"
-                  className="cursor-pointer"
-                  onClick={fetchJoke}
-                >
+              {/* BUTTONS */}
+              <div className="flex flex-wrap gap-3 mt-4 justify-center">
+                <Button className="cursor-pointer" variant="outline" onClick={() => fetchJoke()}>
                   <RefreshCcw size={16} /> New Joke
                 </Button>
 
-                <Button variant="outline" className="cursor-pointer" onClick={copyJoke}>
-                  <Copy size={16} /> Copy Joke
+                <Button className="cursor-pointer" variant="outline" onClick={copyJoke}>
+                  <AnimatePresence>
+                    {copied ? (
+                      <motion.div
+                        key="tick"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        className="text-green-500"
+                      >
+                        <Check size={16} />
+                      </motion.div>
+                    ) : (
+                      <Copy size={16} />
+                    )}
+                  </AnimatePresence>
+                  {copied ? "Copied!" : "Copy"}
                 </Button>
 
-                <Button variant="outline" className="cursor-pointer" onClick={saveJoke}>
-                  <Bookmark size={16} /> Save Joke
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="cursor-pointer"
-                  onClick={copyEndpoint}
-                >
-                  <Code size={16} /> Copy Endpoint
+                <Button className="cursor-pointer" variant="outline" onClick={copyEndpoint}>
+                  <Code size={16} /> Endpoint
                 </Button>
               </div>
 
-              {/* SHOW/HIDE CODE */}
-              <div className="mt-6">
-                <Button
-                  variant="ghost"
-                  className="cursor-pointer flex items-center gap-2"
-                  onClick={() => setShowCode(!showCode)}
-                >
+              {/* RAW CODE */}
+              <div className="text-center">
+                <Button className="cursor-pointer" variant="ghost" onClick={() => setShowCode(!showCode)}>
                   {showCode ? <ChevronUp /> : <ChevronDown />}
-                  {showCode ? "Hide Code" : "Show Code"}
+                  {showCode ? "Hide Raw" : "Show Raw"}
                 </Button>
 
                 <AnimatePresence>
@@ -258,97 +262,90 @@ export default function JokeAPIPage() {
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
                       className={clsx(
-                        "mt-3 p-4 rounded-xl text-sm overflow-auto",
-                        isDark ? "bg-zinc-900" : "bg-zinc-100"
+                        "mt-4 p-4 rounded-xl text-sm overflow-auto",
+                        isDark
+                          ? "bg-zinc-900 text-zinc-100"
+                          : "bg-zinc-100 text-zinc-700"
                       )}
                     >
-{`fetch("https://v2.jokeapi.dev/joke/Programming?type=single")
-  .then(res => res.json())
-  .then(data => console.log(data.joke));`}
+{`fetch("${JOKE_ENDPOINT}")
+  .then(r => r.json())
+  .then(d => console.log(d.joke));`}
                     </motion.pre>
                   )}
                 </AnimatePresence>
               </div>
             </CardContent>
           </Card>
-
-          {/* QUICK SAVED PREVIEW */}
-          <div>
-            <h2 className="text-xl font-bold mb-3">Saved Jokes</h2>
-
-            {savedJokes.length === 0 ? (
-              <p className="opacity-60 text-sm">No saved jokes yet.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {savedJokes.map((j, idx) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={clsx(
-                      "p-4 rounded-xl flex flex-row gap-3 justify-between border relative",
-                      isDark ? "bg-zinc-900 border-zinc-700" : "bg-zinc-100 border-zinc-300"
-                    )}
-                  >
-                    <p className="text-sm opacity-80">{j}</p>
-
-                    <button
-                      
-                      className=" text-red-500 hover:text-red-600    cursor-pointer"
-                      onClick={() => removeSaved(j)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
         </section>
       </div>
     </div>
   );
 }
 
-/* --------------------------------------------- */
-/* ---------------- SIDEBAR -------------------- */
-/* --------------------------------------------- */
-
-function Sidebar({ savedJokes, removeSaved, isDark }) {
+/* ---------------- SIDEBAR COMPONENT ---------------- */
+function Sidebar({
+  jokes,
+  original,
+  fetchJoke,
+  fetchRandomJokes,
+  isDark,
+  search,
+  handleSearch,
+  closeSidebar,
+}) {
   return (
-    <ScrollArea className="h-full pr-3">
-      <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
-        <BookmarkCheck /> Saved Jokes
-      </h2>
+    <div className="flex flex-col h-full p-4">
+      {/* FIXED TOP CONTENT */}
+      <div className="pb-3">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <Laugh size={18} /> Random Jokes
+          </h2>
+          <Button className="cursor-pointer" size="sm" variant="outline" onClick={fetchRandomJokes}>
+            <RefreshCcw size={16} />
+          </Button>
+        </div>
 
-      {savedJokes.length === 0 && (
-        <p className="opacity-50 text-sm">No saved jokes</p>
-      )}
-
-      <div className="space-y-3">
-        {savedJokes.map((j, i) => (
-          <div
-            key={i}
-            className={clsx(
-              "p-3 flex flex-row gap-3 rounded-lg border relative",
-              isDark ? "border-zinc-700 bg-zinc-900" : "border-zinc-300 bg-zinc-100"
-            )}
-          >
-            <p className="text-sm opacity-90 pr-6">{j}</p>
-
-            <button
-              
-              className="absolute top-3 text-red-500 hover:text-red-600  right-2 cursor-pointer"
-              onClick={() => removeSaved(j)}
-            >
-              <Trash2 size={15} />
-            </button>
-          </div>
-        ))}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 opacity-50" />
+          <Input
+            value={search}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder="Search jokes..."
+            className={clsx("pl-10", isDark ? "bg-zinc-800 text-white" : "bg-white")}
+          />
+        </div>
       </div>
 
-      <Separator className="my-4" />
-      <p className="text-xs opacity-60">Saved locally in your browser.</p>
-    </ScrollArea>
+      {/* SCROLLABLE JOKES LIST */}
+      <ScrollArea className="flex-1 pr-3 overflow-y-auto pb-10">
+        <div className="space-y-3 flex flex-col">
+          {jokes.map((j, i) => (
+            <div
+              key={i}
+              onClick={() => {
+                fetchJoke(j);
+                closeSidebar?.();
+              }}
+              className={clsx(
+                "cursor-pointer p-3 rounded-xl border transition text-sm",
+                isDark
+                  ? "bg-zinc-800/50 border-zinc-700 hover:bg-zinc-800"
+                  : "bg-white border-zinc-200 hover:bg-zinc-100"
+              )}
+            >
+              {j}
+            </div>
+          ))}
+        </div>
+
+        <Separator className="my-4" />
+
+        <p className="text-xs opacity-60 text-center">
+          Showing {jokes.length} jokes
+        </p>
+      </ScrollArea>
+    </div>
   );
 }

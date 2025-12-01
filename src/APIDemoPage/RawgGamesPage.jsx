@@ -1,17 +1,17 @@
 // RawgGamesPage.jsx
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
-import { showToast } from "../lib/ToastHelper"; // optional: replace with alert() if you don't have it
+import { showToast } from "../lib/ToastHelper"; // optional
 
 // lucide icons
 import {
   Search,
   X,
   ExternalLink,
-  Copy,
+  Copy as CopyIcon,
   Download,
   Loader2,
   ImageIcon,
@@ -24,24 +24,30 @@ import {
   Star,
   ChevronLeft,
   ChevronRight,
+  Menu,
+  RefreshCw,
+  Check,
+  Zap,
+  Tag,
 } from "lucide-react";
 
-// UI primitives (replace with plain elements if needed)
+// shadcn / ui primitives (adjust paths if needed)
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useTheme } from "@/components/theme-provider";
 
-/* ---------- CONFIG ---------- */
+// config
 const BASE_ENDPOINT = "https://api.rawg.io/api/games";
-const API_KEY = "630391cdbfab488594f03b9aa6f5fa1e"; // <- Replace with your key
+const API_KEY = "630391cdbfab488594f03b9aa6f5fa1e"; // replace if needed
 const DEFAULT_MSG = "Try searching: 'Elden Ring', 'Zelda', 'indie', 'racing'...";
 const PAGE_SIZE = 20;
 
-/* ---------- HELPERS ---------- */
+// helpers
 const prettyJSON = (o) => JSON.stringify(o, null, 2);
 const buildUrl = ({ q = "", page = 1, page_size = PAGE_SIZE, ordering = "" } = {}) => {
   const params = new URLSearchParams();
@@ -53,7 +59,6 @@ const buildUrl = ({ q = "", page = 1, page_size = PAGE_SIZE, ordering = "" } = {
   return `${BASE_ENDPOINT}?${params.toString()}`;
 };
 
-/* ---------- COMPONENT ---------- */
 export default function RawgGamesPage() {
   const { theme } = useTheme?.() ?? { theme: "system" };
   const isDark =
@@ -62,7 +67,7 @@ export default function RawgGamesPage() {
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
 
-  // UI state
+  // app state
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggest, setShowSuggest] = useState(false);
@@ -81,20 +86,26 @@ export default function RawgGamesPage() {
   const [page, setPage] = useState(1);
   const [ordering, setOrdering] = useState("-rating");
 
-  // voice search
+  // voice
   const [listening, setListening] = useState(false);
   const speechRecRef = useRef(null);
 
-  // debouncing
+  // copy animation state
+  const [copyStatus, setCopyStatus] = useState("idle"); // 'idle' | 'copying' | 'copied'
+
+  // sidebar (sheet) state for mobile
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // debounce
   const suggestTimer = useRef(null);
 
-  /* ---------- EFFECTS: initial load ---------- */
+  /* ---------- initial fetch ---------- */
   useEffect(() => {
     fetchGames({ q: "", page: 1, page_size: PAGE_SIZE, ordering });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ordering]);
 
-  /* ---------- Fetch helpers ---------- */
+  /* ---------- fetch helpers ---------- */
   const fetchGames = useCallback(async ({ q = "", page = 1, page_size = PAGE_SIZE, ordering = "" } = {}) => {
     setLoading(true);
     try {
@@ -142,7 +153,7 @@ export default function RawgGamesPage() {
     }
   }, []);
 
-  /* ---------- Search handlers + keyboard nav ---------- */
+  /* ---------- search / suggestions ---------- */
   function onQueryChange(v) {
     setQuery(v);
     setShowSuggest(true);
@@ -182,7 +193,7 @@ export default function RawgGamesPage() {
     }
   }
 
-  /* ---------- Screenshot modal ---------- */
+  /* ---------- screenshot modal ---------- */
   function openScreenshot(src) {
     setScreenshotSrc(src);
     setScreenshotOpen(true);
@@ -192,12 +203,25 @@ export default function RawgGamesPage() {
     setScreenshotSrc("");
   }
 
-  /* ---------- Clipboard / download ---------- */
-  function copyCurrentToClipboard() {
+  /* ---------- clipboard / download with animation ---------- */
+  function copyCurrentToClipboardAnimated() {
     if (!currentGame) return showToast?.("info", "No game selected");
-    navigator.clipboard.writeText(prettyJSON(currentGame));
-    showToast?.("success", "Copied game JSON");
+    try {
+      setCopyStatus("copying");
+      navigator.clipboard.writeText(prettyJSON(currentGame));
+      // small animation delay
+      setTimeout(() => {
+        setCopyStatus("copied");
+        showToast?.("success", "Copied game JSON");
+        setTimeout(() => setCopyStatus("idle"), 1600);
+      }, 250);
+    } catch (err) {
+      console.error(err);
+      showToast?.("error", "Copy failed");
+      setCopyStatus("idle");
+    }
   }
+
   function downloadRawJSON() {
     const payload = rawResp || currentGame;
     if (!payload) return showToast?.("info", "No data to download");
@@ -210,7 +234,7 @@ export default function RawgGamesPage() {
     showToast?.("success", "Downloaded JSON");
   }
 
-  /* ---------- Voice search ---------- */
+  /* ---------- voice search ---------- */
   useEffect(() => {
     if (typeof window === "undefined") return;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
@@ -255,7 +279,7 @@ export default function RawgGamesPage() {
     }
   }
 
-  /* ---------- Pagination ---------- */
+  /* ---------- pagination ---------- */
   function nextPage() {
     const next = page + 1;
     setPage(next);
@@ -270,28 +294,84 @@ export default function RawgGamesPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  /* ---------- RENDER ---------- */
+  /* ---------- computed: 10 random sidebar items ---------- */
+  const randomSidebar = useMemo(() => {
+    if (!games || games.length === 0) return [];
+    // shuffle a copy and take up to 10
+    const arr = [...games];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.slice(0, 10);
+  }, [games]);
+
+  /* ---------- small helper: badge color by rating ---------- */
+  const ratingBadgeClass = (rating) => {
+    if (rating === null || rating === undefined) return "bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200";
+    if (rating >= 4.5) return "bg-amber-100 text-amber-700";
+    if (rating >= 3.5) return "bg-emerald-100 text-emerald-700";
+    if (rating >= 2.5) return "bg-sky-100 text-sky-700";
+    return "bg-red-100 text-rose-700";
+  };
+
+  /* ---------- render ---------- */
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl overflow-hidden mx-auto")}>
-      {/* HERO / HEADER */}
-      <header className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
-        <div className="max-w-xl">
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight flex items-center gap-3">
-           
-            Revolyx-Games Explorer
-          </h1>
-          <p className="mt-1 text-sm opacity-70">
-            Discover games by name, rating, platforms, genres and screenshots
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="text-xs px-2 py-1 rounded-md border opacity-70">RAWG API</span>
-            <span className="text-xs px-2 py-1 rounded-md border opacity-70">Responsive</span>
-            <span className="text-xs px-2 py-1 rounded-md border opacity-70">Voice Search</span>
-            <span className="text-xs px-2 py-1 rounded-md border opacity-70">Developer Tools</span>
+    <div className={clsx("min-h-screen pb-10 p-4 md:p-6 max-w-8xl mx-auto")}>
+      {/* HEADER */}
+      <header className="flex items-center flex-wrap justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3">
+          {/* Mobile menu / sheet trigger */}
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="p-2 md:hidden cursor-pointer" aria-label="Open menu">
+                <Menu />
+              </Button>
+            </SheetTrigger>
+
+            <SheetContent side="left" className="p-2">
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2"><List /> Quick Picks</SheetTitle>
+              </SheetHeader>
+              <ScrollArea className="h-[70vh] mt-2">
+                <div className="space-y-2 p-2">
+                  {randomSidebar.length === 0 ? (
+                    <div className="p-4 text-sm opacity-60">No items</div>
+                  ) : (
+                    randomSidebar.map((g) => (
+                      <button
+                        key={g.id}
+                        onClick={() => { setCurrentGame(g); setSheetOpen(false); }}
+                        className="flex items-center gap-3 p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 w-full text-left cursor-pointer"
+                      >
+                        <img src={g.background_image || ""} alt={g.name} className="w-12 h-8 object-cover rounded-md" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">{g.name}</div>
+                          <div className="text-xs opacity-60 truncate">{g.released ?? "TBA"}</div>
+                        </div>
+                        <div className={clsx("text-xs px-2 py-1 rounded-md text-center", ratingBadgeClass(g.rating))}>
+                          {g.rating ? g.rating : "—"}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </SheetContent>
+          </Sheet>
+
+          <div className="flex flex-col">
+            <h1 className="text-2xl md:text-3xl font-extrabold flex items-center gap-2">
+              <Zap className="hidden md:inline-block" />
+              Revolyx-Games
+              <span className="ml-1 text-base font-medium text-zinc-500">Explorer</span>
+            </h1>
+            <div className="text-xs md:text-sm opacity-70">Search games by name, rating, platforms, genres and screenshots</div>
           </div>
         </div>
 
-        <div className="w-full lg:w-auto">
+        {/* search + actions */}
+        <div className="flex-1 max-w-2xl">
           <form
             onSubmit={handleSearchSubmit}
             className={clsx(
@@ -304,7 +384,7 @@ export default function RawgGamesPage() {
             <Search className="opacity-60" />
             <Input
               aria-label="Search games"
-              placeholder="Search games (e.g. Elden Ring, Mario, Cyberpunk...)"
+              placeholder="Search games (eg. Elden Ring, Mario, Cyberpunk...)"
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
               onKeyDown={handleSuggestKey}
@@ -312,16 +392,31 @@ export default function RawgGamesPage() {
               className="border-0 bg-transparent outline-none shadow-none"
               autoComplete="off"
             />
-            <Button type="button" variant="ghost" onClick={() => { setQuery(""); setGames([]); }}>
+            <Button type="button" variant="ghost" onClick={() => { setQuery(""); setGames([]); }} className="cursor-pointer">
               Clear
             </Button>
-            <Button type="submit" variant="default" aria-label="Search">
+            <Button type="submit" variant="default" aria-label="Search" className="cursor-pointer">
               <Search />
             </Button>
-            <Button type="button" variant="ghost" aria-label="Voice search" onClick={toggleListening} title="Voice search">
+            <Button type="button" variant="ghost" aria-label="Voice search" onClick={toggleListening} title="Voice search" className="cursor-pointer">
               {listening ? <Mic className="text-rose-400" /> : <MicOff />}
             </Button>
+            <Button type="button" variant="ghost" onClick={() => fetchGames({ q: query, page: 1, page_size: PAGE_SIZE, ordering })} title="Refresh" className="cursor-pointer">
+              <RefreshCw />
+            </Button>
           </form>
+        </div>
+
+        <div className="hidden md:flex items-center gap-2">
+          <Button variant="outline" onClick={() => { setOrdering("-rating"); fetchGames({ q: query, page: 1, page_size: PAGE_SIZE, ordering: "-rating" }); }} className="cursor-pointer">
+            <Star /> Top
+          </Button>
+          <Button variant="outline" onClick={() => { setOrdering("-released"); fetchGames({ q: query, page: 1, page_size: PAGE_SIZE, ordering: "-released" }); }} className="cursor-pointer">
+            <Calendar /> New
+          </Button>
+          <Button variant="outline" onClick={() => { setOrdering("name"); fetchGames({ q: query, page: 1, page_size: PAGE_SIZE, ordering: "name" }); }} className="cursor-pointer">
+            <Filter /> Sort
+          </Button>
         </div>
       </header>
 
@@ -335,7 +430,7 @@ export default function RawgGamesPage() {
             role="listbox"
             aria-label="Search suggestions"
             className={clsx(
-              "absolute z-50 left-6 right-6 md:left-[calc(50%_-_420px)] md:right-auto max-w-6xl rounded-xl overflow-hidden shadow-2xl",
+              "absolute z-50 left-4 right-4 md:left-[calc(50%_-_420px)] md:right-auto max-w-6xl rounded-xl overflow-hidden shadow-2xl",
               isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200"
             )}
           >
@@ -375,27 +470,67 @@ export default function RawgGamesPage() {
 
       {/* MAIN LAYOUT */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* Results */}
-        <section className="lg:col-span-7 space-y-4">
+        {/* LEFT: Sidebar (desktop) */}
+        <aside className="hidden lg:block lg:col-span-3">
+          <Card className={clsx("rounded-2xl overflow-hidden border p-3", isDark ? "dark:bg-black" : "bg-white")}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <List /> Quick Picks
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => fetchGames({ q: query, page: 1, page_size: PAGE_SIZE, ordering })} className="cursor-pointer">
+                <RefreshCw />
+              </Button>
+            </div>
+
+            <ScrollArea className="h-[60vh]">
+              <div className="space-y-2">
+                {randomSidebar.length === 0 ? (
+                  <div className="p-4 text-sm opacity-60">No items</div>
+                ) : (
+                  randomSidebar.map((g) => (
+                    <button
+                      key={g.id}
+                      onClick={() => setCurrentGame(g)}
+                      className="flex items-center gap-3 p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 w-full text-left cursor-pointer"
+                    >
+                      <img src={g.background_image || ""} alt={g.name} className="w-12 h-8 object-cover rounded-md" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm ">{g.name}</div>
+                        <div className="text-xs opacity-60 ">{g.released ?? "TBA"}</div>
+                      </div>
+                      <div className={clsx("text-xs px-2 py-1 rounded-md text-center", ratingBadgeClass(g.rating))}>
+                        {g.rating ? g.rating : "—"}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </Card>
+        </aside>
+
+        {/* MIDDLE: Results / list + improved preview */}
+        <section className="lg:col-span-5 space-y-4">
+          {/* top controls */}
           <div className="flex items-center justify-between">
             <div className="text-sm opacity-75">{rawResp?.count ? `Results • ${rawResp.count.toLocaleString()} total` : "Results"}</div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => { setOrdering("-rating"); fetchGames({ q: query, page: 1, page_size: PAGE_SIZE, ordering: "-rating" }); }}>
+              <Button variant="outline" onClick={() => { setOrdering("-rating"); fetchGames({ q: query, page: 1, page_size: PAGE_SIZE, ordering: "-rating" }); }} className="cursor-pointer">
                 <Star /> Top Rated
               </Button>
-              <Button variant="outline" onClick={() => { setOrdering("-released"); fetchGames({ q: query, page: 1, page_size: PAGE_SIZE, ordering: "-released" }); }}>
+              <Button variant="outline" onClick={() => { setOrdering("-released"); fetchGames({ q: query, page: 1, page_size: PAGE_SIZE, ordering: "-released" }); }} className="cursor-pointer">
                 <Calendar /> Newest
               </Button>
-              <Button variant="outline" onClick={() => { setOrdering("name"); fetchGames({ q: query, page: 1, page_size: PAGE_SIZE, ordering: "name" }); }}>
+              <Button variant="outline" onClick={() => { setOrdering("name"); fetchGames({ q: query, page: 1, page_size: PAGE_SIZE, ordering: "name" }); }} className="cursor-pointer">
                 <Filter /> Sort
               </Button>
             </div>
           </div>
 
-          <Card className={clsx("rounded-2xl overflow-hidden border dark:bg-black dark:text-zinc-100 bg-white text-zinc-900")}>
-            <CardContent>
+          <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "dark:bg-black dark:text-zinc-100 bg-black/5" : "bg-white text-zinc-900")}>
+            <CardContent className="h-100 sm:h-150 overflow-y-auto">
               {loading ? (
-                <div className="py-20 text-center">
+                <div className="py-24 text-center">
                   <Loader2 className="animate-spin mx-auto" />
                   <div className="text-sm opacity-60 mt-3">Loading games…</div>
                 </div>
@@ -403,27 +538,31 @@ export default function RawgGamesPage() {
                 <div className="py-16 text-center text-sm opacity-60">No games found — try a broader query or clear filters.</div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
+                  {/* improved list item layout */}
                   {games.map((g) => (
                     <article
                       key={g.id}
-                      className="grid grid-cols-4 gap-4 p-4 rounded-lg hover:dark:bg-zinc-800 hover:bg-zinc-100 transition-shadow cursor-pointer"
                       onClick={() => setCurrentGame(g)}
+                      className="grid grid-cols-5 gap-4 p-4 rounded-lg hover:dark:bg-zinc-800 hover:bg-zinc-100 transition-shadow cursor-pointer items-center"
                       aria-label={`Open ${g.name}`}
                     >
-                      <img src={g.background_image || ""} alt={g.name} loading="lazy" className="w-full h-24 object-cover rounded-md col-span-1" />
-                      <div className="col-span-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-lg truncate">{g.name}</h3>
-                          <div className="text-xs opacity-60 mt-1">
-                            {g.released ? <><Calendar className="inline-block mr-1" size={14}/> {g.released}</> : "TBA"}
+                      <img src={g.background_image || ""} alt={g.name} loading="lazy" className="w-full h-28 object-cover rounded-md col-span-2" />
+                      <div className="col-span-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-lg truncate flex items-center gap-2">
+                              {g.name}
+                              <span className="text-xs opacity-60">{g.released ?? "TBA"}</span>
+                            </h3>
+                            <div className="text-sm opacity-70 mt-1 line-clamp-2">{g.slug}</div>
                           </div>
-                          <div className="mt-2 text-sm opacity-80 truncate">{g.slug}</div>
-                        </div>
-
-                        <div className="text-right">
-                          <div className="text-sm font-semibold">{g.rating ? `${g.rating} ★` : "—"}</div>
-                          <div className="text-xs opacity-60 mt-1">{g.metacritic ? `Metacritic: ${g.metacritic}` : "No meta score"}</div>
-                          <div className="mt-2 text-xs opacity-60">{(g.platforms || []).map(p => p.platform?.name).slice(0,3).join(", ")}</div>
+                          <div className="text-right">
+                            <div className={clsx("text-sm font-semibold inline-flex items-center gap-2 px-2 py-1 rounded-md", ratingBadgeClass(g.rating))}>
+                              <Star className="w-3 h-3" /> {g.rating ?? "—"}
+                            </div>
+                            <div className="text-xs opacity-60 mt-1">{g.metacritic ? `Metacritic: ${g.metacritic}` : "No meta score"}</div>
+                            <div className="mt-2 text-xs opacity-60">{(g.platforms || []).map(p => p.platform?.name).slice(0,3).join(", ")}</div>
+                          </div>
                         </div>
                       </div>
                     </article>
@@ -434,34 +573,33 @@ export default function RawgGamesPage() {
 
             <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4">
               <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={prevPage} disabled={page <= 1} aria-label="Previous page"><ChevronLeft /></Button>
+                <Button variant="outline" onClick={prevPage} disabled={page <= 1} aria-label="Previous page" className="cursor-pointer"><ChevronLeft /></Button>
                 <span className="text-sm opacity-70">Page {page}</span>
-                <Button variant="outline" onClick={nextPage} aria-label="Next page"><ChevronRight /></Button>
+                <Button variant="outline" onClick={nextPage} aria-label="Next page" className="cursor-pointer"><ChevronRight /></Button>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" onClick={() => copyCurrentToClipboard()} aria-label="Copy selected game JSON"><Copy /></Button>
-                <Button variant="ghost" onClick={() => downloadRawJSON()} aria-label="Download JSON"><Download /></Button>
-                <Button variant="ghost" onClick={() => setShowRaw(s => !s)} aria-label="Toggle raw JSON"><List /></Button>
-              </div>
+
             </CardFooter>
           </Card>
         </section>
 
-        {/* Details */}
-        <aside className={clsx("lg:col-span-5 rounded-2xl p-4 space-y-4 h-fit dark:bg-black dark:text-zinc-100 bg-white text-zinc-900")}>
+        {/* RIGHT: Details */}
+        <aside className={clsx("lg:col-span-4 rounded-2xl p-4 space-y-4 h-fit", isDark ? "dark:bg-black dark:text-zinc-100 bg-black/5" : "bg-white text-zinc-900")}>
           {currentGame ? (
             <>
-              <div className="flex items-start gap-4">
-                <img src={currentGame.background_image || currentGame.background_image_additional || ""} alt={currentGame.name} loading="lazy" className="w-40 h-28 object-cover rounded-md flex-shrink-0" />
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold">{currentGame.name}</h2>
-                  <div className="text-sm opacity-60">{currentGame.released ? `Released: ${currentGame.released}` : "Release date: TBA"}</div>
-                  <p className="mt-2 text-sm opacity-80 line-clamp-3">{currentGame.short_description || currentGame.description_raw || currentGame.slug}</p>
+              <div className="flex  flex-col items-center gap-3 text-center">
+                <img src={currentGame.background_image || currentGame.background_image_additional || ""} alt={currentGame.name} loading="lazy" className="w-full h-60 object-cover rounded-md" />
+                <div className="w-full flex justify-between flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-bold flex items-center justify-center gap-2">
+                    <Gamepad /> {currentGame.name}
+                  </h2>
+                  <div className="text-xs opacity-60 flex items-center justify-center gap-2"><Calendar /> {currentGame.released ?? "TBA"}</div>
 
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {(currentGame.genres || []).map((g) => (
-                      <span key={g.id} className={clsx("px-2 py-1 rounded-md text-xs border", isDark ? "border-zinc-700" : "border-zinc-300")}>{g.name}</span>
+                  <div className="mt-2 flex items-center justify-center gap-2">
+                    {(currentGame.genres || []).slice(0,3).map((g) => (
+                      <span key={g.id} className={clsx("px-2 py-1 rounded-full text-xs border", isDark ? "border-zinc-700" : "border-zinc-200")}>
+                        <Tag className="inline-block mr-1" size={12} /> {g.name}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -469,31 +607,15 @@ export default function RawgGamesPage() {
 
               <Separator />
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-md border">
-                  <div className="text-xs opacity-60">Rating</div>
-                  <div className="text-lg font-semibold flex items-center gap-2"><Star className="w-4 h-4 text-amber-400" />{currentGame.rating ?? "—"}<span className="text-xs opacity-60"> {currentGame.ratings_count ? `(${currentGame.ratings_count})` : ""}</span></div>
-                </div>
-                <div className="p-3 rounded-md border">
-                  <div className="text-xs opacity-60">Metacritic</div>
-                  <div className="text-lg font-semibold">{currentGame.metacritic ?? "—"}</div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 mt-2">
-                <div className="p-3 rounded-md border">
-                  <div className="text-xs opacity-60">Platforms</div>
-                  <div className="text-sm">{(currentGame.platforms || []).map(p => p.platform?.name).join(", ") || "—"}</div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 rounded-md border text-center">
+                  <div className="text-xs opacity-60 flex items-center justify-center gap-2"><Star /> Rating</div>
+                  <div className="text-lg font-semibold mt-1">{currentGame.rating ?? "—"} <span className="text-xs opacity-60"> {currentGame.ratings_count ? `(${currentGame.ratings_count})` : ""}</span></div>
                 </div>
 
-                <div className="p-3 rounded-md border">
-                  <div className="text-xs opacity-60">Developers</div>
-                  <div className="text-sm">{(currentGame.developers || []).map(d => d.name).join(", ") || "—"}</div>
-                </div>
-
-                <div className="p-3 rounded-md border">
-                  <div className="text-xs opacity-60">Stores</div>
-                  <div className="text-sm">{(currentGame.stores || []).map(s => s.store?.name).join(", ") || "—"}</div>
+                <div className="p-3 rounded-md border text-center">
+                  <div className="text-xs opacity-60 flex items-center justify-center gap-2"><ExternalLink /> Metacritic</div>
+                  <div className="text-lg font-semibold mt-1">{currentGame.metacritic ?? "—"}</div>
                 </div>
               </div>
 
@@ -501,13 +623,12 @@ export default function RawgGamesPage() {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-semibold">Screenshots</div>
-                  <div className="text-xs opacity-60">Click to open</div>
+                  <div className="text-sm font-semibold flex items-center gap-2"><ImageIcon /> Screenshots</div>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {(currentGame.short_screenshots || []).slice(0, 6).map(s => (
-                    <button key={s.id} onClick={() => openScreenshot(s.image)} className="rounded-md overflow-hidden">
-                      <img src={s.image} alt={`screenshot-${s.id}`} loading="lazy" className="w-full h-28 object-cover" />
+                <div className="grid grid-cols-2 gap-2">
+                  {(currentGame.short_screenshots || []).map(s => (
+                    <button key={s.id} onClick={() => openScreenshot(s.image)} className="rounded-md overflow-hidden cursor-pointer">
+                      <img src={s.image} alt={`s-${s.id}`} loading="lazy" className="w-full h-20 object-cover" />
                     </button>
                   ))}
                 </div>
@@ -516,23 +637,19 @@ export default function RawgGamesPage() {
               <Separator />
 
               <div>
-                <div className="text-sm font-semibold mb-2">All fields</div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="text-sm font-semibold flex items-center gap-2"><List /> All fields</div>
+                  <div className="text-xs opacity-60 ml-auto">JSON</div>
+                </div>
                 <ScrollArea className="h-[200px] overflow-auto">
                   <pre className="text-xs p-2">{prettyJSON(currentGame)}</pre>
                 </ScrollArea>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => window.open(currentGame.website || `https://rawg.io/games/${currentGame.slug}`, "_blank")}><ExternalLink /> Open</Button>
-                <Button variant="ghost" onClick={() => setShowRaw(s => !s)}><List /> Raw</Button>
-                <div className="ml-auto flex gap-2">
-                  <Button variant="ghost" onClick={() => copyCurrentToClipboard()} aria-label="Copy game JSON"><Copy /></Button>
-                  <Button variant="ghost" onClick={() => downloadRawJSON()} aria-label="Download JSON"><Download /></Button>
-                </div>
-              </div>
+          
             </>
           ) : (
-            <div className="py-20 text-center opacity-70">
+            <div className="py-12 text-center opacity-70">
               <ImageIcon className="mx-auto mb-3" />
               <div className="text-sm">Select a game to see details here.</div>
             </div>
@@ -549,7 +666,7 @@ export default function RawgGamesPage() {
                 <div className="text-sm font-semibold">Raw API response</div>
                 <div className="text-xs opacity-60">Inspect full JSON</div>
               </div>
-              <ScrollArea className="h-[200px] overflow-auto">
+              <ScrollArea className="h-[300px] overflow-auto">
                 <pre className="text-xs p-3">{prettyJSON(rawResp)}</pre>
               </ScrollArea>
             </div>
@@ -559,7 +676,7 @@ export default function RawgGamesPage() {
 
       {/* Screenshot dialog */}
       <Dialog open={screenshotOpen} onOpenChange={closeScreenshot}>
-        <DialogContent className={clsx("max-w-4xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-zinc-900" : "bg-white")}>
+        <DialogContent className={clsx("max-w-4xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-zinc-900" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>Screenshot</DialogTitle>
           </DialogHeader>

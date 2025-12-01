@@ -421,7 +421,7 @@ function chooseFavorite(f) {
 
   /* ---------- UI ---------- */
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl overflow-hidden mx-auto")}>
+    <div className={clsx("min-h-screen p-6 max-w-8xl pb-10 overflow-hidden mx-auto")}>
       {/* Header */}
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <div>
@@ -829,7 +829,7 @@ function chooseFavorite(f) {
           <div>
             <div className="text-sm font-semibold mb-2">Developer</div>
             <div className="text-xs opacity-60">Endpoint examples and raw JSON for debugging.</div>
-            <div className="mt-2 space-y-2">
+            <div className="mt-2 space-y-2 grid grid-cols-2 gap-1">
               <Button className="cursor-pointer" variant="outline" onClick={() => copyEndpointToClipboard()}><Copy /> Copy Endpoint</Button>
               <Button className="cursor-pointer" variant="outline" onClick={() => downloadJSON()}><Download /> Download JSON</Button>
               <Button className="cursor-pointer" variant="outline" onClick={() => setShowRaw((s) => !s)}><Eye /> Toggle Raw</Button>
@@ -840,7 +840,7 @@ function chooseFavorite(f) {
 
       {/* Map Dialog (larger view) */}
       <Dialog open={mapOpen} onOpenChange={setMapOpen}>
-        <DialogContent className={clsx("max-w-5xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-5xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>Map — {currentCity?.name}</DialogTitle>
           </DialogHeader>

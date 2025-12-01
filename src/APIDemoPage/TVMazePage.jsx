@@ -8,14 +8,25 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   ExternalLink,
-  ImageIcon,
+  Image as ImageIcon,
   Loader2,
   List,
   Copy,
   Download,
   Star,
   X,
-  Calendar
+  Calendar,
+  Menu,
+  RefreshCw,
+  Check,
+  Users,
+  Film,
+  MapPin,
+  Badge as LucideBadge,
+  FileText,
+  Globe,
+  Play,
+  Clock,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,26 +36,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Separator } from "@/components/ui/separator";
 import { useTheme } from "@/components/theme-provider";
 import { showToast } from "../lib/ToastHelper";
-
-/**
- * TVMazePage
- * - Left + Center + Right layout
- * - Search box with suggestions (keyboard accessible)
- * - Center: large detail view of selected show (summary rendered; sanitized)
- * - Right: quick actions (open official site, copy JSON, download JSON, view episodes)
- *
- * API:
- * - Search: https://api.tvmaze.com/search/shows?q=:query -> returns [{ score, show }]
- * - Show by id: https://api.tvmaze.com/shows/:id -> show object
- * - Episodes: https://api.tvmaze.com/shows/:id/episodes
- *
- * This implementation intentionally does NOT persist favorites to localStorage (as requested).
- */
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 
 /* ---------- Constants ---------- */
 const BASE_API = "https://api.tvmaze.com";
-const DEFAULT_SHOW_ID = 1; // Under the Dome (as in your sample)
 const DEBOUNCE_MS = 350;
+const RANDOM_COUNT = 10;
 
 /* ---------- Helpers ---------- */
 function prettyJSON(obj) {
@@ -55,34 +54,22 @@ function prettyJSON(obj) {
   }
 }
 
-/**
- * Minimal sanitization of HTML summary returned by TVMaze.
- * This uses DOMParser in the browser to whitelist a small set of tags
- * (p, br, strong, b, em, i, ul, ol, li, a). It strips script/style and unknown tags.
- * This is not a replacement for a robust sanitizer (DOMPurify) on untrusted content,
- * but it's safer than directly injecting raw HTML.
- */
 function sanitizeHtml(html) {
   if (!html) return "";
   if (typeof document === "undefined") return html;
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
-  const allowed = new Set(["P","BR","STRONG","B","EM","I","UL","OL","LI","A","SPAN"]);
-  // remove script/style
+  const allowed = new Set(["P", "BR", "STRONG", "B", "EM", "I", "UL", "OL", "LI", "A", "SPAN"]);
   doc.querySelectorAll("script,style").forEach((n) => n.remove());
-
   function walk(node) {
     const children = Array.from(node.childNodes);
     for (const child of children) {
       if (child.nodeType === Node.ELEMENT_NODE) {
         if (!allowed.has(child.tagName)) {
-          // unwrap element: replace node with its children
           const frag = document.createDocumentFragment();
           while (child.firstChild) frag.appendChild(child.firstChild);
           child.parentNode.replaceChild(frag, child);
-          // continue walking within frag
         } else {
-          // for links, ensure no javascript: href
           if (child.tagName === "A") {
             const href = child.getAttribute("href") || "";
             if (href.trim().toLowerCase().startsWith("javascript:")) {
@@ -99,38 +86,57 @@ function sanitizeHtml(html) {
       }
     }
   }
-
   walk(doc.body);
   return doc.body.innerHTML;
+}
+
+function pickRandom(arr = [], n = 10) {
+  const copy = Array.isArray(arr) ? arr.slice() : [];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, Math.min(n, copy.length));
 }
 
 /* ---------- Component ---------- */
 export default function TVMazePage() {
   const { theme } = useTheme?.() ?? { theme: "system" };
-  const isDark = theme === "dark" ||
-    (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
 
-  // search & suggestions state
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState([]); // array of { show, score }
+  const [suggestions, setSuggestions] = useState([]); // tvmaze search results or byId synthetic
   const [loadingSuggest, setLoadingSuggest] = useState(false);
   const [showSuggest, setShowSuggest] = useState(false);
 
-  // selection & details
-  const [selectedShow, setSelectedShow] = useState(null); // show object
+  const [selectedShow, setSelectedShow] = useState(null);
   const [rawResp, setRawResp] = useState(null);
   const [loadingShow, setLoadingShow] = useState(false);
   const [episodes, setEpisodes] = useState(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [showRaw, setShowRaw] = useState(false);
 
-  // keyboard navigation for suggestions
+  const [showRaw, setShowRaw] = useState(false);
+  const [mapDialogOpen, setMapDialogOpen] = useState(false);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [imageDialogUrl, setImageDialogUrl] = useState("");
+
+  const [copied, setCopied] = useState(false);
+  const [copyAnimKey, setCopyAnimKey] = useState(0);
+
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef(null);
   const abortRef = useRef(null);
   const suggestTimer = useRef(null);
 
+  // sidebar / random picks
+  const [randomList, setRandomList] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // mobile sheet
+
   /* ---------- Fetch helpers ---------- */
+
   async function searchShows(q) {
     if (!q || q.trim().length === 0) {
       setSuggestions([]);
@@ -141,14 +147,14 @@ export default function TVMazePage() {
     const ac = new AbortController();
     abortRef.current = ac;
     try {
-      const res = await fetch(`${BASE_API}/search/shows?q=${encodeURIComponent(q)}`, { signal: ac.signal });
+      const url = `${BASE_API}/search/shows?q=${encodeURIComponent(q)}`;
+      const res = await fetch(url, { signal: ac.signal });
       if (!res.ok) {
         setSuggestions([]);
         setLoadingSuggest(false);
         return;
       }
       const json = await res.json();
-      // json is [{score, show}, ...]
       setSuggestions(json || []);
     } catch (err) {
       if (err.name !== "AbortError") {
@@ -161,7 +167,7 @@ export default function TVMazePage() {
     }
   }
 
-  async function fetchShowById(id, { loadEpisodes=false } = {}) {
+  async function fetchShowById(id, { loadEpisodes = false } = {}) {
     if (!id) return;
     setLoadingShow(true);
     setEpisodes(null);
@@ -175,9 +181,7 @@ export default function TVMazePage() {
       const json = await res.json();
       setSelectedShow(json);
       setRawResp(json);
-      if (loadEpisodes) {
-        fetchEpisodesForShow(id);
-      }
+      if (loadEpisodes) fetchEpisodesForShow(id);
     } catch (err) {
       console.error(err);
       showToast("error", "Failed to fetch show");
@@ -193,6 +197,7 @@ export default function TVMazePage() {
       const res = await fetch(`${BASE_API}/shows/${id}/episodes`);
       if (!res.ok) {
         showToast("error", "Failed to load episodes");
+        setEpisodes([]);
         return;
       }
       const json = await res.json();
@@ -200,30 +205,62 @@ export default function TVMazePage() {
     } catch (err) {
       console.error(err);
       showToast("error", "Failed to load episodes");
+      setEpisodes([]);
+    }
+  }
+
+  async function fetchRandomShows() {
+    try {
+      // We fetch first page of shows and sample from it (TVMaze returns large lists)
+      const res = await fetch(`${BASE_API}/shows`);
+      if (!res.ok) return;
+      const all = await res.json();
+      const pool = Array.isArray(all) ? all.slice(0, 600) : [];
+      const chosen = pickRandom(pool, RANDOM_COUNT);
+      setRandomList(chosen);
+    } catch (err) {
+      console.error("Random fetch error", err);
     }
   }
 
   /* ---------- Handlers ---------- */
+
   function onQueryChange(v) {
     setQuery(v);
     setShowSuggest(true);
     setActiveIndex(-1);
+
     if (suggestTimer.current) clearTimeout(suggestTimer.current);
-    suggestTimer.current = setTimeout(() => {
-      searchShows(v);
-    }, DEBOUNCE_MS);
+
+    const trimmed = v.trim();
+    // if it's a number (small id), show "load by ID" suggestion immediately
+    const numericId = trimmed.match(/^(\d{1,6})$/);
+    if (numericId) {
+      setSuggestions([{ byId: true, id: Number(numericId[1]) }]);
+      setLoadingSuggest(false);
+      return;
+    }
+
+    // otherwise debounce search
+    suggestTimer.current = setTimeout(() => searchShows(trimmed), DEBOUNCE_MS);
   }
 
   async function handleSearchSubmit(e) {
     e?.preventDefault?.();
-    if (!query || query.trim().length === 0) {
-      showToast("info", "Try searching a show name, e.g. 'Breaking Bad'");
+    const trimmed = query.trim();
+    if (!trimmed) {
+      showToast("info", "Try searching a show name or an ID.");
+      return;
+    }
+    const numericId = trimmed.match(/^(\d{1,6})$/);
+    if (numericId) {
+      await fetchShowById(Number(numericId[1]), { loadEpisodes: true });
+      setShowSuggest(false);
       return;
     }
     setLoadingSuggest(true);
     try {
-      // search then select the first show if any
-      const res = await fetch(`${BASE_API}/search/shows?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`${BASE_API}/search/shows?q=${encodeURIComponent(trimmed)}`);
       const json = await res.json();
       setLoadingSuggest(false);
       if (json && json.length > 0) {
@@ -244,6 +281,11 @@ export default function TVMazePage() {
   function chooseSuggestionAt(index) {
     const item = suggestions[index];
     if (!item) return;
+    if (item.byId) {
+      fetchShowById(item.id, { loadEpisodes: true });
+      setShowSuggest(false);
+      return;
+    }
     const show = item.show;
     setSelectedShow(show);
     setRawResp(show);
@@ -271,72 +313,144 @@ export default function TVMazePage() {
     }
   }
 
-  function copyJSON() {
-    if (!selectedShow) return showToast("info", "No show selected");
-    navigator.clipboard.writeText(prettyJSON(selectedShow));
-    showToast("success", "Show JSON copied");
+  async function handleCopy() {
+    const payload = rawResp || selectedShow;
+    if (!payload) return showToast("info", "Nothing to copy");
+    try {
+      await navigator.clipboard.writeText(prettyJSON(payload));
+      setCopied(true);
+      setCopyAnimKey((k) => k + 1);
+      showToast("success", "Copied JSON");
+      setTimeout(() => setCopied(false), 1600);
+    } catch (err) {
+      console.error(err);
+      showToast("error", "Copy failed");
+    }
   }
 
-  function downloadJSON() {
-    if (!rawResp && !selectedShow) return showToast("info", "Nothing to download");
+  function handleDownload() {
     const payload = rawResp || selectedShow;
+    if (!payload) return showToast("info", "Nothing to download");
     const blob = new Blob([prettyJSON(payload)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${(selectedShow?.name || "show").replace(/\s+/g, "_")}.json`;
+    const name = (selectedShow?.name || "show").replace(/\s+/g, "_");
+    a.download = `${name}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
-    showToast("success", "Downloaded JSON");
+    showToast("success", "Download started");
+  }
+
+  function onClickPoster(url) {
+    if (!url) return showToast("info", "No image available");
+    setImageDialogUrl(url);
+    setImageDialogOpen(true);
   }
 
   /* ---------- Initial load ---------- */
   useEffect(() => {
-    // load a default show so the page isn't empty
-    fetchShowById(DEFAULT_SHOW_ID, { loadEpisodes: false });
+    fetchShowById(1, { loadEpisodes: false }).catch(() => {});
+    fetchRandomShows();
+    // cleanup timers on unmount
+    return () => {
+      if (suggestTimer.current) clearTimeout(suggestTimer.current);
+      if (abortRef.current) abortRef.current.abort?.();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* ---------- Memoized sanitized summary ---------- */
   const sanitizedSummary = useMemo(() => sanitizeHtml(selectedShow?.summary || ""), [selectedShow?.summary]);
+
+  /* ---------- UI helpers ---------- */
+  function glassBadge({ icon, text }) {
+    return (
+      <Badge className={clsx(
+        "inline-flex items-center gap-2 px-2 py-1 rounded-full shadow-sm",
+        isDark ? "bg-white/70 border border-white/60 text-black/90" : "bg-white/70 border border-zinc-200 text-zinc-900"
+      )}>
+        {icon}
+        <span className="text-xs">{text}</span>
+      </Badge>
+    );
+  }
 
   /* ---------- Render ---------- */
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
+    <div className={clsx("min-h-screen p-4 pb-10 md:p-6 max-w-8xl mx-auto")}>
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>TVHub — TVMaze Browser</h1>
-          <p className="mt-1 text-sm opacity-70">Search shows, inspect details, view episodes — professional viewing for TV data.</p>
+      <header className="flex items-start flex-wrap md:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          {/* Mobile sheet trigger */}
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="p-2 rounded-md cursor-pointer md:hidden"><Menu /></Button>
+            </SheetTrigger>
+
+            <SheetContent side="left" className=" p-3">
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="font-semibold">Random Picks</div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => fetchRandomShows()} className="cursor-pointer"><RefreshCw /></Button>
+        
+                  </div>
+                </div>
+
+                <ScrollArea style={{ height: 520 }}>
+                 <div className="space-y-2 py-2">
+              {randomList.map((r) => {
+                const selected = selectedShow?.id === r.id;
+                return (
+                  <div
+                    key={r.id}
+                    onClick={() => { setSelectedShow(r); setRawResp(r); fetchEpisodesForShow(r.id); }}
+                    className={clsx(
+                      "flex items-center gap-3 p-2 rounded-md cursor-pointer transition-all",
+                      selected
+                        ? "bg-zinc-50 dark:bg-zinc-800/60   border border-zinc-300"
+                        : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    )}
+                  >
+                    <img src={r.image?.medium || ""} alt={r.name} className="w-12 h-12 rounded-md object-cover" />
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{r.name}</div>
+                      <div className="text-xs opacity-60 truncate">{r.language || "—"}</div>
+                    </div>
+                    <Badge variant="secondary" className="ml-auto">#{r.id}</Badge>
+                  </div>
+                );
+              })}
+            </div>
+                </ScrollArea>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <div>
+            <h1 className="text-2xl md:text-3xl font-extrabold">TVHub — TVMaze Browser</h1>
+            <div className="text-xs opacity-70">Search shows, inspect metadata & episodes, export JSON.</div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <form
-            onSubmit={handleSearchSubmit}
-            className={clsx("flex items-center gap-2 w-full md:w-[640px] rounded-lg px-3 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}
-            onKeyDown={handleKeyDown}
-            role="search"
-            aria-label="Search TV shows"
-          >
-            <Search className="opacity-60" />
-            <Input
-              ref={inputRef}
-              placeholder="Search shows, e.g. 'The Office', 'Stranger Things'..."
-              value={query}
-              onChange={(e) => onQueryChange(e.target.value)}
-              onFocus={() => setShowSuggest(true)}
-              className="border-0 shadow-none bg-transparent outline-none"
-              aria-autocomplete="list"
-              aria-controls="tv-suggestions"
-            />
-            <Button type="button" variant="outline" className="px-3 cursor-pointer" onClick={() => { fetchShowById(DEFAULT_SHOW_ID); }}>
-              Default
-            </Button>
-            <Button type="submit" variant="outline" className="px-3 cursor-pointer"><Search /></Button>
-          </form>
-        </div>
+        {/* Search */}
+        <form onSubmit={handleSearchSubmit} className={clsx("flex items-center gap-2 w-full md:w-[720px] rounded-lg px-3 py-2 shadow-sm", isDark ? "bg-black/50 border border-zinc-800" : "bg-white border border-zinc-200")} onKeyDown={handleKeyDown} role="search" aria-label="Search TV shows">
+          <Search className="opacity-60" />
+          <Input
+            ref={inputRef}
+            placeholder="Search shows (name) or type an ID number..."
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            onFocus={() => setShowSuggest(true)}
+            className="border-0 bg-transparent outline-none shadow-none"
+            aria-autocomplete="list"
+            aria-controls="tv-suggestions"
+          />
+          <Button type="submit" variant="outline" className="px-3 cursor-pointer"><Search /></Button>
+          <Button type="button" variant="ghost" className="px-2 cursor-pointer" onClick={() => { setShowRaw((s) => !s); }} title="Toggle raw"><FileText /> {showRaw ? "Hide Raw" : "Show Raw"}</Button>
+        </form>
       </header>
 
-      {/* suggestion dropdown */}
+      {/* suggestions dropdown */}
       <AnimatePresence>
         {showSuggest && suggestions.length > 0 && (
           <motion.ul
@@ -344,21 +458,34 @@ export default function TVMazePage() {
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
+            className={clsx("absolute z-50 left-4 right-4 md:left-[calc(50%_-_360px)] md:right-auto max-w-[720px] rounded-xl overflow-hidden shadow-2xl", isDark ? "bg-black/70 border border-zinc-800" : "bg-white border border-zinc-200")}
             role="listbox"
             aria-label="Show suggestions"
           >
             {loadingSuggest && <li className="p-3 text-sm opacity-60">Searching…</li>}
             {suggestions.map((s, idx) => {
+              if (s.byId) {
+                const id = s.id;
+                const isActive = idx === activeIndex;
+                return (
+                  <li key={`byid-${id}`} role="option" aria-selected={isActive} className={clsx("px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer", isActive ? "bg-zinc-100 dark:bg-zinc-800/50" : "")} onClick={() => { fetchShowById(id, { loadEpisodes: true }); setShowSuggest(false); }}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-8 flex items-center justify-center rounded-sm bg-zinc-100 dark:bg-zinc-800 text-xs">ID</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">Load show by ID — {id}</div>
+                        <div className="text-xs opacity-60 truncate">Directly fetch show with id {id}</div>
+                      </div>
+                      <div className="text-xs opacity-60">#{id}</div>
+                    </div>
+                  </li>
+                );
+              }
+
               const show = s.show;
-              const key = show.id || show.name || idx;
+              const key = show.id || show.name;
               const isActive = idx === activeIndex;
               return (
-                <li
-                  key={key}
-                  role="option"
-                  aria-selected={isActive}
-                  className={clsx("px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer", isActive ? "bg-zinc-100 dark:bg-zinc-800/50" : "")}
+                <li key={key} role="option" aria-selected={isActive} className={clsx("px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer", isActive ? "bg-zinc-100 dark:bg-zinc-800/50" : "")}
                   onMouseEnter={() => setActiveIndex(idx)}
                   onMouseLeave={() => setActiveIndex(-1)}
                   onClick={() => {
@@ -375,7 +502,7 @@ export default function TVMazePage() {
                       <div className="font-medium truncate">{show.name}</div>
                       <div className="text-xs opacity-60 truncate">{(show.type ? `${show.type} • ${show.language}` : show.language) || "—"}</div>
                     </div>
-                    <div className="text-xs opacity-60">{(show.premiered ? new Date(show.premiered).getFullYear() : "—")}</div>
+                    <div className="text-xs opacity-60">{show.premiered ? new Date(show.premiered).getFullYear() : "—"}</div>
                   </div>
                 </li>
               );
@@ -386,21 +513,72 @@ export default function TVMazePage() {
 
       {/* Layout */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+        {/* Left sidebar (desktop) */}
+        <aside className={clsx("hidden lg:block lg:col-span-3 rounded-2xl p-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm font-semibold">Random Picks</div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => fetchRandomShows()} className="cursor-pointer"><RefreshCw /></Button>
+            </div>
+          </div>
+
+          <ScrollArea className="overflow-y-auto pb-3" style={{ maxHeight: 520 }}>
+            <div className="space-y-2 py-2">
+              {randomList.map((r) => {
+                const selected = selectedShow?.id === r.id;
+                return (
+                  <div
+                    key={r.id}
+                    onClick={() => { setSelectedShow(r); setRawResp(r); fetchEpisodesForShow(r.id); }}
+                    className={clsx(
+                      "flex items-center gap-3 p-2 rounded-md cursor-pointer transition-all",
+                      selected
+                        ? "bg-zinc-50 dark:bg-zinc-800/60   border border-zinc-300"
+                        : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    )}
+                  >
+                    <img src={r.image?.medium || ""} alt={r.name} className="w-12 h-12 rounded-md object-cover" />
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{r.name}</div>
+                      <div className="text-xs opacity-60 truncate">{r.language || "—"}</div>
+                    </div>
+                    <Badge variant="secondary" className="ml-auto">#{r.id}</Badge>
+                  </div>
+                );
+              })}
+            </div>
+          </ScrollArea>
+
+          <Separator className="my-4" />
+
+          <div>
+            <div className="text-sm font-semibold mb-2">About</div>
+            <div className="text-xs opacity-70">Data powered by TVMaze API. Use the search to find shows by name or enter an ID directly.</div>
+            <div className="mt-3">
+              <Button variant="outline" onClick={() => { navigator.clipboard.writeText(BASE_API); showToast("success", "API base copied"); }} className="w-full cursor-pointer"><Copy /> Copy API</Button>
+            </div>
+          </div>
+        </aside>
+
         {/* Center: show viewer */}
-        <section className="lg:col-span-9 space-y-4">
+        <section className="lg:col-span-6 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-center flex-wrap gap-3 justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+            <CardHeader className={clsx("p-5 flex flex-wrap items-center justify-between gap-3", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/95 border-b border-zinc-200")}>
               <div>
-                <CardTitle className="text-lg">Show Details</CardTitle>
-                <div className="text-xs opacity-60">{selectedShow?.name || "Select a show to view details"}</div>
+                <CardTitle className="flex items-center gap-3"><Users /> <span>Show Details</span></CardTitle>
+                <div className="text-xs opacity-60">{selectedShow?.name || "Select a show or search above"}</div>
               </div>
 
               <div className="flex items-center gap-2">
                 <Button className="cursor-pointer" variant="outline" onClick={() => { if (selectedShow) fetchShowById(selectedShow.id, { loadEpisodes: false }); }}>
                   <Loader2 className={loadingShow ? "animate-spin" : ""} /> Refresh
                 </Button>
-                <Button className="cursor-pointer" variant="ghost" onClick={() => setShowRaw(s => !s)}><List /> {showRaw ? "Hide" : "Raw"}</Button>
-                <Button className="cursor-pointer" variant="ghost" onClick={() => setDialogOpen(true)}><ImageIcon /> View Image</Button>
+
+                <Button className="cursor-pointer" variant="ghost" onClick={() => setShowRaw((s) => !s)}><List /> {showRaw ? "Hide Raw" : "Raw"}</Button>
+
+                <Button className="cursor-pointer" variant="ghost" onClick={() => setMapDialogOpen(true)}><Globe /> More</Button>
+
+
               </div>
             </CardHeader>
 
@@ -411,61 +589,101 @@ export default function TVMazePage() {
                 <div className="py-12 text-center text-sm opacity-60">No show loaded — try searching above.</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Left: image + meta */}
-                  <div className={clsx("p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <img src={selectedShow.image?.original || selectedShow.image?.medium || ""} alt={selectedShow.name} className="w-full rounded-md object-cover mb-3" />
-                    <div className="text-lg font-semibold">{selectedShow.name}</div>
-                    <div className="text-xs opacity-60">{selectedShow.type || "—"} • {selectedShow.language || "—"}</div>
-
-                    <div className="mt-3 space-y-2 text-sm">
-                      <div>
-                        <div className="text-xs opacity-60">Genres</div>
-                        <div className="font-medium">{(selectedShow.genres && selectedShow.genres.length > 0) ? selectedShow.genres.join(", ") : "—"}</div>
+                  {/* Poster */}
+                  <div className={clsx("p-3 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                    <div className="relative rounded-lg overflow-hidden shadow-md">
+                      <img
+                        src={selectedShow.image?.original || selectedShow.image?.medium || ""}
+                        alt={selectedShow.name}
+                        className="w-full h-56 object-cover cursor-pointer"
+                        onClick={() => onClickPoster(selectedShow.image?.original || selectedShow.image?.medium)}
+                      />
+                      <div className="absolute left-3 top-3 flex gap-2">
+                        {glassBadge({ icon: <Film className="w-4 h-4" />, text: selectedShow.premiered || "—" })}
+                        {glassBadge({ icon: <Star className="w-4 h-4" />, text: selectedShow.rating?.average ? String(selectedShow.rating.average) : "—" })}
                       </div>
+                    </div>
 
-                      <div>
-                        <div className="text-xs opacity-60">Status</div>
-                        <div className="font-medium">{selectedShow.status || "—"}</div>
+                    <div className="mt-3">
+                      <div className="text-lg font-semibold flex flex-col items-start gap-1">
+                        {selectedShow.name}
+                         <div className="text-xs opacity-70">{selectedShow.type} • {selectedShow.language}</div>
+                        <span className="ml-2">{selectedShow.network?.country?.name && glassBadge({ icon: <MapPin className="w-3 h-3" />, text: selectedShow.network.country.name })}</span>
                       </div>
+                     
 
-                      <div>
-                        <div className="text-xs opacity-60">Runtime</div>
-                        <div className="font-medium">{selectedShow.runtime ? `${selectedShow.runtime} min` : "—"}</div>
-                      </div>
+                      <div className="mt-3 grid grid-cols-1 gap-2">
+                        <div className="p-2 rounded-md border cursor-pointer">
+                          <div className="text-xs opacity-60 flex items-center gap-2"><Clock className="w-4 h-4" /> Runtime</div>
+                          <div className="font-medium">{selectedShow.runtime ? `${selectedShow.runtime} min` : "—"}</div>
+                        </div>
+                        <div className="p-2 rounded-md border cursor-pointer">
+                          <div className="text-xs opacity-60 flex items-center gap-2"><Calendar className="w-4 h-4" /> Premiered</div>
+                          <div className="font-medium">{selectedShow.premiered || "—"}</div>
+                        </div>
 
-                      <div>
-                        <div className="text-xs opacity-60">Premiered</div>
-                        <div className="font-medium">{selectedShow.premiered || "—"}</div>
-                      </div>
+                        <div className="p-2 rounded-md border cursor-pointer">
+                          <div className="text-xs opacity-60 flex items-center gap-2"><LucideBadge className="w-4 h-4" /> Network</div>
+                          <div className="font-medium">{selectedShow.network?.name || selectedShow.webChannel?.name || "—"}</div>
+                        </div>
 
-                      <div>
-                        <div className="text-xs opacity-60">Official</div>
-                        <div className="font-medium">
-                          {selectedShow.officialSite ? (
-                            <a href={selectedShow.officialSite} target="_blank" rel="noreferrer" className="underline flex items-center gap-1"><ExternalLink className="w-4 h-4 inline" /> Visit</a>
-                          ) : "—"}
+                        <div className="p-2 rounded-md border cursor-pointer">
+                          <div className="text-xs opacity-60 flex items-center gap-2"><ExternalLink className="w-4 h-4" /> Official</div>
+                          <div className="font-medium">
+                            {selectedShow.officialSite ? (
+                              <a href={selectedShow.officialSite} target="_blank" rel="noreferrer" className="underline inline-flex items-center gap-1"><ExternalLink className="w-4 h-4 inline" /> Visit</a>
+                            ) : "—"}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Center/right: content */}
-                  <div className={clsx("p-4 rounded-xl border col-span-1 md:col-span-2", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <div className="text-sm font-semibold mb-2">Summary</div>
-                    <div className="text-sm leading-relaxed mb-3 prose max-w-none" dangerouslySetInnerHTML={{ __html: sanitizedSummary || "<p>No summary available.</p>" }} />
+                  {/* Summary & fields (span 2) */}
+                  <div className={clsx("p-3 rounded-xl border md:col-span-2", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                    <div className="flex items-start flex-col justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold mb-2 flex items-center gap-2"><Users /> Summary</div>
+                        <div className="text-sm leading-relaxed prose max-w-none" dangerouslySetInnerHTML={{ __html: sanitizedSummary || "<p>No summary available.</p>" }} />
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <Button variant="outline" onClick={() => fetchEpisodesForShow(selectedShow.id)} className="cursor-pointer"><Calendar /> Load Episodes</Button>
+                      </div>
+                    </div>
 
                     <Separator className="my-3" />
 
-                    <div className="text-sm font-semibold mb-2">Show fields</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {Object.keys(selectedShow).map((k) => (
-                        <div key={k} className="p-2 rounded-md border break-words">
-                          <div className="text-xs opacity-60">{k}</div>
-                          <div className="text-sm font-medium">
-                            {typeof selectedShow[k] === "object" ? (Array.isArray(selectedShow[k]) ? selectedShow[k].slice(0,3).join(", ") + (selectedShow[k].length>3 ? "…" : "") : JSON.stringify(selectedShow[k])) : (selectedShow[k] ?? "—")}
-                          </div>
+                    <div>
+                      <div className="text-sm font-semibold mb-2 flex items-center gap-2"><LucideBadge /> Fields</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="p-2 rounded-md border">
+                          <div className="text-xs opacity-60 flex items-center gap-2"><MapPin className="w-4 h-4" /> Country</div>
+                          <div className="text-sm font-medium">{selectedShow.network?.country?.name || selectedShow.webChannel?.country?.name || "—"}</div>
                         </div>
-                      ))}
+
+                        <div className="p-2 rounded-md border">
+                          <div className="text-xs opacity-60 flex items-center gap-2"><Star className="w-4 h-4" /> Rating</div>
+                          <div className="text-sm font-medium">{selectedShow.rating?.average ?? "—"}</div>
+                        </div>
+
+                        <div className="p-2 rounded-md border">
+                          <div className="text-xs opacity-60 flex items-center gap-2"><Film className="w-4 h-4" /> Genres</div>
+                          <div className="text-sm font-medium">{(selectedShow.genres || []).length ? selectedShow.genres.join(", ") : "—"}</div>
+                        </div>
+
+                        <div className="p-2 rounded-md border">
+                          <div className="text-xs opacity-60 flex items-center gap-2"><Clock className="w-4 h-4" /> Runtime</div>
+                          <div className="text-sm font-medium">{selectedShow.runtime ? `${selectedShow.runtime} min` : "—"}</div>
+                        </div>
+
+                        {Object.keys(selectedShow).slice(0, 4).map((k) => (
+                          <div key={k} className="p-2 rounded-md border">
+                            <div className="text-xs opacity-60">{k}</div>
+                            <div className="text-sm font-medium truncate">{typeof selectedShow[k] === "object" ? (Array.isArray(selectedShow[k]) ? (selectedShow[k].slice(0, 3).join(", ") + (selectedShow[k].length > 3 ? "…" : "")) : JSON.stringify(selectedShow[k])) : (selectedShow[k] ?? "—")}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -484,20 +702,16 @@ export default function TVMazePage() {
           </Card>
         </section>
 
-        {/* Right: quick actions and episodes */}
+        {/* Right: actions + episodes */}
         <aside className={clsx("lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
           <div>
             <div className="text-sm font-semibold mb-2">Quick actions</div>
-            <div className="text-xs opacity-60 mb-2">Inspect, open or export the selected show</div>
-            <div className="mt-2 space-y-2 grid grid-cols-1 gap-2">
-              <Button className="cursor-pointer" variant="outline" onClick={() => { if (selectedShow?.officialSite) window.open(selectedShow.officialSite, "_blank"); else showToast("info","No official site"); }}>
-                <ExternalLink /> Open Official
-              </Button>
-              <Button className="cursor-pointer" variant="outline" onClick={() => copyJSON()}><Copy /> Copy JSON</Button>
-              <Button className="cursor-pointer" variant="outline" onClick={() => downloadJSON()}><Download /> Download JSON</Button>
-              <Button className="cursor-pointer" variant="outline" onClick={() => { if (selectedShow) fetchEpisodesForShow(selectedShow.id); else showToast("info","No show selected"); }}>
-                <Calendar /> Load Episodes
-              </Button>
+            <div className="text-xs opacity-60 mb-2">Open or export the selected show</div>
+            <div className="mt-2 space-y-2 grid grid-cols-2 gap-1">
+              <Button className="cursor-pointer" variant="outline" onClick={() => { if (selectedShow?.officialSite) window.open(selectedShow.officialSite, "_blank"); else showToast("info", "No official site"); }}><ExternalLink /> Open Official</Button>
+              <Button className="cursor-pointer" variant="outline" onClick={handleCopy}><Copy /> Copy JSON</Button>
+              <Button className="cursor-pointer" variant="outline" onClick={handleDownload}><Download /> Download JSON</Button>
+              <Button className="cursor-pointer" variant="outline" onClick={() => { if (selectedShow) fetchEpisodesForShow(selectedShow.id); else showToast("info", "No show selected"); }}><Calendar /> Load Episodes</Button>
             </div>
           </div>
 
@@ -505,18 +719,18 @@ export default function TVMazePage() {
 
           <div>
             <div className="text-sm font-semibold mb-2">Episodes</div>
-            <div className="text-xs opacity-60 mb-2">Quick list (click to open details)</div>
-            <div className={clsx("space-y-2 max-h-72 overflow-auto no-scrollbar")}>
+            <div className="text-xs opacity-60 mb-2">Click an episode for details (opens TVMaze link)</div>
+            <div className="space-y-2 max-h-72 overflow-auto no-scrollbar">
               {episodes === null ? (
                 <div className="text-xs opacity-60">No episodes loaded</div>
               ) : episodes.length === 0 ? (
                 <div className="text-xs opacity-60">No episodes available</div>
               ) : (
-                episodes.slice(0, 30).map((ep) => (
-                  <div key={ep.id} className="p-2 rounded-md border flex justify-between items-center">
-                    <div className="text-sm">{ep.number ? `S${String(ep.season).padStart(2,"0")}E${String(ep.number).padStart(2,"0")} — ${ep.name}` : ep.name}</div>
+                episodes.slice(0, 50).map((ep) => (
+                  <a key={ep.id} href={ep.url || `https://www.tvmaze.com/episodes/${ep.id}`} target="_blank" rel="noreferrer" className="p-2 rounded-md border flex justify-between items-center hover:shadow-sm transition-colors cursor-pointer">
+                    <div className="text-sm">{ep.number ? `S${String(ep.season).padStart(2, "0")}E${String(ep.number).padStart(2, "0")} — ${ep.name}` : ep.name}</div>
                     <div className="text-xs opacity-60">{ep.airdate || "—"}</div>
-                  </div>
+                  </a>
                 ))
               )}
             </div>
@@ -525,26 +739,98 @@ export default function TVMazePage() {
       </main>
 
       {/* Image dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+      <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
+        <DialogContent className={clsx("max-w-4xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
-            <DialogTitle>{selectedShow?.name || "Image"}</DialogTitle>
+            <DialogTitle>{selectedShow?.name ? `Poster — ${selectedShow.name}` : "Poster"}</DialogTitle>
+          </DialogHeader>
+          <div style={{ height: "70vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            {imageDialogUrl ? (
+              <img src={imageDialogUrl} alt="poster" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+            ) : (
+              <div className="text-xs opacity-60">No image available</div>
+            )}
+          </div>
+          <DialogFooter className="flex justify-between items-center p-4 border-t">
+            <div className="text-xs opacity-60">Poster preview</div>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setImageDialogOpen(false)} className="cursor-pointer"><X /></Button>
+              {imageDialogUrl && <Button variant="outline" onClick={() => window.open(imageDialogUrl, "_blank")} className="cursor-pointer"><ExternalLink /> Open</Button>}
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Map/metadata dialog */}
+      <Dialog open={mapDialogOpen} onOpenChange={setMapDialogOpen}>
+        <DialogContent className={clsx("max-w-4xl w-full p-3  rounded-2xl ", isDark ? "bg-black/90" : "bg-white")}>
+          <DialogHeader>
+            <DialogTitle>{selectedShow?.name ? `Metadata — ${selectedShow.name}` : "Metadata Map"}</DialogTitle>
           </DialogHeader>
 
-          <div style={{ height: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            {selectedShow?.image?.original || selectedShow?.image?.medium ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={selectedShow.image?.original || selectedShow.image?.medium} alt={selectedShow?.name} style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "contain" }} />
-            ) : (
-              <div className="h-full flex items-center justify-center">No image</div>
-            )}
+          <div className="p-4 overflow-y-auto h-100">
+            <div className="text-sm opacity-70 mb-4">A structured view of the show's metadata. Use this to inspect the main fields without raw JSON.</div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-3 rounded-md border">
+                <div className="text-xs opacity-60 mb-2">Basic</div>
+                <div className="space-y-1">
+                  <div className="text-sm"><strong>Name:</strong> {selectedShow?.name || "—"}</div>
+                  <div className="text-sm"><strong>Type:</strong> {selectedShow?.type || "—"}</div>
+                  <div className="text-sm"><strong>Language:</strong> {selectedShow?.language || "—"}</div>
+                  <div className="text-sm"><strong>Genres:</strong> {(selectedShow?.genres || []).join(", ") || "—"}</div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-md border">
+                <div className="text-xs opacity-60 mb-2">Broadcast</div>
+                <div className="space-y-1">
+                  <div className="text-sm"><strong>Network:</strong> {selectedShow?.network?.name || selectedShow?.webChannel?.name || "—"}</div>
+                  <div className="text-sm"><strong>Country:</strong> {selectedShow?.network?.country?.name || selectedShow?.webChannel?.country?.name || "—"}</div>
+                  <div className="text-sm"><strong>Official site:</strong> {selectedShow?.officialSite ? <a href={selectedShow.officialSite} className="underline" target="_blank" rel="noreferrer">{selectedShow.officialSite}</a> : "—"}</div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-md border">
+                <div className="text-xs opacity-60 mb-2">Stats</div>
+                <div className="space-y-1">
+                  <div className="text-sm"><strong>Premiered:</strong> {selectedShow?.premiered || "—"}</div>
+                  <div className="text-sm"><strong>Runtime:</strong> {selectedShow?.runtime ? `${selectedShow.runtime} min` : "—"}</div>
+                  <div className="text-sm"><strong>Rating:</strong> {selectedShow?.rating?.average ?? "—"}</div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-md border">
+                <div className="text-xs opacity-60 mb-2">External</div>
+                <div className="space-y-1">
+                  <div className="text-sm"><strong>TVMaze:</strong> <a href={selectedShow?.url} target="_blank" rel="noreferrer" className="underline">Open on TVMaze</a></div>
+                  <div className="text-sm"><strong>Official:</strong> {selectedShow?.officialSite ? <a href={selectedShow.officialSite} target="_blank" rel="noreferrer" className="underline">Open</a> : "—"}</div>
+                </div>
+              </div>
+            </div>
+
+            <Separator className="my-4" />
+
+            <div>
+              <div className="text-sm font-semibold mb-2">Raw preview (subset)</div>
+              <pre className={clsx("text-xs overflow-auto", isDark ? "text-zinc-200" : "text-zinc-900")} style={{ maxHeight: 220 }}>
+                {prettyJSON(selectedShow ? {
+                  id: selectedShow.id,
+                  name: selectedShow.name,
+                  premiered: selectedShow.premiered,
+                  runtime: selectedShow.runtime,
+                  rating: selectedShow.rating,
+                  network: selectedShow.network,
+                } : {})}
+              </pre>
+            </div>
           </div>
 
           <DialogFooter className="flex justify-between items-center p-4 border-t">
-            <div className="text-xs opacity-60">Image from TVMaze</div>
+            <div className="text-xs opacity-60">Structured metadata view</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
-              <Button variant="outline" onClick={() => { if (selectedShow?.officialSite) window.open(selectedShow.officialSite, "_blank"); }}><ExternalLink /></Button>
+              <Button variant="ghost" onClick={() => setMapDialogOpen(false)} className="cursor-pointer"><X /></Button>
+              <Button variant="outline" onClick={() => { if (selectedShow?.url) window.open(selectedShow.url, "_blank"); }} className="cursor-pointer"><ExternalLink /> Open TVMaze</Button>
             </div>
           </DialogFooter>
         </DialogContent>

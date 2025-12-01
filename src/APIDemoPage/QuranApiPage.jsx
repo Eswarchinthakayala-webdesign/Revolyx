@@ -13,7 +13,17 @@ import {
   Loader2,
   BookOpen,
   Globe,
-  X
+  X,
+  Menu,
+  RefreshCw,
+  Check,
+  Tag,
+  Hash,
+  Layers,
+  Info,
+  FileText,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -24,19 +34,27 @@ import { Separator } from "@/components/ui/separator";
 import { useTheme } from "@/components/theme-provider";
 import { showToast } from "../lib/ToastHelper";
 
-/*
-  Quran REST API page
-  - Endpoint: https://api.alquran.cloud/v1/quran/en.asad
-  - Displays surah list on left, main content in center, and quick actions on right
-  - Search field suggests matching ayahs (surah + snippet)
-  - No local favorites. Raw JSON view available.
-*/
+// shadcn components — adjust paths if different in your codebase
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const ENDPOINT = "https://api.alquran.cloud/v1/quran/en.asad";
 const DEFAULT_PLACEHOLDER = "Search surah or verse text (e.g. 'mercy', 'al-fatiha', '1:1')...";
 
 function prettyJSON(obj) {
   return JSON.stringify(obj, null, 2);
+}
+
+function Badge({ children, color = "indigo" }) {
+  // Simple badge — tweak styles to match your design system
+  const base = "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium";
+  const colors = {
+    indigo: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-200",
+    green: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200",
+    amber: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200",
+    slate: "bg-slate-100 text-slate-800 dark:bg-slate-800/30 dark:text-slate-200",
+  };
+  return <span className={clsx(base, colors[color] || colors.indigo)}>{children}</span>;
 }
 
 export default function QuranApiPage() {
@@ -67,6 +85,16 @@ export default function QuranApiPage() {
   // Raw JSON view toggle
   const [showRaw, setShowRaw] = useState(false);
 
+  // Mobile sheet (presets)
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Presets (10 random surah names)
+  const [presets, setPresets] = useState([]);
+
+  // Copy animation state
+  const [copied, setCopied] = useState(false);
+  const copyTimer = useRef(null);
+
   // Fetch the Quran once on mount
   useEffect(() => {
     fetchQuran();
@@ -80,9 +108,7 @@ export default function QuranApiPage() {
       if (!res.ok) throw new Error(`Fetch failed (${res.status})`);
       const json = await res.json();
       setRawResp(json);
-      // API returns json.data.surahs
       const s = (json?.data?.surahs || []).map((surah) => {
-        // normalize ayahs array -> ensure text, numberInSurah, juz, page, etc.
         const ayahs = (surah.ayahs || []).map((a) => ({
           number: a.number,
           numberInSurah: a.numberInSurah,
@@ -103,9 +129,9 @@ export default function QuranApiPage() {
         };
       });
       setSurahs(s);
-      // set defaults: open first surah, first ayah
       setSelectedSurahIndex(0);
       setSelectedAyahIndex(0);
+      buildPresetsFromSurahs(s);
       showToast?.("success", `Loaded Quran (${s.length} surahs)`);
     } catch (err) {
       console.error(err);
@@ -115,7 +141,27 @@ export default function QuranApiPage() {
     }
   }
 
-  // Search helpers: search over surah names + ayah text + allow "s:v" style (e.g., 2:255)
+  // Build 10 random presets from surahs
+  function buildPresetsFromSurahs(sArr = surahs) {
+    if (!sArr || sArr.length === 0) {
+      setPresets([]);
+      return;
+    }
+    const copy = [...sArr];
+    // Fisher-Yates shuffle then take first 10
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    setPresets(copy.slice(0, 10).map((s) => ({ label: s.englishName, sub: s.englishNameTranslation, number: s.number })));
+  }
+
+  function refreshPresets() {
+    buildPresetsFromSurahs();
+    showToast?.("info", "Presets refreshed");
+  }
+
+  // Search
   async function runSearch(q) {
     if (!q || q.trim().length === 0) {
       setSuggestions([]);
@@ -126,7 +172,7 @@ export default function QuranApiPage() {
     try {
       const trimmed = q.trim().toLowerCase();
 
-      // If query matches "surah:ayah" pattern like "2:255" or "al-baqarah:255"
+      // colon pattern like "2:255" or "2-255"
       const colonMatch = trimmed.match(/^(\d+)\s*[:\-]\s*(\d+)$/);
       if (colonMatch) {
         const sNum = Number(colonMatch[1]);
@@ -142,9 +188,8 @@ export default function QuranApiPage() {
         }
       }
 
-      // Full-text search in surah name and ayahs (client-side)
       const results = [];
-      // search surah names
+      // surah names
       for (const s of surahs) {
         if (
           s.englishName.toLowerCase().includes(trimmed) ||
@@ -154,7 +199,7 @@ export default function QuranApiPage() {
           results.push({ surah: s, ayah: null, snippet: `${s.englishName} — ${s.englishNameTranslation}` });
         }
       }
-      // search ayahs (limit to first 50 matches)
+      // ayah search
       outer: for (const s of surahs) {
         for (const a of s.ayahs) {
           if (a.text.toLowerCase().includes(trimmed)) {
@@ -191,7 +236,6 @@ export default function QuranApiPage() {
     }, 300);
   }
 
-  // pick a suggestion -> navigate focus to that surah/ayah
   function chooseSuggestion(item) {
     if (!item) return;
     const sIndex = surahs.findIndex((s) => s.number === item.surah.number);
@@ -204,10 +248,10 @@ export default function QuranApiPage() {
     }
     setShowSuggest(false);
     setQuery("");
-    // scroll behavior could be added via refs if helpful
+    // close mobile sheet if open
+    setSheetOpen(false);
   }
 
-  // When changing selected surah, reset ayah index
   useEffect(() => {
     setSelectedAyahIndex(0);
   }, [selectedSurahIndex]);
@@ -227,6 +271,11 @@ export default function QuranApiPage() {
     if (!ayah) return showToast?.("info", "No ayah selected");
     const text = `${currentSurah().englishName} ${ayah.numberInSurah} — ${ayah.text}`;
     navigator.clipboard.writeText(text);
+    setCopied(true);
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+    copyTimer.current = setTimeout(() => {
+      setCopied(false);
+    }, 1600);
     showToast?.("success", "Ayah copied to clipboard");
   }
 
@@ -256,21 +305,89 @@ export default function QuranApiPage() {
     showToast?.("success", "Downloaded full JSON");
   }
 
-  // UI small helpers
   const surahList = useMemo(() => surahs.map((s) => ({ number: s.number, name: s.englishName, transl: s.englishNameTranslation })), [surahs]);
 
-  // render
+  // small helpers for badge color
+  function badgeColorForRevelation(rev) {
+    if (!rev) return "slate";
+    if (rev.toLowerCase() === "meccan") return "amber";
+    if (rev.toLowerCase() === "medinan") return "green";
+    return "indigo";
+  }
+
+  // cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (suggestTimer.current) clearTimeout(suggestTimer.current);
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+    };
+  }, []);
+
+  // UI rendering
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
+    <div className={clsx("min-h-screen p-4 pb-10 md:p-6 max-w-8xl mx-auto")}>
       {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>Quran — REST Explorer</h1>
-          <p className="mt-1 text-sm opacity-70">Browse the Quran (en.asad) — search verses, read translations, inspect metadata.</p>
+      <header className="flex items-center flex-wrap justify-between gap-4 mb-4">
+        <div className="flex items-center gap-3">
+          {/* Mobile menu / sheet trigger */}
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="p-2 md:hidden cursor-pointer">
+                <Menu />
+              </Button>
+            </SheetTrigger>
+
+            <SheetContent side="left" className={clsx("p-3")}>
+              <SheetHeader>
+                <SheetTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Hash />
+                    <span>Presets</span>
+                  </div>
+                
+                </SheetTitle>
+              </SheetHeader>
+
+              <div className="mt-4">
+                <ScrollArea className="h-[60vh]">
+                  <div className="grid grid-cols-1 gap-2 p-2">
+                    {presets.map((p, idx) => (
+                      <button
+                        key={`${p.number}_${idx}`}
+                        onClick={() => {
+                          const idxSurah = surahs.findIndex((s) => s.number === p.number);
+                          if (idxSurah >= 0) {
+                            setSelectedSurahIndex(idxSurah);
+                            setSelectedAyahIndex(0);
+                            setSheetOpen(false);
+                          }
+                        }}
+                        className="w-full text-left p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/40 cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium">{p.label}</div>
+                            <div className="text-xs opacity-60">{p.sub}</div>
+                          </div>
+                          <div className="text-xs opacity-60">S:{p.number}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <div className="flex flex-col">
+            <h1 className="text-2xl md:text-3xl font-extrabold leading-tight">Quran — REST Explorer</h1>
+            <p className="text-xs md:text-sm opacity-70">Translation: Muhammad Asad (en.asad) — Search & preview verses</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <form onSubmit={(e) => { e.preventDefault(); runSearch(query); }} className={clsx("flex items-center gap-2 w-full md:w-[640px] rounded-lg px-3 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
+        {/* search (desktop centered) */}
+        <div className=" flex justify-center">
+          <form onSubmit={(e) => { e.preventDefault(); runSearch(query); }} className={clsx("flex items-center gap-2 sm:w-[640px] rounded-lg px-3 py-1", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-70" />
             <Input
               placeholder={DEFAULT_PLACEHOLDER}
@@ -282,30 +399,32 @@ export default function QuranApiPage() {
             <Button type="button" variant="outline" className="px-3" onClick={() => { setQuery(""); setShowSuggest(false); }}>
               <X />
             </Button>
-            <Button type="submit" variant="outline" className="px-3"><Search /></Button>
+            <Button type="submit" variant="outline" className="px-3 cursor-pointer"><Search /></Button>
           </form>
         </div>
+
+       
       </header>
 
-      {/* Suggestions dropdown */}
+      {/* Suggestions dropdown (mobile & desktop) */}
       <AnimatePresence>
         {showSuggest && suggestions.length > 0 && (
           <motion.ul
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
+            className={clsx("absolute z-50 left-4 right-4 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl rounded-xl overflow-hidden shadow-xl", isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}
           >
             {loadingSuggest && <li className="p-3 text-sm opacity-60">Searching…</li>}
             {suggestions.map((s, idx) => (
               <li key={`${s.surah.number}_${s.ayah?.numberInSurah || "surah"}_${idx}`} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => chooseSuggestion(s)}>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 flex-shrink-0">
+                <div className="flex flex-col items-start gap-3">
+                  <div className="">
                     <div className="text-sm font-semibold">{s.surah.englishName}</div>
                     <div className="text-xs opacity-60">{s.surah.englishNameTranslation}</div>
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm">{s.ayah ? s.snippet : s.snippet}</div>
+                    <div className="text-sm">{s.snippet}</div>
                     <div className="text-xs opacity-60 mt-1">{s.ayah ? `Ayah ${s.ayah.numberInSurah} • Surah ${s.surah.number}` : "Surah match"}</div>
                   </div>
                 </div>
@@ -316,52 +435,67 @@ export default function QuranApiPage() {
         )}
       </AnimatePresence>
 
-      {/* Layout: left (surah list) | center (detail) | right (actions) */}
+      {/* Layout */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* LEFT: Surah list */}
-        <aside className={clsx("lg:col-span-3 p-2 space-y-4 rounded-2xl h-fit", isDark ? "bg-black/30 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
-          <div className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold">Surahs</div>
-                <div className="text-xs opacity-60">Tap a surah to open</div>
-              </div>
-              <div className="text-xs opacity-60">{surahs.length ? `${surahs.length}` : "..."}</div>
+        {/* LEFT: Surah list (desktop) */}
+        <aside className={clsx("hidden lg:block lg:col-span-3 p-3 rounded-2xl h-fit", isDark ? "bg-black/30 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="text-sm font-semibold">Presets</div>
+              <div className="text-xs opacity-60">Random picks from API</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => refreshPresets()} className="cursor-pointer"><RefreshCw /></Button>
             </div>
           </div>
 
           <Separator />
 
-          <div className="max-h-[65vh] overflow-auto no-scrollbar p-2 space-y-2">
-            {loading ? (
-              <div className="p-6 text-center"><Loader2 className="animate-spin mx-auto" /></div>
-            ) : surahs.length === 0 ? (
-              <div className="p-4 text-sm opacity-60">No surahs loaded.</div>
-            ) : (
-              surahs.map((s, i) => (
-                <button
-                  key={s.number}
-                  onClick={() => { setSelectedSurahIndex(i); setSelectedAyahIndex(0); }}
-                  className={clsx("w-full text-left p-3 rounded-lg flex items-center justify-between", selectedSurahIndex === i ? "ring-2 ring-offset-1 ring-indigo-400/25 bg-indigo-600/6" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/40")}
-                >
-                  <div>
-                    <div className="font-medium">{s.englishName}</div>
-                    <div className="text-xs opacity-60">{s.englishNameTranslation} • {s.revelationType}</div>
-                  </div>
-                  <div className="text-xs opacity-60">S:{s.number}</div>
-                </button>
-              ))
-            )}
+          <div className="mt-3">
+            <ScrollArea className="max-h-[65vh] overflow-y-auto">
+              <div className="space-y-2 p-1">
+                {presets.map((p, idx) => (
+                  <button
+                    key={`${p.number}_${idx}`}
+                    onClick={() => {
+                      const idxSurah = surahs.findIndex((s) => s.number === p.number);
+                      if (idxSurah >= 0) {
+                        setSelectedSurahIndex(idxSurah);
+                        setSelectedAyahIndex(0);
+                      }
+                    }}
+                    className="w-full text-left p-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/40 cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{p.label}</div>
+                        <div className="text-xs opacity-60">{p.sub}</div>
+                      </div>
+                      <div className="text-xs opacity-60">S:{p.number}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
           </div>
         </aside>
 
         {/* CENTER: full details */}
         <section className={clsx("lg:col-span-6 space-y-4")}>
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/30 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+            <CardHeader className={clsx("p-5 flex items-start justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div>
-                <CardTitle className="text-lg">{currentSurah()?.englishName ?? "Surah"}</CardTitle>
-                <div className="text-xs opacity-60">{currentSurah()?.englishNameTranslation ?? "—"} • Revelation: {currentSurah()?.revelationType ?? "—"}</div>
+                <CardTitle className="text-lg flex items-center gap-3">
+                  <Layers className="opacity-80" />
+                  <span>{currentSurah()?.englishName ?? "Surah"}</span>
+                  <Badge color={badgeColorForRevelation(currentSurah()?.revelationType)}>
+                    {currentSurah()?.revelationType ?? "—"}
+                  </Badge>
+                </CardTitle>
+                <div className="text-xs opacity-60 flex items-center gap-3 mt-1">
+                  <Info className="w-3 h-3 opacity-60" />
+                  <span>{currentSurah()?.englishNameTranslation ?? "—"}</span>
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
@@ -381,30 +515,57 @@ export default function QuranApiPage() {
                   <div className={clsx("p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <div className="text-2xl font-bold leading-tight">{currentSurah().englishName}</div>
+                        <div className="text-2xl font-bold leading-tight flex items-center gap-3">
+                          <Tag className="opacity-80" />
+                          <span>{currentSurah().englishName}</span>
+                        </div>
                         <div className="text-sm opacity-60 mt-1">{currentSurah().englishNameTranslation}</div>
+                        <div className="mt-2 text-xs opacity-60 flex items-center gap-3">
+                          <Hash className="w-4 h-4" /> Surah {currentSurah().number} • {currentSurah().revelationType}
+                        </div>
                       </div>
+
                       <div className="text-sm opacity-60 text-right">
-                        <div>Surah {currentSurah().number}</div>
-                        <div className="mt-1">{currentSurah().revelationType}</div>
+                        <div className="mb-2">Ayahs: {currentSurah().ayahs.length}</div>
+                        <div className="text-xs">Jump to</div>
+                        <div className="mt-2 flex gap-2">
+                          <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => setSelectedAyahIndex(0)}>1</Button>
+                          <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => setSelectedAyahIndex(Math.max(0, Math.floor(currentSurah().ayahs.length/2)))}>mid</Button>
+                          <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => setSelectedAyahIndex(Math.max(0, currentSurah().ayahs.length - 1))}>last</Button>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Ayah list (center scrollable) */}
                   <div className={clsx("p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <div className="text-sm font-semibold mb-3">Ayahs</div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-sm font-semibold flex items-center gap-2"><FileText /> Ayahs</div>
+                      <div className="text-xs opacity-60">{currentSurah().ayahs.length} total</div>
+                    </div>
 
                     <div className="max-h-[52vh] overflow-auto no-scrollbar space-y-3">
                       {currentSurah().ayahs.map((a, idx) => (
-                        <div key={a.number} onClick={() => setSelectedAyahIndex(idx)} className={clsx("p-3 rounded-lg cursor-pointer", idx === selectedAyahIndex ? "bg-indigo-600/6 ring-1 ring-indigo-400/20" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/40")}>
+                        <div
+                          key={a.number}
+                          onClick={() => setSelectedAyahIndex(idx)}
+                          className={clsx("p-3 rounded-lg cursor-pointer", idx === selectedAyahIndex ? "bg-indigo-600/6 ring-1 ring-indigo-400/20" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/40")}
+                        >
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1">
                               <div className="text-base leading-relaxed">{a.text}</div>
-                              <div className="text-xs opacity-60 mt-2">Ayah {a.numberInSurah} • Juz {a.juz} • Page {a.page}</div>
+                              <div className="text-xs opacity-60 mt-2 flex items-center gap-3">
+                                <div><strong>Ayah</strong> {a.numberInSurah}</div>
+                                <div>• Juz {a.juz}</div>
+                                <div>• Page {a.page}</div>
+                              </div>
                             </div>
-                            <div className="flex-shrink-0 ml-3 text-xs opacity-60">
-                              {a.numberInSurah}
+
+                            <div className="flex flex-col items-end gap-2">
+                              <div className="text-xs opacity-60">{a.numberInSurah}</div>
+
+                           
+          
                             </div>
                           </div>
                         </div>
@@ -430,14 +591,19 @@ export default function QuranApiPage() {
         {/* RIGHT: Quick actions & metadata */}
         <aside className={clsx("lg:col-span-3 p-4 rounded-2xl space-y-4 h-fit", isDark ? "bg-black/30 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
           <div>
-            <div className="text-sm font-semibold mb-1">Quick Actions</div>
+            <div className="text-sm font-semibold mb-1 flex items-center gap-2"><Hash /> Quick Actions</div>
             <div className="text-xs opacity-60 mb-3">Actions for the selected ayah or dataset</div>
 
             <div className="grid grid-cols-1 gap-2">
-              <Button variant="outline" className="cursor-pointer" onClick={() => copyAyah()}><Copy /> Copy Ayah</Button>
-              <Button variant="outline" className="cursor-pointer" onClick={() => downloadAyahJSON()}><Download /> Download Ayah (JSON)</Button>
-              <Button variant="outline" className="cursor-pointer" onClick={() => downloadFullJSON()}><Download /> Download Full JSON</Button>
-              <Button variant="ghost" className="cursor-pointer" onClick={() => { if (currentSurah()) { const url = `${ENDPOINT}`; window.open(url, "_blank"); } }}><ExternalLink /> Open API Endpoint</Button>
+              <motion.button whileTap={{ scale: 0.98 }} className="w-full text-left">
+                <Button variant="outline" className="w-full justify-start cursor-pointer" onClick={() => copyAyah()}><Copy /> <span className="ml-2">Copy Ayah</span></Button>
+              </motion.button>
+
+              <Button variant="outline" className="cursor-pointer" onClick={() => downloadAyahJSON()}><Download /> <span className="ml-2">Download Ayah (JSON)</span></Button>
+
+              <Button variant="outline" className="cursor-pointer" onClick={() => downloadFullJSON()}><Download /> <span className="ml-2">Download Full JSON</span></Button>
+
+              <Button variant="ghost" className="cursor-pointer" onClick={() => { if (currentSurah()) { const url = `${ENDPOINT}`; window.open(url, "_blank"); } }}><ExternalLink /> <span className="ml-2">Open API Endpoint</span></Button>
             </div>
           </div>
 
@@ -458,7 +624,7 @@ export default function QuranApiPage() {
 
           <div>
             <div className="text-sm font-semibold mb-1">About this API</div>
-            <div className="text-xs opacity-60">Endpoint: <span className="block break-words">{ENDPOINT}</span></div>
+            <div className="text-xs opacity-60 break-words">Endpoint: <span className="block break-words">{ENDPOINT}</span></div>
             <div className="mt-2 text-xs opacity-60">Translation: Muhammad Asad (en.asad). No API key required.</div>
           </div>
         </aside>
@@ -466,9 +632,9 @@ export default function QuranApiPage() {
 
       {/* Ayah dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-3xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
-            <DialogTitle>{currentSurah()?.englishName ?? "Ayah"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><BookOpen /> {currentSurah()?.englishName ?? "Ayah"}</DialogTitle>
           </DialogHeader>
 
           <div style={{ maxHeight: "70vh", overflow: "auto", padding: 24 }}>
@@ -485,8 +651,8 @@ export default function QuranApiPage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">Translation: Muhammad Asad</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
-              <Button variant="outline" onClick={() => { if (currentSurah()) window.open(ENDPOINT, "_blank"); }}><ExternalLink /></Button>
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="cursor-pointer"><X /></Button>
+              <Button variant="outline" onClick={() => { if (currentSurah()) window.open(ENDPOINT, "_blank"); }} className="cursor-pointer"><ExternalLink /></Button>
             </div>
           </DialogFooter>
         </DialogContent>

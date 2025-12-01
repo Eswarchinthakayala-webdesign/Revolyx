@@ -229,18 +229,7 @@ const APIS = [
     .then(res => res.json())
     .then(console.log);`,
 }
-,
-{
-  id: "spacex",
-  name: "SpaceX Latest Launch",
-  category: "Space",
-  endpoint: "https://api.spacexdata.com/v5/launches/latest",
-  description: "Fetch details about the latest SpaceX launch mission.",
-  image: "/api_previews/spacex.png",
-  code: `fetch("https://api.spacexdata.com/v5/launches/latest")
-    .then(res => res.json())
-    .then(console.log);`,
-}
+
 ,
 {
   id: "publicapis",
@@ -904,17 +893,6 @@ fetch("https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50")
     .then(console.log);`,
 },
 {
-  id: "openwhyd",
-  name: "Openwhyd Playlists",
-  category: "Music",
-  endpoint: "https://openwhyd.org/hot",
-  description: "Download and explore curated playlists of streaming tracks from platforms like YouTube, SoundCloud, and more. No API key required.",
-  image: "/api_previews/openwhyd.png",
-  code: `fetch("https://openwhyd.org/hot")
-    .then(res => res.json())
-    .then(console.log);`,
-},
-{
   id: "spaceflightnews",
   name: "Spaceflight News",
   category: "Space",
@@ -925,6 +903,19 @@ fetch("https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50")
     .then(res => res.json())
     .then(console.log);`,
 },
+{
+  id: "picsum",
+  name: "Picsum Random Image API",
+  category: "Images / Placeholders",
+  endpoint: "https://picsum.photos/",
+  description: "Free API for generating random placeholder images with custom size. No API key required. Great for UI previews, mockups, and image loading tests.",
+  image: "/api_previews/picsum.png",
+  code: `fetch("https://picsum.photos/600/400")
+    .then(res => {
+      console.log("Image URL:", res.url);
+    });`,
+}
+,
 {
   id: "universities",
   name: "World Universities List",
@@ -1249,7 +1240,6 @@ fetch("https://api.gold-api.com/symbols")
   .then(console.log);`,
 },
 
-,
 {
   id: "worms",
   name: "WoRMS (World Register of Marine Species)",
@@ -1490,7 +1480,7 @@ export default function ApisPage() {
      UI Rendering
      --------------------------- */
   return (
-    <div className={clsx("min-h-screen max-w-8xl mx-auto p-6 transition-colors", isDark ? "dark" : "")}>
+    <div className={clsx("min-h-screen pb-10 max-w-8xl mx-auto p-6 transition-colors", isDark ? "dark" : "")}>
       <Toaster />
 
       {/* Header */}
@@ -1742,7 +1732,7 @@ export default function ApisPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {related.length === 0 ? <div className="text-sm opacity-60">No related APIs</div> : related.map((r) => (
                 <motion.div key={r.id} whileHover={{ scale: 1.03 }} onClick={() => selectApi(r.id)} className="p-3 rounded-md border cursor-pointer">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-start gap-3 sm:items-center justify-between">
                     <div>
                       <div className="font-medium">{r.name}</div>
                       <div className="text-xs opacity-60">{r.description}</div>

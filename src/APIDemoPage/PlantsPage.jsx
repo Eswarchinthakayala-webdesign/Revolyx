@@ -170,7 +170,7 @@ export default function PlantsPage() {
   }
 
   return (
-    <div className="min-h-screen p-6 max-w-8xl mx-auto">
+    <div className="min-h-screen p-6 pb-10 max-w-8xl mx-auto">
       {/* HEADER */}
       <header className="flex flex-col md:flex-row justify-between gap-4 mb-6">
         <div>
@@ -195,7 +195,7 @@ export default function PlantsPage() {
             className="border-0 bg-transparent shadow-none"
             onFocus={() => setShowSuggest(true)}
           />
-          <Button type="submit" variant="outline">
+          <Button className="cursor-pointer" type="submit" variant="outline">
             <Search />
           </Button>
         </form>
@@ -282,13 +282,13 @@ export default function PlantsPage() {
                   />{" "}
                   Refresh
                 </Button>
-                <Button variant="outline" onClick={() => setShowRaw(!showRaw)}>
+                <Button className="cursor-pointer" variant="outline" onClick={() => setShowRaw(!showRaw)}>
                   <Info /> Raw JSON
                 </Button>
-                <Button variant="outline" onClick={() => setDialogOpen(true)}>
+                <Button className="cursor-pointer" variant="outline" onClick={() => setDialogOpen(true)}>
                   <ImageIcon /> Image
                 </Button>
-                <Button variant="outline" onClick={downloadJSON}>
+                <Button className="cursor-pointer" variant="outline" onClick={downloadJSON}>
                   <Download /> Download
                 </Button>
               </div>
@@ -546,15 +546,15 @@ export default function PlantsPage() {
             <p className="text-xs opacity-60">Debugging endpoints and JSON</p>
 
             <div className="mt-3 space-y-2">
-              <Button variant="outline" className="w-full" onClick={copyEndpoint}>
+              <Button variant="outline" className="w-full cursor-pointer" onClick={copyEndpoint}>
                 <Copy /> Copy API Endpoint
               </Button>
 
-              <Button variant="outline" className="w-full" onClick={downloadJSON}>
+              <Button variant="outline" className="w-full cursor-pointer" onClick={downloadJSON}>
                 <Download /> Download JSON
               </Button>
 
-              <Button variant="outline" className="w-full" onClick={() => setShowRaw(!showRaw)}>
+              <Button variant="outline" className="w-full cursor-pointer" onClick={() => setShowRaw(!showRaw)}>
                 <Info /> Toggle Raw
               </Button>
             </div>
@@ -577,7 +577,7 @@ export default function PlantsPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+            <Button className="cursor-pointer" variant="ghost" onClick={() => setDialogOpen(false)}>
               <X />
             </Button>
           </DialogFooter>

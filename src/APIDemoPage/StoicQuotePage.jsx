@@ -4,7 +4,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
-
 import {
   Search,
   Loader2,
@@ -14,7 +13,16 @@ import {
   Twitter,
   X,
   RefreshCw,
-  Eye
+  Eye,
+  Menu,
+  Quote,
+  User,
+  FileText,
+  Sparkles,
+  BookOpen,
+  Info,
+  ListChecks,
+  Shuffle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -22,23 +30,23 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useTheme } from "@/components/theme-provider";
 import { showToast } from "../lib/ToastHelper";
 
 /* ---------------------- CONFIG ---------------------- */
 const API_ENDPOINT = "/api/stoic/stoic-quote";
-const DEFAULT_PLACEHOLDER = "Type to filter recent quotes or press Generate";
+const DEFAULT_PLACEHOLDER = "Type to search or press Generate";
 
 /* ---------------------- HELPERS ---------------------- */
 function prettyJSON(obj) {
   return JSON.stringify(obj, null, 2);
 }
 
-/** Normalize possible API shapes into {text, author, raw} */
 function normalizeResponse(json) {
   if (!json) return null;
 
-  // known shapes: {quote: "...", author: "..."} or {text: "...", author: "..."} or {body: "..."}
   const raw = json;
   const text =
     json.quote ??
@@ -57,7 +65,6 @@ function normalizeResponse(json) {
     json.source ??
     null;
 
-  // fallback: if the API returns a string directly
   if (!text && typeof json === "string") {
     return { text: json, author: null, raw };
   }
@@ -65,160 +72,304 @@ function normalizeResponse(json) {
   return { text: text ?? null, author: author ?? null, raw };
 }
 
+function pickRandom(arr, n = 10) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, Math.min(n, copy.length));
+}
+
+/* ---------------------- COMPONENT ---------------------- */
 export default function StoicQuotePage() {
+  /* THEME */
   const { theme } = useTheme?.() ?? { theme: "system" };
   const isDark =
     theme === "dark" ||
     (theme === "system" &&
       typeof window !== "undefined" &&
-      window.matchMedia &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
 
-  // UI state
+  /* STATE */
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState([]); // in-memory recent quotes (most recent first)
+  const [suggestions, setSuggestions] = useState([]);
   const [showSuggest, setShowSuggest] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const [current, setCurrent] = useState(null); // { text, author, raw }
+  const [current, setCurrent] = useState(null);
   const [showRawDialog, setShowRawDialog] = useState(false);
+  const [rawVisible, setRawVisible] = useState(false);
 
-  const suggestTimer = useRef(null);
+  /* Sidebars */
+  const [sidebarItems, setSidebarItems] = useState([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
-  // Fetch one quote from API and set as current; also push to suggestions
+  const timerRef = useRef(null);
+
+  /* FETCH QUOTE */
   async function fetchQuote() {
     setLoading(true);
     try {
       const res = await fetch(API_ENDPOINT);
       if (!res.ok) {
-        showToast("error", `Quote fetch failed (${res.status})`);
+        showToast("error", `Fetch failed (${res.status})`);
         setLoading(false);
         return;
       }
+
       const json = await res.json();
       const normalized = normalizeResponse(json);
-      if (!normalized || !normalized.text) {
-        // try if API returns {data: { ...}}
-        const alt = normalizeResponse(json?.data ?? json?.result ?? json?.quote ?? null);
-        setCurrent(alt ?? normalized);
-        if (alt) setSuggestions((s) => [alt, ...s].slice(0, 50));
-      } else {
-        setCurrent(normalized);
-        setSuggestions((s) => [{ ...normalized, id: Date.now().toString() }, ...s].slice(0, 50));
+
+      const finalObj =
+        normalized?.text
+          ? { ...normalized, id: Date.now().toString() }
+          : normalizeResponse(json?.data ?? json?.result ?? json?.quote ?? null);
+
+      if (finalObj) {
+        setCurrent(finalObj);
+        setSuggestions((s) => [finalObj, ...s].slice(0, 40));
       }
+
       showToast("success", "Quote generated");
     } catch (err) {
       console.error(err);
-      showToast("error", "Failed to fetch quote");
+      showToast("error", "Network error");
     } finally {
       setLoading(false);
     }
   }
 
+  /* INITIAL LOAD */
+  useEffect(() => {
+    fetchQuote();
+    setSidebarItems([]);
+  }, []);
+
+  /* FILTER SUGGESTIONS */
+  const filteredSuggestions = useMemo(() => {
+    if (!query.trim()) return suggestions;
+    const q = query.toLowerCase();
+    return suggestions.filter((s) => (s.text || "").toLowerCase().includes(q));
+  }, [query, suggestions]);
+
+  /* QUERY CHANGE */
   function onQueryChange(v) {
     setQuery(v);
     setShowSuggest(true);
-    if (suggestTimer.current) clearTimeout(suggestTimer.current);
-    // small debounce for filtering suggestions
-    suggestTimer.current = setTimeout(() => {
+
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    timerRef.current = setTimeout(() => {
       setShowSuggest(true);
     }, 120);
   }
 
-  // client-side filter of suggestions (recent quotes)
-  const filteredSuggestions = useMemo(() => {
-    if (!query || query.trim() === "") return suggestions;
-    const q = query.toLowerCase();
-    return suggestions.filter((s) => {
-      const text = (s.text || "").toLowerCase();
-      const author = (s.author || "").toLowerCase();
-      return text.includes(q) || author.includes(q);
-    });
-  }, [query, suggestions]);
-
-  // quick actions
+  /* COPY */
   function copyQuote() {
-    if (!current?.text) return showToast("info", "No quote to copy");
-    navigator.clipboard.writeText(`${current.text}${current.author ? ` — ${current.author}` : ""}`);
-    showToast("success", "Quote copied");
+    if (!current) return;
+    navigator.clipboard.writeText(
+      `"${current.text}" — ${current.author ?? "Unknown"}`
+    );
+    showToast("success", "Copied");
   }
 
   function copyJSON() {
-    if (!current?.raw) return showToast("info", "No JSON to copy");
-    navigator.clipboard.writeText(prettyJSON(current.raw));
-    showToast("success", "JSON copied");
+    if (!current) return;
+    navigator.clipboard.writeText(prettyJSON(current.raw ?? current));
+    showToast("success", "JSON Copied");
   }
 
   function downloadJSON() {
-    const payload = current?.raw ?? current ?? { text: current?.text ?? "", author: current?.author ?? "" };
-    const blob = new Blob([prettyJSON(payload)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `stoic_quote_${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    showToast("success", "Downloaded JSON");
+    if (!current) return;
+    const blob = new Blob([prettyJSON(current.raw ?? current)], {
+      type: "application/json",
+    });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `stoic_${Date.now()}.json`;
+    link.click();
   }
 
+  /* SHARE */
   function shareToTwitter() {
-    if (!current?.text) return showToast("info", "No quote to share");
-    const text = encodeURIComponent(`"${current.text}"${current.author ? ` — ${current.author}` : ""}`);
-    const url = `https://twitter.com/intent/tweet?text=${text}&via=`;
-    window.open(url, "_blank");
+    if (!current?.text) return;
+    const text = encodeURIComponent(
+      `"${current.text}" — ${current.author ?? "Unknown"}`
+    );
+    window.open(
+      `https://twitter.com/intent/tweet?text=${text}`,
+      "_blank"
+    );
   }
 
-  useEffect(() => {
-    // initial load
-    fetchQuote();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  /* LOAD FROM SIDEBAR */
+  function loadFromSidebar(item) {
+    setCurrent(item);
+    setSheetOpen(false);
+    setRawVisible(false);
+  }
+
+  /* GENERATE SIDEBAR QUOTES */
+  function generateSidebar() {
+    setSidebarItems(pickRandom(suggestions, 10));
+  }
+
+  /* UI BADGE STYLE */
+  const glassBadge = clsx(
+    "text-xs px-2 py-1 rounded-full backdrop-blur",
+    isDark
+      ? "bg-white/10 border border-white/20 text-zinc-200"
+      : "bg-black/10 border border-black/10 text-zinc-800"
+  );
 
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto", isDark ? "bg-black" : "bg-white")}>
-      {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>Stoic Quote — Daily Pulse</h1>
-          <p className="mt-1 text-sm opacity-70">Random Stoic philosophy quotes, parsed and presented with context. Generate, inspect, and share.</p>
+    <div
+      className={clsx(
+        "min-h-screen p-4 md:p-6 mx-auto max-w-8xl pb-10 transition-colors",
+        isDark ? "bg-black text-white" : "bg-white text-zinc-900"
+      )}
+    >
+      {/* ---------------------- HEADER ---------------------- */}
+      <header className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
+        <div className="flex items-center gap-3">
+          {/* MOBILE SIDEBAR */}
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="md:hidden cursor-pointer"
+              >
+                <Menu />
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className={clsx(
+                "w-[320px] p-0",
+                isDark ? "bg-black text-white" : "bg-white text-zinc-900"
+              )}
+            >
+              <div className="p-4 border-b flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Quote />
+                  <div>
+                    <div className="font-semibold">Stoic Quotes</div>
+                    <div className="text-xs opacity-60">Recent picks</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="cursor-pointer"
+                    onClick={() => generateSidebar()}
+                  >
+                    <Shuffle />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setSheetOpen(false)}
+                  >
+                    <X />
+                  </Button>
+                </div>
+              </div>
+
+              <ScrollArea className="h-[75vh] p-3">
+                {sidebarItems.length === 0 ? (
+                  <div className="text-xs opacity-60 p-4">
+                    No recent quotes yet — generate some.
+                  </div>
+                ) : (
+                  sidebarItems.map((item, i) => (
+                    <div
+                      key={i}
+                      onClick={() => loadFromSidebar(item)}
+                      className={clsx(
+                        "p-3 mb-3 rounded-xl border cursor-pointer transition hover:shadow-md backdrop-blur",
+                        isDark
+                          ? "bg-white/5 border-white/10"
+                          : "bg-white/70 border-zinc-200"
+                      )}
+                    >
+                      <div className="font-medium line-clamp-2">
+                        {item.text}
+                      </div>
+                      <div className="text-xs opacity-60 mt-1">
+                        {item.author ?? "Unknown"}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </ScrollArea>
+
+              <div className="p-3 border-t flex gap-2">
+                <Button
+                  variant="outline"
+                  className="cursor-pointer w-full"
+                  onClick={generateSidebar}
+                >
+                  <Shuffle /> Refresh
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <div>
+            <h1 className="text-3xl font-extrabold flex items-center gap-2">
+          
+              Stoic Quote — Daily Pulse
+            </h1>
+            <p className="text-xs opacity-60 mt-1">
+              Pure Stoic wisdom — generate, filter, learn, share.
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              // if there are filtered suggestions, pick first; otherwise generate new
-              if (filteredSuggestions.length > 0 && query.trim() !== "") {
-                const s = filteredSuggestions[0];
-                setCurrent(s);
-                setShowSuggest(false);
-              } else {
-                fetchQuote();
-              }
-            }}
-            className={clsx(
-              "flex items-center gap-2 w-full md:w-[640px] rounded-lg px-3 py-2",
-              isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200"
-            )}
+        {/* SEARCH BAR */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (filteredSuggestions.length > 0) {
+              setCurrent(filteredSuggestions[0]);
+            } else {
+              fetchQuote();
+            }
+            setShowSuggest(false);
+          }}
+          className={clsx(
+            "flex items-center gap-2 rounded-lg px-3 py-2 w-full md:w-[550px]",
+            isDark
+              ? "bg-black/40 border border-white/10 backdrop-blur"
+              : "bg-white/60 border border-zinc-200 backdrop-blur"
+          )}
+        >
+          <Search className="opacity-60" />
+          <Input
+            value={query}
+            placeholder={DEFAULT_PLACEHOLDER}
+            onChange={(e) => onQueryChange(e.target.value)}
+            onFocus={() => setShowSuggest(true)}
+            className="flex-1 bg-transparent border-none outline-none shadow-none"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="cursor-pointer"
+            onClick={() => fetchQuote()}
           >
-            <Search className="opacity-60" />
-            <Input
-              placeholder={DEFAULT_PLACEHOLDER}
-              value={query}
-              onChange={(e) => onQueryChange(e.target.value)}
-              className="border-0 shadow-none bg-transparent outline-none"
-              onFocus={() => setShowSuggest(true)}
-            />
-            <Button type="button" variant="outline" className="px-3" onClick={() => fetchQuote()}>
-              <RefreshCw className={loading ? "animate-spin" : ""} /> Generate
-            </Button>
-            <Button type="submit" variant="outline" className="px-3">
-              <Search />
-            </Button>
-          </form>
-        </div>
+            <RefreshCw className={loading ? "animate-spin" : ""} />
+          </Button>
+          <Button type="submit" variant="outline" className="cursor-pointer">
+            <Search />
+          </Button>
+        </form>
       </header>
 
-      {/* Suggestion dropdown */}
+      {/* ---------------------- SUGGESTION DROPDOWN ---------------------- */}
       <AnimatePresence>
         {showSuggest && filteredSuggestions.length > 0 && (
           <motion.ul
@@ -226,126 +377,78 @@ export default function StoicQuotePage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             className={clsx(
-              "absolute z-50 left-6 right-6 md:left-[calc(50%_-_320px)] md:right-auto max-w-5xl rounded-xl overflow-hidden shadow-xl",
-              isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200"
+              "absolute left-4 right-4 md:left-auto md:right-auto md:w-[550px] mt-2 rounded-xl shadow-xl z-50 overflow-hidden",
+              isDark
+                ? "bg-black/60 border border-white/10 backdrop-blur"
+                : "bg-white/90 border border-zinc-200"
             )}
           >
-            {filteredSuggestions.map((s, idx) => (
+            {filteredSuggestions.map((s, i) => (
               <li
-                key={(s.id || s.text || idx) + idx}
-                className={clsx(
-                  "px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer",
-                  idx === 0 ? "border-l-2 border-indigo-500" : ""
-                )}
+                key={i}
                 onClick={() => {
                   setCurrent(s);
                   setShowSuggest(false);
                 }}
+                className={clsx(
+                  "px-4 py-3 cursor-pointer hover:bg-indigo-100/20 transition"
+                )}
               >
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <div className="font-medium line-clamp-2">{s.text}</div>
-                    <div className="text-xs opacity-60 mt-1">{s.author ?? "Unknown"}</div>
-                  </div>
-                  <div className="text-xs opacity-60">{/* optional timestamp placeholder */}</div>
-                </div>
+                <div className="font-medium line-clamp-2">{s.text}</div>
+                <div className="text-xs opacity-60">{s.author}</div>
               </li>
             ))}
           </motion.ul>
         )}
       </AnimatePresence>
 
-      {/* Layout: left (visual), center (detail), right (quick actions) */}
+      {/* ---------------------- LAYOUT (3 COLUMNS) ---------------------- */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* Left: Visual Quote card */}
+        
+        {/* ---------- LEFT: VISUAL CARD ---------- */}
         <section className="lg:col-span-3">
-          <Card className={clsx("rounded-2xl overflow-hidden border h-full", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-6", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
-              <CardTitle className="text-lg">Quote</CardTitle>
-              <div className="text-xs opacity-60 mt-1">Large readable quote — designed for sharing & reading.</div>
+          <Card
+            className={clsx(
+              "rounded-2xl overflow-hidden border h-full backdrop-blur",
+              isDark
+                ? "bg-white/5 border-white/10"
+                : "bg-white/70 border-zinc-200"
+            )}
+          >
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Quote /> Quote
+              </CardTitle>
+              <p className="text-xs opacity-60 mt-1">
+                Beautiful large card for focus.
+              </p>
             </CardHeader>
 
             <CardContent className="p-6">
               {loading ? (
-                <div className="py-12 text-center"><Loader2 className="animate-spin mx-auto" /></div>
-              ) : !current ? (
-                <div className="py-12 text-center text-sm opacity-60">No quote loaded — press Generate.</div>
-              ) : (
-                <div className={clsx("flex flex-col h-full justify-between")}>
-                  <div>
-                    <div className="text-xl md:text-2xl font-semibold leading-9 mb-4">{current.text}</div>
-                    <div className="text-sm opacity-70">— {current.author ?? "Unknown"}</div>
-                  </div>
-
-                  <div className="mt-6">
-                    <Separator />
-                    <div className="mt-4 text-xs opacity-60">Source: <span className="font-medium">Stoic Quote API</span></div>
-                    <div className="text-xs opacity-60">Endpoint: <code className="break-all">{API_ENDPOINT}</code></div>
-                  </div>
+                <div className="py-12 text-center">
+                  <Loader2 className="animate-spin mx-auto" />
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Center: Full details & analysis */}
-        <section className="lg:col-span-6">
-          <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
-              <div>
-                <CardTitle className="text-lg">Details</CardTitle>
-                <div className="text-xs opacity-60 mt-1">Parsed fields and intelligent representation of API response.</div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" onClick={() => setShowRawDialog(true)}><Eye /> View Raw</Button>
-                <Button variant="outline" onClick={() => fetchQuote()}><RefreshCw className={loading ? "animate-spin" : ""} /> New</Button>
-              </div>
-            </CardHeader>
-
-            <CardContent>
-              {!current ? (
-                <div className="py-12 text-center text-sm opacity-60">No data to show.</div>
+              ) : !current ? (
+                <div className="py-12 text-center opacity-60">
+                  No quote loaded
+                </div>
               ) : (
                 <>
-                  <div className="mb-4">
-                    <div className="text-xs opacity-60">Readable summary</div>
-                    <div className="text-base md:text-lg leading-relaxed mt-2">{current.text}</div>
-                    <div className="mt-3 text-sm opacity-70">Author: <span className="font-medium">{current.author ?? "Unknown"}</span></div>
+                  <div className="text-xl font-semibold leading-relaxed mb-4">
+                    {current.text}
                   </div>
 
-                  <Separator className="my-4" />
+                  <span className={glassBadge + " inline-flex items-center gap-1"}>
+                    <User className="w-3 h-3" />
+                    {current.author ?? "Unknown"}
+                  </span>
 
-                  <div>
-                    <div className="text-xs opacity-60 mb-2">Fields extracted</div>
+                  <Separator className="my-6" />
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="p-3 rounded-md border">
-                        <div className="text-xs opacity-60">Text</div>
-                        <div className="text-sm font-medium break-words">{current.text ?? "—"}</div>
-                      </div>
-
-                      <div className="p-3 rounded-md border">
-                        <div className="text-xs opacity-60">Author</div>
-                        <div className="text-sm font-medium break-words">{current.author ?? "—"}</div>
-                      </div>
-
-                      <div className="p-3 rounded-md border sm:col-span-2">
-                        <div className="text-xs opacity-60">Raw JSON (preview)</div>
-                        <pre className={clsx("text-xs overflow-auto mt-2 p-2 rounded-md", isDark ? "bg-black/20 text-zinc-200" : "bg-white/80 text-zinc-900")} style={{ maxHeight: 220 }}>
-                          {prettyJSON(current.raw ?? current)}
-                        </pre>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator className="my-4" />
-
-                  <div>
-                    <div className="text-xs opacity-60">Analysis & suggestions</div>
-                    <div className="mt-2 text-sm leading-relaxed">
-                      This quote has been parsed and displayed in a readable format. Use <strong>Generate</strong> to fetch another quote, or filter using the search field to find a previously generated quote from this session.
-                    </div>
+                  <div className="text-xs opacity-60">
+                    <ExternalLink className="inline w-3 h-3 mr-1" />
+                    {API_ENDPOINT}
                   </div>
                 </>
               )}
@@ -353,42 +456,243 @@ export default function StoicQuotePage() {
           </Card>
         </section>
 
-        {/* Right: Quick actions */}
-        <section className="lg:col-span-3">
-          <Card className={clsx("rounded-2xl overflow-hidden border p-4 h-fit", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <div className="text-sm font-semibold mb-2">Quick actions</div>
-            <div className="text-xs opacity-60 mb-3">Share, export, or inspect the current quote.</div>
+        {/* ---------- CENTER: DETAILS ---------- */}
+        <section className="lg:col-span-6">
+          <Card
+            className={clsx(
+              "rounded-2xl overflow-hidden border backdrop-blur",
+              isDark
+                ? "bg-white/5 border-white/10"
+                : "bg-white/70 border-zinc-200"
+            )}
+          >
+            <CardHeader className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <BookOpen />
+                  Details & Breakdown
+                </CardTitle>
+                <p className="text-xs opacity-60 mt-1">
+                  Parsed fields, raw data, author metadata.
+                </p>
+              </div>
 
-            <div className="space-y-3">
-              <Button className="w-full justify-start" onClick={copyQuote}><Copy className="mr-2" /> Copy Quote</Button>
-              <Button className="w-full justify-start" variant="outline" onClick={copyJSON}><Copy className="mr-2" /> Copy JSON</Button>
-              <Button className="w-full justify-start" variant="outline" onClick={downloadJSON}><Download className="mr-2" /> Download JSON</Button>
-              <Button className="w-full justify-start" variant="ghost" onClick={shareToTwitter}><Twitter className="mr-2" /> Share to Twitter</Button>
-              <Button className="w-full justify-start" variant="outline" onClick={() => setShowRawDialog(true)}><Eye className="mr-2" /> View Raw JSON</Button>
-              <Button className="w-full justify-start" onClick={() => { if (current?.raw) window.open(API_ENDPOINT, "_blank"); else showToast("info", "No source to open"); }}><ExternalLink className="mr-2" /> Open API</Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="cursor-pointer"
+                  onClick={() => setRawVisible((s) => !s)}
+                >
+                  <Eye /> {rawVisible ? "Hide Raw" : "Show Raw"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="cursor-pointer"
+                  onClick={() => fetchQuote()}
+                >
+                  <RefreshCw className={loading ? "animate-spin" : ""} /> New
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-6">
+              {!current ? (
+                <div className="text-center opacity-60">No data available</div>
+              ) : (
+                <>
+                  {/* Summary */}
+                  <div>
+                    <span className={glassBadge}>
+                      <Info className="inline w-3 h-3 mr-1" />
+                      Summary
+                    </span>
+
+                    <p className="mt-2 text-base leading-relaxed">
+                      {current.text}
+                    </p>
+
+                    <p className="mt-1 text-sm opacity-70">
+                      Author:{" "}
+                      <span className="font-medium">
+                        {current.author ?? "Unknown"}
+                      </span>
+                    </p>
+                  </div>
+
+                  <Separator className="my-6" />
+
+                  {/* Extracted Fields */}
+                  <div>
+                    <span className={glassBadge}>
+                      <ListChecks className="inline w-3 h-3 mr-1" />
+                      Extracted Fields
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+                      <div
+                        className={clsx(
+                          "p-3 rounded-lg border text-sm backdrop-blur",
+                          isDark
+                            ? "bg-white/5 border-white/10"
+                            : "bg-white/90 border-zinc-200"
+                        )}
+                      >
+                        <div className="text-xs opacity-60">Text</div>
+                        <div className="font-medium">{current.text}</div>
+                      </div>
+
+                      <div
+                        className={clsx(
+                          "p-3 rounded-lg border text-sm backdrop-blur",
+                          isDark
+                            ? "bg-white/5 border-white/10"
+                            : "bg-white/90 border-zinc-200"
+                        )}
+                      >
+                        <div className="text-xs opacity-60">Author</div>
+                        <div className="font-medium">
+                          {current.author ?? "Unknown"}
+                        </div>
+                      </div>
+
+                   
+                    </div>
+                  </div>
+
+                  <Separator className="my-6" />
+
+                  {/* Raw toggle */}
+                  <AnimatePresence>
+                    {rawVisible && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        className={clsx(
+                          "p-4 rounded-lg border mt-4 backdrop-blur",
+                          isDark
+                            ? "bg-white/5 border-white/10"
+                            : "bg-white/90 border-zinc-200"
+                        )}
+                      >
+                        <div className="text-xs opacity-60 mb-2">
+                          Full Raw Response
+                        </div>
+                        <pre className="text-xs max-h-80 overflow-auto">
+                          {prettyJSON(current.raw ?? current)}
+                        </pre>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* ---------- RIGHT: QUICK ACTIONS ---------- */}
+        <section className="lg:col-span-3">
+          <Card
+            className={clsx(
+              "rounded-2xl overflow-hidden border p-4 backdrop-blur",
+              isDark
+                ? "bg-white/5 border-white/10"
+                : "bg-white/70 border-zinc-200"
+            )}
+          >
+            <div className="text-sm font-semibold flex items-center gap-2 mb-2">
+           
+              Quick Actions
+            </div>
+            <p className="text-xs opacity-60 mb-4">
+              Export, copy, share, inspect response.
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <Button
+                className="cursor-pointer justify-start"
+                onClick={copyQuote}
+              >
+                <Copy className="mr-2" /> Copy Quote
+              </Button>
+
+              <Button
+                variant="outline"
+                className="cursor-pointer justify-start"
+                onClick={copyJSON}
+              >
+                <FileText className="mr-2" /> Copy JSON
+              </Button>
+
+              <Button
+                variant="outline"
+                className="cursor-pointer justify-start"
+                onClick={downloadJSON}
+              >
+                <Download className="mr-2" /> Download JSON
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="cursor-pointer justify-start"
+                onClick={shareToTwitter}
+              >
+                <Twitter className="mr-2" /> Share to Twitter
+              </Button>
+
+              <Button
+                variant="outline"
+                className="cursor-pointer justify-start"
+                onClick={() => setShowRawDialog(true)}
+              >
+                <Eye className="mr-2" /> View Raw JSON
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="cursor-pointer justify-start"
+                onClick={() =>
+                  current
+                    ? window.open(API_ENDPOINT, "_blank")
+                    : showToast("info", "Nothing to open")
+                }
+              >
+                <ExternalLink className="mr-2" /> Open API
+              </Button>
             </div>
           </Card>
         </section>
       </main>
 
-      {/* Raw JSON dialog */}
+      {/* ---------------------- RAW JSON DIALOG ---------------------- */}
       <Dialog open={showRawDialog} onOpenChange={setShowRawDialog}>
-        <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent
+          className={clsx(
+            "max-w-3xl w-full rounded-2xl overflow-hidden",
+            isDark
+              ? "bg-black/90 text-white"
+              : "bg-white text-zinc-900"
+          )}
+        >
           <DialogHeader>
-            <DialogTitle>Raw JSON — Stoic Quote</DialogTitle>
+            <DialogTitle>Raw JSON Response</DialogTitle>
           </DialogHeader>
 
-          <div style={{ maxHeight: "60vh", overflow: "auto", padding: 16 }}>
-            <pre className={clsx("text-xs whitespace-pre-wrap", isDark ? "text-zinc-200" : "text-zinc-900")}>
+          <div className="max-h-[65vh] overflow-auto p-4">
+            <pre className="text-xs">
               {prettyJSON(current?.raw ?? current ?? {})}
             </pre>
           </div>
 
-          <DialogFooter className="flex justify-between items-center p-4 border-t">
-            <div className="text-xs opacity-60">Raw API response</div>
+          <DialogFooter className="flex justify-between border-t p-3">
+            <div className="text-xs opacity-60">Stoic Quote API</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setShowRawDialog(false)}><X /></Button>
-              <Button variant="outline" onClick={() => { copyJSON(); setShowRawDialog(false); }}>Copy JSON</Button>
+              <Button variant="ghost" onClick={() => setShowRawDialog(false)}>
+                <X />
+              </Button>
+              <Button variant="outline" onClick={copyJSON}>
+                <Copy /> Copy JSON
+              </Button>
             </div>
           </DialogFooter>
         </DialogContent>

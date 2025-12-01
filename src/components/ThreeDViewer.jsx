@@ -18,7 +18,7 @@ export function ThreeDViewer({ open, onOpenChange, modelUrl, elementName, isDark
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={clsx(
-          "max-w-4xl w-[90%]  p-0 rounded-2xl overflow-hidden",
+          "max-w-4xl w-[90%]  p-3 rounded-2xl overflow-hidden",
           isDark ? "bg-black/90" : "bg-white"
         )}
       >

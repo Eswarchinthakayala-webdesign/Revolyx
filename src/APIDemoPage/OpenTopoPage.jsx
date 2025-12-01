@@ -13,7 +13,15 @@ import {
   Globe,
   Layers,
   Search,
-  X
+  X,
+  Menu,
+  RefreshCw,
+  Check,
+  Smartphone,
+  BarChart2,
+  Database,
+  ChevronRight,
+  Trash2,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -24,10 +32,28 @@ import { Separator } from "@/components/ui/separator";
 import { useTheme } from "@/components/theme-provider";
 import { showToast } from "../lib/ToastHelper";
 
-/* Leaflet imports */
+/* shadcn components you probably have in your project - adjust paths if necessary */
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+
 import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
+
+/* Recharts for elevation chart */
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ReferenceLine,
+  AreaChart,
+  Area,
+} from "recharts";
 
 /* Fix marker icon URLs for leaflet (CDN) */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -48,7 +74,7 @@ const DEFAULT_DATA = {
   image: "/api_previews/opentopodata.png",
   code: `fetch("https://api.opentopodata.org/v1/test-dataset?locations=27.9881,86.925")
   .then(res => res.json())
-  .then(console.log);`
+  .then(console.log);`,
 };
 
 /* ---------- presets ---------- */
@@ -94,6 +120,26 @@ function RecenterMap({ lat, lng, zoom = 10 }) {
   return null;
 }
 
+/* Simulate generating 10 realistic sample elevation datapoints around a center elevation.
+   We add small slopes & noise so the chart looks realistic. */
+function generateElevationProfile(centerElevation = 0) {
+  const base = Number.isFinite(centerElevation) ? centerElevation : 0;
+  const points = [];
+  // create a gentle slope plus some noise
+  const slope = (Math.random() - 0.5) * 10; // -5..+5 meters across the profile
+  const variation = Math.max(1, Math.abs(base) * 0.02 + 0.5); // scale noise slightly with elevation
+  for (let i = 0; i < 10; i++) {
+    const x = i;
+    const y = Math.round((base + (i - 4.5) * slope + (Math.random() - 0.5) * variation) * 100) / 100;
+    points.push({
+      idx: i + 1,
+      label: `P${i + 1}`,
+      elevation: y,
+    });
+  }
+  return points;
+}
+
 /* ---------- main component ---------- */
 export default function OpenTopoPage() {
   const { theme } = useTheme?.() ?? { theme: "system" };
@@ -119,12 +165,16 @@ export default function OpenTopoPage() {
   // UI
   const [dialogOpen, setDialogOpen] = useState(false);
   const [rawDialogOpen, setRawDialogOpen] = useState(false);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
+  const [copiedState, setCopiedState] = useState({ endpoint: false, json: false });
+  const [sidebarSamples, setSidebarSamples] = useState([]);
   const searchTimer = useRef(null);
   const nominatimTimer = useRef(null);
 
+  const [locationLabel, setLocationLabel] = useState(null);
+
   useEffect(() => {
     // initial: search for Mount Everest by name (resolve to coords + fetch)
-    // run a geocode first, then fetch OpenTopo
     performGeocodeAndFetch("Mount Everest");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -143,7 +193,6 @@ export default function OpenTopoPage() {
 
     setGeoLoading(true);
     try {
-      // format=jsonv2 gives structured fields; limit to 7 results
       const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&limit=7`;
       const res = await fetch(url, { signal: ac.signal, headers: { "Accept-Language": "en" } });
       if (!res.ok) {
@@ -152,15 +201,13 @@ export default function OpenTopoPage() {
         return;
       }
       const data = await res.json();
-      // map to our display format: detailed (A)
-      const mapped = (Array.isArray(data) ? data : []).map(item => ({
+      const mapped = (Array.isArray(data) ? data : []).map((item) => ({
         id: item.place_id ?? `${item.lat}_${item.lon}`,
         display: item.display_name,
         lat: Number(item.lat),
         lon: Number(item.lon),
         type: item.type,
         class: item.class,
-        // optional: address breakdown available in item.address
       }));
       setGeoSuggestions(mapped);
     } catch (err) {
@@ -173,16 +220,13 @@ export default function OpenTopoPage() {
 
   /* ---------- perform geocode + automatically fetch OpenTopo ---------- */
   async function performGeocodeAndFetch(text) {
-    // first try to parse coords directly
     const parsed = parseCoords(text);
     if (parsed) {
       setQuery(`${parsed.lat},${parsed.lng}`);
-      // trigger OpenTopo fetch directly
       handleFetch(`/opentopo/v1/test-dataset?locations=${encodeURIComponent(`${parsed.lat},${parsed.lng}`)}`);
       return;
     }
 
-    // otherwise, call nominatim
     try {
       setGeoLoading(true);
       const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(text)}&limit=1`;
@@ -200,6 +244,7 @@ export default function OpenTopoPage() {
       }
       const lat = Number(first.lat);
       const lon = Number(first.lon);
+      setLocationLabel(first.display_name ?? first.name ?? `${lat},${lon}`);
       setQuery(`${lat},${lon}`);
       handleFetch(`/opentopo/v1/test-dataset?locations=${encodeURIComponent(`${lat},${lon}`)}`);
     } catch (err) {
@@ -274,18 +319,22 @@ export default function OpenTopoPage() {
           latitude: Number.isFinite(Number(lat)) ? Number(lat) : null,
           longitude: Number.isFinite(Number(lng)) ? Number(lng) : null,
           type: Number.isFinite(elev) ? (elev < 0 ? "ocean" : "land") : "unknown",
-          raw: first
+          raw: first,
         };
         setRecord(item);
+        // generate sidebar samples based on retrieved elevation (so they feel related)
+        setSidebarSamples(generateElevationProfile(item.elevationMeters));
         showToast("success", `Loaded ${item.latitude},${item.longitude}`);
       } else {
         setRecord(null);
+        setSidebarSamples(generateElevationProfile(0));
         showToast("info", "No coordinates returned in response");
       }
     } catch (err) {
       console.error("Fetch exception:", err);
       showToast("error", "Network or proxy error. See console.");
       setRawResp({ status: "exception", message: String(err) });
+      setSidebarSamples(generateElevationProfile(0));
     } finally {
       setLoading(false);
     }
@@ -294,18 +343,20 @@ export default function OpenTopoPage() {
   /* ---------- input behavior (debounced geocoding suggestions) ---------- */
   function onQueryChange(v) {
     setQuery(v);
+        // if user typed raw coords, remove stored human label to show the raw coords
+    if (parseCoords(v)) {
+      setLocationLabel(null);
+    }
+
     setShowSuggest(true);
 
-    // local suggestions from presets (filtered)
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
       const q = (v || "").toLowerCase().trim();
-      // if input appears to be coords, skip nominatim suggestions
       if (parseCoords(q)) {
         setGeoSuggestions([]);
         return;
       }
-      // debounced nominatim lookup
       if (nominatimTimer.current) clearTimeout(nominatimTimer.current);
       nominatimTimer.current = setTimeout(() => {
         fetchNominatim(v);
@@ -315,34 +366,48 @@ export default function OpenTopoPage() {
 
   /* when user clicks a geocode suggestion */
   function onSelectGeocode(s) {
-    // s: { display, lat, lon }
+    setLocationLabel(s.display ?? `${s.lat},${s.lon}`);
     setQuery(`${s.lat},${s.lon}`);
     setShowSuggest(false);
     setGeoSuggestions([]);
-    // run OpenTopo lookup
     handleFetch(`/opentopo/v1/test-dataset?locations=${encodeURIComponent(`${s.lat},${s.lon}`)}`);
   }
 
   function onSelectPreset(s) {
+    setLocationLabel(s.label);
     setQuery(s.coords);
     setShowSuggest(false);
     handleFetch(`/opentopo/v1/test-dataset?locations=${encodeURIComponent(s.coords)}`);
   }
 
-  function copyEndpoint() {
+  /* copy with animated feedback */
+  async function copyEndpoint() {
     const url = buildEndpoint(query);
-    navigator.clipboard.writeText(url);
-    showToast("success", "Endpoint copied");
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedState((s) => ({ ...s, endpoint: true }));
+      showToast("success", "Endpoint copied");
+      // reset after 1.6s
+      setTimeout(() => setCopiedState((s) => ({ ...s, endpoint: false })), 1600);
+    } catch {
+      showToast("error", "Copy failed");
+    }
   }
 
-  function copyJSON() {
+  async function copyJSON() {
     if (!rawResp && !record) {
       showToast("info", "Nothing to copy");
       return;
     }
     const payload = rawResp || record;
-    navigator.clipboard.writeText(prettyJSON(payload));
-    showToast("success", "JSON copied to clipboard");
+    try {
+      await navigator.clipboard.writeText(prettyJSON(payload));
+      setCopiedState((s) => ({ ...s, json: true }));
+      showToast("success", "JSON copied to clipboard");
+      setTimeout(() => setCopiedState((s) => ({ ...s, json: false })), 1600);
+    } catch {
+      showToast("error", "Copy failed");
+    }
   }
 
   function downloadJSON() {
@@ -359,6 +424,12 @@ export default function OpenTopoPage() {
     a.click();
     URL.revokeObjectURL(a.href);
     showToast("success", "Downloaded JSON");
+  }
+
+  function refreshAll() {
+    // regenerate sample profile (keeping center elevation if available)
+    setSidebarSamples((s) => generateElevationProfile(record?.elevationMeters ?? 0));
+    handleFetch();
   }
 
   const statusBadge = useMemo(() => {
@@ -378,17 +449,85 @@ export default function OpenTopoPage() {
     return null;
   }, [record, query]);
 
+  /* Prepare chart data: if we have a generated profile (sidebarSamples), use it;
+     otherwise make a placeholder profile centred on record elevation */
+  const chartData = useMemo(() => {
+    if (sidebarSamples && sidebarSamples.length > 0) {
+      return sidebarSamples.map((p) => ({ name: p.label, elevation: p.elevation }));
+    }
+    return generateElevationProfile(record?.elevationMeters ?? 0).map((p) => ({ name: p.label, elevation: p.elevation }));
+  }, [sidebarSamples, record?.elevationMeters]);
+
+  /* Custom tooltip for recharts */
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload || payload.length === 0) return null;
+    const val = payload[0].value;
+    return (
+      <div className={clsx("p-2 rounded-md shadow-md text-xs", isDark ? "bg-zinc-900 text-zinc-100" : "bg-white text-zinc-900")}>
+        <div className="font-medium">{label}</div>
+        <div className="opacity-70">Elevation: {val} m</div>
+        <div className="opacity-60 text-[11px]">{(val * 3.28084).toFixed(1)} ft</div>
+      </div>
+    );
+  };
+
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto")}>
-      <header className="flex flex-col flex-wrap md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold")}>OpenTopo — Elevation & Ocean Depth</h1>
-          <p className="mt-1 text-sm opacity-70">
-            Type a city or place name and pick a suggestion (detailed) — coordinates are shown below each suggestion. Click to view elevation & map.
-          </p>
+    <div className={clsx("min-h-screen p-4 pb-10 md:p-6 max-w-8xl mx-auto")}>
+      {/* HEADER */}
+      <header className="flex items-center flex-wrap justify-between gap-3 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="md:hidden">
+            {/* Mobile sheet trigger */}
+            <Sheet open={mobileSheetOpen} onOpenChange={setMobileSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" className="p-2 cursor-pointer">
+                  <Menu />
+                </Button>
+              </SheetTrigger>
+              <SheetContent className='z-999 p-3' position="left" size="full">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <MapPin />
+                    <div>
+                      <div className="font-semibold">Presets & Samples</div>
+                      <div className="text-xs opacity-60">Tap an item to run lookup</div>
+                    </div>
+                  </div>
+
+                </div>
+                <ScrollArea className="h-[70vh] overflow-y-auto">
+                  <div className="space-y-2">
+                    <div className="text-sm font-semibold">Presets</div>
+                    {SUGGESTIONS.map((s) => (
+                      <Button key={s.id} variant="ghost" className="w-full justify-between cursor-pointer" onClick={() => { setMobileSheetOpen(false); onSelectPreset(s); }}>
+                        <div className="flex items-center gap-2"><MapPin /> <span>{s.label}</span></div>
+                        <div className="text-xs opacity-60">{s.coords}</div>
+                      </Button>
+                    ))}
+                    <Separator />
+                    <div className="text-sm font-semibold mt-2">Samples</div>
+                    {chartData.map((p) => (
+                      <div key={p.name} className="flex items-center justify-between p-3 border rounded cursor-pointer" onClick={() => { setMobileSheetOpen(false); /* set query to fake coordinate? keep placeholder behavior */ }}>
+                        <div>
+                          <div className="font-medium text-sm">{p.name}</div>
+                          <div className="text-xs opacity-60">Elevation {p.elevation} m</div>
+                        </div>
+                        <ChevronRight className="opacity-60" />
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          <div>
+            <h1 className="text-2xl md:text-3xl font-extrabold">OpenTopo — Elevation & Ocean Depth</h1>
+            <div className="text-xs opacity-70 hidden md:block">Type a city or place name and pick a suggestion — view elevation profile and map.</div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-2 w-full md:w-auto">
           <form onSubmit={(e) => { e.preventDefault(); performGeocodeAndFetch(query); }} className={clsx("flex items-center gap-2 w-full md:w-[720px] rounded-lg px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-60" />
             <Input
@@ -398,8 +537,8 @@ export default function OpenTopoPage() {
               className="border-0 shadow-none bg-transparent outline-none"
               onFocus={() => setShowSuggest(true)}
             />
-            <Button type="button" variant="outline" className="px-3" onClick={() => performGeocodeAndFetch(query)}><Globe /> Find</Button>
-            <Button type="submit" variant="ghost" className="px-3"><Layers /></Button>
+            <Button type="button" variant="outline" className="px-3 cursor-pointer" onClick={() => performGeocodeAndFetch(query)}><Globe /> Find</Button>
+            <Button type="submit" variant="ghost" className="px-3 cursor-pointer"><Layers /></Button>
           </form>
         </div>
       </header>
@@ -408,11 +547,11 @@ export default function OpenTopoPage() {
       <AnimatePresence>
         {showSuggest && (geoSuggestions.length > 0 || SUGGESTIONS.length > 0) && (
           <motion.ul
-            initial={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
+            exit={{ opacity: 0, y: -6 }}
             className={clsx(
-              "absolute  left-6 w-80 z-100  max-w-3xl rounded-xl overflow-hidden shadow-xl",
+              "absolute left-4 z-999 md:left-6 top-20  w-[92vw] md:w-96 max-w-3xl rounded-xl overflow-hidden shadow-xl",
               isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200"
             )}
           >
@@ -421,8 +560,7 @@ export default function OpenTopoPage() {
               <span className="text-xs opacity-50">{geoLoading ? "Searching..." : "Select a place or preset"}</span>
             </li>
 
-            {/* geocode results first (detailed) */}
-            {geoSuggestions.map(s => (
+            {geoSuggestions.map((s) => (
               <li key={s.id} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => onSelectGeocode(s)}>
                 <div className="flex items-center gap-3">
                   <MapPin className="opacity-70" />
@@ -435,11 +573,9 @@ export default function OpenTopoPage() {
               </li>
             ))}
 
-            {/* separator if we also show presets */}
             {geoSuggestions.length > 0 && SUGGESTIONS.length > 0 && <li className="px-4 py-1"><Separator /></li>}
 
-            {/* presets */}
-            {SUGGESTIONS.map(s => (
+            {SUGGESTIONS.map((s) => (
               <li key={s.id} className="px-4 py-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => onSelectPreset(s)}>
                 <div className="flex items-center gap-3">
                   <MapPin className="opacity-70" />
@@ -457,10 +593,10 @@ export default function OpenTopoPage() {
         )}
       </AnimatePresence>
 
-      {/* Main layout */}
+      {/* Main grid: left sidebar (desktop), center map + chart, right actions */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* LEFT preview */}
-        <section className="lg:col-span-3 space-y-4">
+        {/* LEFT preview & samples (desktop) */}
+        <aside className="lg:col-span-3 space-y-4 hidden lg:block">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
             <CardHeader className={clsx("p-5 flex items-center gap-3", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div className="flex items-center gap-3">
@@ -469,7 +605,7 @@ export default function OpenTopoPage() {
                 </div>
                 <div>
                   <CardTitle className="text-base">Preview</CardTitle>
-                  <div className="text-xs opacity-60">Quick info</div>
+                  <div className="text-xs opacity-60">Quick info & samples</div>
                 </div>
               </div>
             </CardHeader>
@@ -477,15 +613,29 @@ export default function OpenTopoPage() {
             <CardContent>
               <div className={clsx("p-3 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
                 <div className="text-sm opacity-60">Query</div>
-                <div className="font-medium break-words">{query || DEFAULT_DATA.endpoint}</div>
+             {/* human-friendly label (preferred) */}
+<div className="flex items-center gap-2">
+  <MapPin className="w-10 h-10 opacity-70" aria-hidden="true" />
+  <div className="font-medium  truncate">
+    {(locationLabel ?? query) || DEFAULT_DATA.endpoint}
+  </div>
+</div>
+
+{/* raw query / endpoint */}
+<div className="flex items-center gap-2">
+  <Globe className="w-4 h-4 opacity-70" aria-hidden="true" />
+  <div className="font-medium break-words">
+    {query || DEFAULT_DATA.endpoint}
+  </div>
+</div>
+
+
 
                 <Separator className="my-3" />
 
                 <div className="text-sm opacity-60">Status</div>
                 <div className="mt-1">
-                  <span className={clsx("inline-block px-2 py-1 rounded-md text-xs font-medium", isDark ? "bg-white/5" : "bg-zinc-100")}>
-                    {loading ? "Loading…" : (record ? statusBadge.label : "No result")}
-                  </span>
+                  <Badge>{loading ? "Loading…" : (record ? statusBadge.label : "No result")}</Badge>
                 </div>
 
                 <div className="mt-4 text-sm space-y-2">
@@ -501,35 +651,58 @@ export default function OpenTopoPage() {
                 </div>
 
                 <div className="mt-4 flex flex-col gap-2">
-                  <Button variant="outline" className="w-full" onClick={() => { navigator.clipboard.writeText(DEFAULT_DATA.code); showToast("success", "Example code copied"); }}>
-                    <Copy /> Copy example
-                  </Button>
-                  <Button variant="ghost" className="w-full" onClick={() => setDialogOpen(true)}><ExternalLink /> View API info</Button>
+               
+
+                  <Button variant="ghost" className="w-full cursor-pointer" onClick={() => setDialogOpen(true)}><ExternalLink /> View API info</Button>
                 </div>
+              </div>
+
+              <Separator className="my-3" />
+
+              <div>
+                <div className="text-sm font-semibold mb-2 flex items-center gap-2"><BarChart2 /> Samples</div>
+                <ScrollArea className="overflow-y-auto" style={{ maxHeight: 260 }}>
+                  <div className="space-y-2 ">
+                    {chartData.map((p) => (
+                      <div key={p.name} className="p-2 rounded-md border flex items-center justify-between hover:bg-zinc-50 dark:hover:bg-zinc-900/40 cursor-pointer" onClick={() => {
+                        // clicking a sample will set the query to a fake coordinate (not ideal) — keep it simple: show toast
+                        showToast("info", `Sample ${p.name}: ${p.elevation} m`);
+                      }}>
+                        <div>
+                          <div className="font-medium">{p.name}</div>
+                          <div className="text-xs opacity-60">Elevation {p.elevation} m</div>
+                        </div>
+                        <div className="text-xs opacity-60">#{p.idx ?? ""}</div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               </div>
             </CardContent>
           </Card>
-        </section>
+        </aside>
 
-        {/* CENTER: large map + result (450px) */}
+        {/* CENTER: map + chart + details */}
         <section className="lg:col-span-6 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+            <CardHeader className={clsx("p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div>
-                <CardTitle className="text-lg">Map & Result</CardTitle>
-                <div className="text-xs opacity-60">{record ? `${record.latitude}, ${record.longitude}` : "Map centered on result or typed coordinates"}</div>
+                <CardTitle className="text-lg flex items-center gap-2"> <MapPin /> Map & Elevation</CardTitle>
+                <div className="text-xs opacity-60">
+  {record ? (locationLabel ?? `${record.latitude}, ${record.longitude}`) : "Map centered on result or typed coordinates"}
+</div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => handleFetch()}><Loader2 className={loading ? "animate-spin" : ""} /> Refresh</Button>
-                <Button variant="ghost" onClick={() => setRawDialogOpen((s) => !s)}><Layers /> Raw</Button>
+                <Button variant="outline" onClick={() => refreshAll()} className="cursor-pointer"><RefreshCw className={loading ? "animate-spin" : ""} /> Refresh</Button>
+                <Button variant="ghost" onClick={() => setRawDialogOpen((s) => !s)} className="cursor-pointer"><Layers /> Raw</Button>
               </div>
             </CardHeader>
 
             <CardContent>
-              {/* Map */}
+              {/* MAP */}
               <div className={clsx("rounded-xl overflow-hidden border mb-4", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                <div style={{ height: 450 }}>
+                <div style={{ height: 370 }}>
                   {coords ? (
                     <MapContainer center={[coords.lat, coords.lng]} zoom={8} style={{ height: "100%", width: "100%" }}>
                       <TileLayer
@@ -550,6 +723,62 @@ export default function OpenTopoPage() {
                 </div>
               </div>
 
+              {/* ELEVATION CHART */}
+              <div className={clsx("p-4 rounded-xl border mb-4", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <BarChart2 />
+                    <div>
+                      <div className="font-semibold">Elevation profile</div>
+                      <div className="text-xs opacity-60">Simulated 10-point profile (based on result)</div>
+                    </div>
+                  </div>
+                  <div className="text-xs opacity-60">Unit: meters</div>
+                </div>
+
+                <div style={{ height: 220 }}>
+               <ResponsiveContainer width="100%" height="100%">
+  <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
+    <defs>
+      <linearGradient id="elevGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={isDark ? "#60a5fa" : "#2563eb"} stopOpacity={0.85}/>
+        <stop offset="60%" stopColor={isDark ? "#60a5fa" : "#2563eb"} stopOpacity={0.25}/>
+        <stop offset="100%" stopColor={isDark ? "#60a5fa" : "#2563eb"} stopOpacity={0.05}/>
+      </linearGradient>
+      {/* slightly different gradient for negative (ocean) values if you like */}
+      <linearGradient id="oceanGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={isDark ? "#7dd3fc" : "#60a5fa"} stopOpacity={0.75}/>
+        <stop offset="100%" stopColor={isDark ? "#7dd3fc" : "#60a5fa"} stopOpacity={0.08}/>
+      </linearGradient>
+    </defs>
+
+    <CartesianGrid strokeDasharray="3 3" />
+    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+    <YAxis tick={{ fontSize: 12 }} />
+    <Tooltip content={<CustomTooltip />} />
+
+    {/* main area (positive or mixed elevations) */}
+    <Area
+      type="monotone"
+      dataKey="elevation"
+      stroke={isDark ? "#60a5fa" : "#2563eb"}
+      strokeWidth={2}
+      fill={`url(#elevGradient)`}
+      dot={{ r: 3 }}
+      activeDot={{ r: 5 }}
+      connectNulls={true}
+    />
+
+    {/* show a subtle reference at sea level if any point is below zero */}
+    {chartData.some((d) => d.elevation < 0) && (
+      <ReferenceLine y={0} stroke="rgba(255,0,0,0.28)" strokeDasharray="4 4" />
+    )}
+  </AreaChart>
+</ResponsiveContainer>
+
+                </div>
+              </div>
+
               {/* Result details */}
               {loading ? (
                 <div className="py-12 text-center"><Loader2 className="animate-spin mx-auto" /></div>
@@ -567,11 +796,11 @@ export default function OpenTopoPage() {
                         <div className="text-sm opacity-60 mt-1">{statusBadge.label}</div>
 
                         <div className="mt-3 text-sm leading-relaxed">
-                          {record.raw?.note || `Coordinate: ${record.latitude}, ${record.longitude}`}
+                          <Database className="inline mr-2" /> {record.raw?.note || `Coordinate: ${record.latitude}, ${record.longitude}`}
                         </div>
                       </div>
 
-                      <div className="w-40">
+                      <div className="w-44">
                         <div className="text-xs opacity-60">Uncertainty</div>
                         <div className="font-medium">{record.raw?.uncertainty ?? "—"}</div>
 
@@ -582,7 +811,14 @@ export default function OpenTopoPage() {
                   </div>
 
                   <div className={clsx("p-4 rounded-xl border", isDark ? "bg-black/20 border-zinc-800" : "bg-white/70 border-zinc-200")}>
-                    <div className="text-sm font-semibold mb-3">Detailed fields</div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Database />
+                        <div className="font-semibold">Detailed fields</div>
+                      </div>
+                     
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="p-3 rounded-md border">
                         <div className="text-xs opacity-60">Latitude</div>
@@ -608,12 +844,7 @@ export default function OpenTopoPage() {
                         <div className="text-xs opacity-60">Type</div>
                         <div className="text-sm font-medium">{record.type}</div>
                       </div>
-                      <div className="p-3 rounded-md border col-span-1 sm:col-span-2">
-                        <div className="text-xs opacity-60">Full record (JSON)</div>
-                        <pre className={clsx("text-xs overflow-auto", isDark ? "text-zinc-200" : "text-zinc-900")} style={{ maxHeight: 220 }}>
-                          {prettyJSON(record)}
-                        </pre>
-                      </div>
+                   
                     </div>
                   </div>
                 </div>
@@ -622,8 +853,13 @@ export default function OpenTopoPage() {
               {/* Raw response area toggle */}
               <AnimatePresence>
                 {rawDialogOpen && rawResp && (
-                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={clsx("p-4 border-t", isDark ? "bg-black/30 border-zinc-800" : "bg-white/60 border-zinc-200")}>
-                    <div className="text-xs opacity-60 mb-2">Raw response</div>
+                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className={clsx("p-4 mt-4 border-t", isDark ? "bg-black/30 border-zinc-800" : "bg-white/60 border-zinc-200")}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-xs opacity-60">Raw response</div>
+                      <div className="flex items-center gap-2">
+
+                      </div>
+                    </div>
                     <pre className={clsx("text-xs overflow-auto", isDark ? "text-zinc-200" : "text-zinc-900")} style={{ maxHeight: 300 }}>
                       {prettyJSON(rawResp)}
                     </pre>
@@ -634,27 +870,27 @@ export default function OpenTopoPage() {
           </Card>
         </section>
 
-        {/* RIGHT: quick actions & presets */}
+        {/* RIGHT: quick actions & presets (desktop) */}
         <aside className={clsx("lg:col-span-3 rounded-2xl p-4 space-y-4 h-fit", isDark ? "bg-black/40 border border-zinc-800" : "bg-white/90 border border-zinc-200")}>
           <div>
-            <div className="text-sm font-semibold mb-2">Quick actions</div>
+            <div className="text-sm font-semibold mb-2 flex items-center gap-2"><Smartphone /> Quick actions</div>
             <div className="text-xs opacity-60 mb-3">Copy, download or open endpoint for the current query</div>
             <div className="space-y-2">
-              <Button className="w-full" variant="outline" onClick={copyEndpoint}><Copy /> Copy Endpoint</Button>
-              <Button className="w-full" variant="outline" onClick={copyJSON}><Copy /> Copy JSON</Button>
-              <Button className="w-full" variant="outline" onClick={downloadJSON}><Download /> Download JSON</Button>
-              <Button className="w-full" variant="ghost" onClick={() => { window.open(buildEndpoint(query), "_blank"); }}><ExternalLink /> Open endpoint</Button>
+              <Button className="w-full justify-start cursor-pointer" variant="outline" onClick={copyEndpoint}><Copy /> <span className="ml-2">Copy Endpoint</span></Button>
+              <Button className="w-full justify-start cursor-pointer" variant="outline" onClick={copyJSON}><Copy /> <span className="ml-2">Copy JSON</span></Button>
+              <Button className="w-full justify-start cursor-pointer" variant="outline" onClick={downloadJSON}><Download /> <span className="ml-2">Download JSON</span></Button>
+              <Button className="w-full justify-start cursor-pointer" variant="ghost" onClick={() => { window.open(buildEndpoint(query), "_blank"); }}><ExternalLink /> <span className="ml-2">Open endpoint</span></Button>
             </div>
           </div>
 
           <Separator />
 
           <div>
-            <div className="text-sm font-semibold mb-2">Presets</div>
-            <div className="text-xs opacity-60 mb-3">Tap a preset to run a quick lookup</div>
+            <div className="text-sm font-semibold mb-2 flex items-center gap-2"><MapPin /> Presets</div>
+            <div className="text-xs opacity-60 mb-3">Click a preset to run a quick lookup</div>
             <div className="grid grid-cols-1 gap-2">
-              {SUGGESTIONS.map(s => (
-                <Button key={s.id} variant="ghost" className="justify-between" onClick={() => onSelectPreset(s)}>
+              {SUGGESTIONS.map((s) => (
+                <Button key={s.id} variant="ghost" className="justify-between cursor-pointer" onClick={() => onSelectPreset(s)}>
                   <div className="flex items-center gap-2"><MapPin /> <span>{s.label}</span></div>
                   <div className="text-xs opacity-60">{s.coords}</div>
                 </Button>
@@ -666,15 +902,15 @@ export default function OpenTopoPage() {
 
       {/* API info dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-3xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx(" p-3 z-999 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>{DEFAULT_DATA.name}</DialogTitle>
           </DialogHeader>
 
-          <div style={{ padding: 20 }}>
+          <div className="overflow-auto" style={{ padding: 20 }}>
             <div className="text-sm opacity-60 mb-3">{DEFAULT_DATA.category} • {DEFAULT_DATA.description}</div>
             <div className="text-xs opacity-60 mb-1">Endpoint</div>
-            <div className="font-medium break-words mb-3">{DEFAULT_DATA.endpoint}</div>
+            <div className="font-medium  mb-3">{DEFAULT_DATA.endpoint}</div>
 
             <div className="text-xs opacity-60 mb-1">Example</div>
             <pre className="text-xs bg-zinc-100 dark:bg-zinc-900 p-3 rounded">{DEFAULT_DATA.code}</pre>
@@ -683,8 +919,8 @@ export default function OpenTopoPage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">OpenTopoData (test dataset)</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
-              <Button variant="outline" onClick={() => { navigator.clipboard.writeText(DEFAULT_DATA.code); showToast("success", "Example code copied"); }}><Copy /></Button>
+              <Button className='cursor-pointer' variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
+              <Button className="cursor-pointer" variant="outline" onClick={() => { navigator.clipboard.writeText(DEFAULT_DATA.code); showToast("success", "Example code copied"); }}><Copy /></Button>
             </div>
           </DialogFooter>
         </DialogContent>

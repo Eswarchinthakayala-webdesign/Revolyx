@@ -18,11 +18,20 @@ import {
   Zap,
   Atom,
   Grid,
-  Sparkles
+  Sparkles,
+  Menu,
+  Check,
+  RefreshCw,
+  CopyCheck,
+  Sidebar,
+  Hash,
+  Thermometer,
+  Droplet,
+  Calendar,
+  Layers,
+  FileText,
+  X
 } from "lucide-react";
-import { Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, useGLTF } from "@react-three/drei";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,16 +39,24 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import ALLELEMENTS from "@/data/PeriodicTableJSON.json"
+import ALLELEMENTS from "@/data/PeriodicTableJSON.json";
 import { useTheme } from "@/components/theme-provider";
 import { ThreeDViewer } from "../components/ThreeDViewer";
 
+/* shadcn-style sheet (mobile sidebar). If your repo uses a different sheet, adapt imports. */
+import {
+  Sheet,
+  SheetTrigger,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter
+} from "@/components/ui/sheet";
 
 /* ============================
    Default embedded JSON data
-   Replace/extend ELEMENTS with API response if needed
    ============================ */
-const ELEMENTS = ALLELEMENTS["elements"]
+const ELEMENTS = ALLELEMENTS["elements"] || [];
 
 /* ============================
    Helpers
@@ -51,11 +68,27 @@ function prettyJSON(obj) {
     return String(obj);
   }
 }
-
 function formatNumber(n) {
   if (n === null || n === undefined) return "—";
   if (typeof n === "number" && Math.abs(n) >= 1000) return n.toLocaleString();
   return String(n);
+}
+
+/* Small badge component */
+function NumberBadge({ number, isDark }) {
+  return (
+    <div
+      className={clsx(
+        "inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium",
+        isDark ? "bg-white/6 text-white" : "bg-slate-50 text-slate-900",
+        "shadow-sm border"
+      )}
+      style={{ borderColor: isDark ? "rgba(255,255,255,0.04)" : undefined }}
+    >
+      <Hash className="w-3 h-3 opacity-80" />
+      <span>#{String(number ?? "—")}</span>
+    </div>
+  );
 }
 
 /* ============================
@@ -79,13 +112,27 @@ export default function PeriodicTablePage() {
   const [rawResp, setRawResp] = useState({ elements: ELEMENTS }); // simulated API response
   const [dialogOpen, setDialogOpen] = useState(false);
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // copy animation state
+  const [copied, setCopied] = useState(false);
+  const copyTimer = useRef(null);
 
   const suggestTimer = useRef(null);
 
-  // Derived list (in case you later set rawResp from real API)
+  // Derived list
   const elements = useMemo(() => rawResp?.elements || ELEMENTS, [rawResp]);
 
-  /* Search logic: simple client-side fuzzy search for now */
+  /* Same-group elements for sidebar */
+  const sameGroupElements = useMemo(() => {
+    if (!currentElement?.group) return [];
+    return elements
+      .filter((el) => el.group === currentElement.group && el.number !== currentElement.number)
+      .sort((a, b) => (a.number || 0) - (b.number || 0))
+      .slice(0, 10);
+  }, [elements, currentElement]);
+
+  /* Search logic */
   function runSearch(q) {
     if (!q || q.trim().length === 0) {
       setSuggestions([]);
@@ -93,7 +140,6 @@ export default function PeriodicTablePage() {
       return;
     }
     setLoadingSuggest(true);
-    // Simulate quick async search — filter by name or symbol
     setTimeout(() => {
       const ql = q.trim().toLowerCase();
       const results = elements.filter(
@@ -117,17 +163,14 @@ export default function PeriodicTablePage() {
   function handleSearchSubmit(e) {
     e?.preventDefault?.();
     if (!query.trim()) {
-      // no-op if empty
       setShowSuggest(true);
       runSearch(query);
       return;
     }
-    // if suggestions present, pick the first match as "selected search"
     if (suggestions.length > 0) {
       setCurrentElement(suggestions[0]);
       setShowSuggest(false);
     } else {
-      // try broad search
       runSearch(query);
       setShowSuggest(true);
     }
@@ -142,6 +185,9 @@ export default function PeriodicTablePage() {
   function copyJSON() {
     if (!currentElement) return;
     navigator.clipboard?.writeText(prettyJSON(currentElement));
+    setCopied(true);
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+    copyTimer.current = setTimeout(() => setCopied(false), 2000);
   }
 
   function downloadJSON() {
@@ -154,10 +200,14 @@ export default function PeriodicTablePage() {
     URL.revokeObjectURL(a.href);
   }
 
-  /* Effect: ensure suggestions list closes when clicking elsewhere */
+  function refreshData() {
+    // placeholder for re-fetching: here we just reassign to simulate refresh + small animation
+    setRawResp((r) => ({ ...r }));
+  }
+
+  /* Close suggestions when clicking elsewhere */
   useEffect(() => {
     function onDocClick(e) {
-      // close suggestions if click outside search container
       const target = e.target;
       const wrapper = document.querySelector("#periodic-search-wrapper");
       if (wrapper && !wrapper.contains(target)) {
@@ -168,44 +218,90 @@ export default function PeriodicTablePage() {
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
-  /* Simple accessibility: focus search on mount (optional) */
-  // useEffect(() => { document.querySelector("#periodic-search-input")?.focus(); }, []);
+  /* cleanup timers */
+  useEffect(() => {
+    return () => {
+      if (suggestTimer.current) clearTimeout(suggestTimer.current);
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+    };
+  }, []);
 
   /* ============================
      Layout rendering
      ============================ */
   return (
-    <div className={clsx("min-h-screen p-6 max-w-8xl mx-auto", isDark ? "bg-black text-zinc-100" : "bg-white text-zinc-900")}>
-      {/* Header */}
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className={clsx("text-3xl md:text-4xl font-extrabold tracking-tight")}>Element — Periodic Explorer</h1>
-          <p className="mt-1 text-sm opacity-70 max-w-xl">
-            Browse chemical elements, view detailed properties, and explore models & spectra. Search by name, symbol or atomic number.
-          </p>
+    <div className={clsx("min-h-screen pb-10 p-4 md:p-6 max-w-8xl mx-auto", isDark ? "bg-black text-zinc-100" : "bg-white text-zinc-900")}>
+      {/* Top header */}
+      <header className="flex items-center flex-wrap justify-between gap-4 mb-5">
+        <div className="flex items-center gap-3">
+          {/* Mobile menu button opens the sheet for group/quick-nav */}
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="md:hidden p-2 cursor-pointer" aria-label="Open sidebar">
+                <Menu className="w-5 h-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[320px]">
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                  <Sidebar className="w-4 h-4" /> Group elements
+                </SheetTitle>
+                <div className="text-sm opacity-60">Elements in the same group</div>
+              </SheetHeader>
+
+              <div className="py-4 space-y-2">
+                <ScrollArea className="h-[60vh]">
+                  <div className="p-2 space-y-2">
+                    {sameGroupElements.length === 0 && <div className="text-sm opacity-60 p-2">No related elements</div>}
+                    {sameGroupElements.map((el) => (
+                      <button
+                        key={el.number}
+                        onClick={() => { setCurrentElement(el); setSheetOpen(false); }}
+                        className="w-full text-left p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50 flex items-center gap-3 cursor-pointer"
+                      >
+                        <div className="w-10 h-10 rounded-md border flex items-center justify-center font-semibold">{el.symbol}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{el.name}</div>
+                          <div className="text-xs opacity-60">{el.number}</div>
+                        </div>
+                        <NumberBadge number={el.number} isDark={isDark} />
+                      </button>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+
+              <SheetFooter className="p-4">
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setSheetOpen(false)} className="w-full"><X /> Close</Button>
+                </div>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
+
+          <div>
+            <h1 className={clsx("text-2xl md:text-3xl font-extrabold tracking-tight")}>Element — Periodic Explorer</h1>
+            <p className="text-xs opacity-70 max-w-xl">Browse chemical elements — search, preview models, export JSON.</p>
+          </div>
         </div>
 
-        {/* Search */}
-        <div id="periodic-search-wrapper" className="flex items-center gap-3 w-full md:w-auto">
-          <form onSubmit={handleSearchSubmit} className={clsx("flex items-center gap-2 w-full md:w-[560px] rounded-lg px-3 py-2",
-              isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
+        {/* Search + actions */}
+        <div className="flex items-center gap-3">
+          <form id="periodic-search-wrapper" onSubmit={handleSearchSubmit} className={clsx("flex items-center gap-2 w-full md:w-[560px] rounded-lg px-3 py-2",
+            isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
             <Search className="opacity-70" />
             <Input
               id="periodic-search-input"
-              placeholder="Search elements (name, symbol, number). Example: hydrogen, H, 1"
+              placeholder="Search elements — hydrogen, H, 1"
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
               className="border-0 shadow-none bg-transparent outline-none"
               onFocus={() => setShowSuggest(true)}
             />
-            <Button type="submit" variant="outline" className="px-3"><Search /></Button>
+            <Button type="submit" variant="outline" className="px-3 cursor-pointer"><Search /></Button>
           </form>
 
-          {/* Default quick actions */}
-          <div className="hidden md:flex items-center gap-2">
-            <Button variant="ghost" onClick={() => setCurrentElement(elements[0])}><Target /> Default</Button>
-            <Button variant="ghost" onClick={() => { setQuery(""); setSuggestions([]); setShowSuggest(false); }}><Grid /> Reset</Button>
-          </div>
+       
         </div>
       </header>
 
@@ -213,10 +309,10 @@ export default function PeriodicTablePage() {
       <AnimatePresence>
         {showSuggest && suggestions.length > 0 && (
           <motion.ul
-            initial={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            className={clsx("absolute z-50 left-6 right-6 md:left-[calc(50%_-_280px)] md:right-auto max-w-4xl rounded-xl overflow-hidden shadow-xl",
+            exit={{ opacity: 0, y: -8 }}
+            className={clsx("absolute z-50 left-4 right-4 md:left-[calc(50%_-_280px)] md:right-auto max-w-4xl rounded-xl overflow-hidden shadow-xl",
               isDark ? "bg-black border border-zinc-800" : "bg-white border border-zinc-200")}>
             {loadingSuggest && <li className="p-3 text-sm opacity-60 flex items-center gap-2"><Loader2 className="animate-spin" /> Searching…</li>}
             {suggestions.map((s, idx) => (
@@ -240,10 +336,10 @@ export default function PeriodicTablePage() {
         )}
       </AnimatePresence>
 
-      {/* Main layout: left (image/meta), center (full details), right (quick actions) */}
-      <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/* Left: visual + essential metadata */}
-        <aside className={clsx("lg:col-span-3 space-y-4")}>
+      {/* Main layout */}
+      <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-4">
+        {/* Left (desktop sidebar) */}
+        <aside className="lg:col-span-3 hidden lg:block space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
             <CardHeader className={clsx("p-5 flex items-start gap-4", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div>
@@ -258,7 +354,7 @@ export default function PeriodicTablePage() {
 
             <CardContent>
               <div className="rounded-lg overflow-hidden border p-3" style={{ background: isDark ? "rgba(255,255,255,0.02)" : "#fbfbfd" }}>
-                {/* element image */}
+                {/* image */}
                 <div className="mb-3">
                   {currentElement?.image?.url ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -283,160 +379,186 @@ export default function PeriodicTablePage() {
                   </div>
 
                   <div>
-                    <div className="text-xs opacity-60">Density (g/L or g/cm³)</div>
+                    <div className="text-xs opacity-60">Density</div>
                     <div className="font-medium">{formatNumber(currentElement?.density)}</div>
                   </div>
                   <div>
                     <div className="text-xs opacity-60">Category</div>
                     <div className="font-medium">{currentElement?.category ?? "—"}</div>
                   </div>
-
-                  <div>
-                    <div className="text-xs opacity-60">Electronegativity</div>
-                    <div className="font-medium">{currentElement?.electronegativity_pauling ?? "—"}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs opacity-60">Electron Config.</div>
-                    <div className="font-medium">{currentElement?.electron_configuration_semantic ?? currentElement?.electron_configuration ?? "—"}</div>
-                  </div>
                 </div>
 
                 <div className="mt-4 flex flex-col gap-2">
-                  <Button variant="outline" className="w-full" onClick={() => setDialogOpen(true)}><ImageIcon /> View Bohr / Model</Button>
-                  <Button variant="ghost" className="w-full" onClick={() => { if (currentElement?.source) window.open(currentElement.source, "_blank"); }}><ExternalLink /> Wikipedia / Source</Button>
+                  <Button variant="outline" className="w-full cursor-pointer" onClick={() => setDialogOpen(true)}><ImageIcon /> View Bohr / Model</Button>
+                  <Button variant="ghost" className="w-full cursor-pointer" onClick={() => { if (currentElement?.source) window.open(currentElement.source, "_blank"); }}><ExternalLink /> Wikipedia / Source</Button>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          <Card className={clsx("rounded-2xl overflow-hidden border p-4", isDark ? "bg-black/30 border-zinc-800" : "bg-white/80 border-zinc-200")}>
+            <div className="text-sm font-semibold mb-2">Same group — quick list</div>
+            <ScrollArea className="h-56 rounded-md border p-2">
+              <div className="space-y-2">
+                {sameGroupElements.length === 0 && <div className="text-sm opacity-60 p-2">No related elements</div>}
+                {sameGroupElements.map((el) => (
+                  <button
+                    key={el.number}
+                    onClick={() => setCurrentElement(el)}
+                    className="w-full text-left p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50 flex items-center gap-3 cursor-pointer"
+                  >
+                    <div className="w-10 h-10 rounded-md border flex items-center justify-center font-semibold">{el.symbol}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{el.name}</div>
+                      <div className="text-xs opacity-60">#{el.number}</div>
+                    </div>
+                    <NumberBadge number={el.number} isDark={isDark} />
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          </Card>
         </aside>
 
-        {/* Center: full details (main reading area) */}
+        {/* Center: main details */}
         <section className="lg:col-span-6 space-y-4">
           <Card className={clsx("rounded-2xl overflow-hidden border", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <CardHeader className={clsx("p-5 flex items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
+            <CardHeader className={clsx("p-5 flex flex-wrap items-center justify-between", isDark ? "bg-black/60 border-b border-zinc-800" : "bg-white/90 border-b border-zinc-200")}>
               <div>
-                <CardTitle className="text-lg">Element Details</CardTitle>
-                <div className="text-xs opacity-60">{currentElement?.name ?? "—"} • {currentElement?.symbol ?? "—"}</div>
+                <CardTitle className="text-lg flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="text-2xl font-bold">{currentElement?.name}</div>
+                    <div className="text-sm opacity-60">{currentElement?.symbol}</div>
+                    <div className="ml-2"><NumberBadge number={currentElement?.number} isDark={isDark} /></div>
+                  </div>
+                </CardTitle>
+                <div className="text-xs opacity-60 flex items-center gap-3 mt-1">
+                  <div className="flex items-center gap-1"><Layers className="w-4 h-4" /> Period {currentElement?.period ?? "—"}</div>
+                  <div className="flex items-center gap-1"><Droplet className="w-4 h-4" /> {currentElement?.phase ?? "—"}</div>
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => { setCurrentElement(elements[0]); }}>{/* quick reset */} <Sparkles /> Default</Button>
-                <Button variant="ghost" onClick={() => setShowSuggest((s) => !s)}><List /> Suggestions</Button>
-                <Button variant="ghost" onClick={() => { setRawResp((r) => r); }}><Info /> Api</Button>
+                <Button variant="outline" onClick={() => { setCurrentElement(elements[0]); }} className="cursor-pointer"><Sparkles /> Default</Button>
+
               </div>
             </CardHeader>
 
             <CardContent>
               <div className="prose max-w-none">
-                <h2 className="!mt-0">{currentElement?.name} <span className="text-sm opacity-60">{currentElement?.symbol}</span></h2>
+                {/* Summary */}
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="md:w-1/3">
+                    <div className="text-sm opacity-60 mb-2 flex items-center gap-2"><FileText className="w-4 h-4" /> Summary</div>
+                    <div className="text-sm leading-relaxed">{currentElement?.summary ?? "No summary available."}</div>
 
-                <p className="text-sm leading-relaxed">{currentElement?.summary}</p>
-
-                <Separator className="my-4" />
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div>
-                      <div className="text-xs opacity-60">Discovered by</div>
-                      <div className="font-medium">{currentElement?.discovered_by ?? "—"}</div>
-                    </div>
-
-                    <div>
-                      <div className="text-xs opacity-60">Named by</div>
-                      <div className="font-medium">{currentElement?.named_by ?? "—"}</div>
-                    </div>
-
-                    <div>
-                      <div className="text-xs opacity-60">Molar heat</div>
-                      <div className="font-medium">{formatNumber(currentElement?.molar_heat)}</div>
+                    <div className="mt-4 space-y-2">
+                      <div className="text-xs opacity-60 flex items-center gap-2"><Thermometer className="w-4 h-4" /> Thermal properties</div>
+                      <div className="text-sm">{formatNumber(currentElement?.molar_heat) ?? "—"} (molar heat)</div>
+                      <div className="text-sm">{formatNumber(currentElement?.boil)} K (boiling) • {formatNumber(currentElement?.melt)} K (melting)</div>
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <div>
-                      <div className="text-xs opacity-60">Boiling point (K)</div>
-                      <div className="font-medium">{formatNumber(currentElement?.boil)}</div>
+                  <div className="md:flex-1">
+                    {/* Grid of properties with icons */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="p-3 rounded-md border">
+                        <div className="text-xs opacity-60 flex items-center gap-2"><Hash className="w-4 h-4" /> Atomic number</div>
+                        <div className="font-medium text-lg">{currentElement?.number ?? "—"}</div>
+                      </div>
+
+                      <div className="p-3 rounded-md border">
+                        <div className="text-xs opacity-60 flex items-center gap-2"><Zap className="w-4 h-4" /> Electronegativity</div>
+                        <div className="font-medium">{currentElement?.electronegativity_pauling ?? "—"}</div>
+                      </div>
+
+                      <div className="p-3 rounded-md border">
+                        <div className="text-xs opacity-60 flex items-center gap-2"><Calendar className="w-4 h-4" /> Discovered / Named</div>
+                        <div className="font-medium">{currentElement?.discovered_by ?? "—"}</div>
+                        <div className="text-xs opacity-60">{currentElement?.named_by ?? ""}</div>
+                      </div>
+
+                      <div className="p-3 rounded-md border">
+                        <div className="text-xs opacity-60 flex items-center gap-2"><Thermometer className="w-4 h-4" /> Phase / Density</div>
+                        <div className="font-medium">{currentElement?.phase ?? "—"} • {formatNumber(currentElement?.density)}</div>
+                      </div>
                     </div>
 
-                    <div>
-                      <div className="text-xs opacity-60">Melting point (K)</div>
-                      <div className="font-medium">{formatNumber(currentElement?.melt)}</div>
-                    </div>
+                    <Separator className="my-4" />
 
+                    {/* Spectrum */}
                     <div>
-                      <div className="text-xs opacity-60">Ionization energies (eV)</div>
-                      <div className="font-medium">{(currentElement?.ionization_energies || []).join(", ") || "—"}</div>
+                      <div className="text-xs opacity-60 mb-2 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Spectral image</div>
+                      {currentElement?.spectral_img ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={currentElement.spectral_img} alt={`${currentElement.name} spectrum`} className="w-full rounded-md max-h-48 object-contain border" />
+                      ) : (
+                        <div className="h-24 rounded-md border flex items-center justify-center opacity-40">No spectral image</div>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <Separator className="my-4" />
 
-                <div>
-                  <div className="text-xs opacity-60 mb-2">Spectral image</div>
-                  {currentElement?.spectral_img ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={currentElement.spectral_img} alt={`${currentElement.name} spectrum`} className="w-full rounded-md max-h-48 object-contain border" />
-                  ) : (
-                    <div className="h-24 rounded-md border flex items-center justify-center opacity-40">No spectral image</div>
-                  )}
-                </div>
+                {/* Raw data / export */}
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="md:flex-1">
+                    <div className="text-xs opacity-60 mb-2 flex items-center gap-2"><FileText className="w-4 h-4" /> Complete data (flattened)</div>
+                    <ScrollArea className="h-48 rounded-md border p-3">
+                      <pre className={clsx("text-xs break-words", isDark ? "text-zinc-200" : "text-zinc-900")}>
+                        {prettyJSON(currentElement)}
+                      </pre>
+                    </ScrollArea>
+                  </div>
 
-                <Separator className="my-4" />
-
-                <div>
-                  <div className="text-xs opacity-60 mb-2">Complete data (flattened)</div>
-                  <ScrollArea className="h-64 rounded-md border p-3">
-                    <pre className={clsx("text-xs break-words", isDark ? "text-zinc-200" : "text-zinc-900")}>
-                      {prettyJSON(currentElement)}
-                    </pre>
-                  </ScrollArea>
+           
                 </div>
               </div>
             </CardContent>
           </Card>
         </section>
 
-        {/* Right: quick actions & utilities */}
+        {/* Right: quick utilities (mobile stacks under main automatically) */}
         <aside className={clsx("lg:col-span-3 space-y-4")}>
           <Card className={clsx("rounded-2xl overflow-hidden border p-4", isDark ? "bg-black/40 border-zinc-800" : "bg-white/90 border-zinc-200")}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-start justify-between">
               <div>
                 <div className="text-sm font-semibold">Quick actions</div>
                 <div className="text-xs opacity-60">Utilities & export</div>
               </div>
-              <div className="text-sm opacity-60">#{currentElement?.number ?? "—"}</div>
+              <div className="text-sm opacity-60">{currentElement?.symbol ?? "—"}</div>
             </div>
 
             <Separator className="my-3" />
 
             <div className="space-y-2">
-              <Button variant="outline" className="w-full" onClick={() => { copyJSON(); /* silent */ }}><Copy /> Copy element JSON</Button>
-              <Button variant="outline" className="w-full" onClick={() => downloadJSON()}><Download /> Download JSON</Button>
-           <Button
-  variant="ghost"
-  className="w-full"
-  onClick={() => {
-    if (currentElement?.bohr_model_3d) {
-      setModelDialogOpen(true);
-    }
-  }}
->
-  <Atom /> Open 3D model
-</Button>
+              <button onClick={copyJSON} className="w-full inline-flex items-center gap-2 justify-center px-3 py-2 rounded-md border cursor-pointer">
+                {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />} <span>{copied ? "Copied" : "Copy element JSON"}</span>
+              </button>
 
-              <Button variant="ghost" className="w-full" onClick={() => { if (currentElement?.bohr_model_image) window.open(currentElement.bohr_model_image, "_blank"); else alert("No model image"); }}><ImageIcon /> View Bohr image</Button>
-              <Button variant="ghost" className="w-full" onClick={() => { if (currentElement?.source) window.open(currentElement.source, "_blank"); else alert("No source"); }}><ExternalLink /> Open source</Button>
+              <Button variant="outline" className="w-full cursor-pointer" onClick={() => downloadJSON()}><Download /> Download JSON</Button>
+
+              <Button
+                variant="ghost"
+                className="w-full cursor-pointer"
+                onClick={() => { if (currentElement?.bohr_model_3d) setModelDialogOpen(true); else alert("No 3D model"); }}
+              >
+                <Atom /> Open 3D model
+              </Button>
+
+              <Button variant="ghost" className="w-full cursor-pointer" onClick={() => { if (currentElement?.bohr_model_image) window.open(currentElement.bohr_model_image, "_blank"); else alert("No model image"); }}><ImageIcon /> View Bohr image</Button>
+
+              <Button variant="ghost" className="w-full cursor-pointer" onClick={() => { if (currentElement?.source) window.open(currentElement.source, "_blank"); else alert("No source"); }}><ExternalLink /> Open source</Button>
             </div>
           </Card>
 
-          {/* Metadata / helpful tips */}
           <Card className={clsx("rounded-2xl overflow-hidden border p-4", isDark ? "bg-black/30 border-zinc-800" : "bg-white/80 border-zinc-200")}>
             <div className="text-sm font-semibold mb-2">About this dataset</div>
             <div className="text-xs opacity-60 space-y-2">
-              <div>• Built for clarity: property-first layout, large reading area.</div>
-              <div>• Responsive: stacks on small screens, three-column layout on desktop.</div>
-              <div>• Theme: light (white) & dark (black) with consistent surfaces.</div>
+              <div>• Property-first layout with quick export & model preview.</div>
+              <div>• Responsive: sidebar on desktop, sheet on mobile.</div>
+              <div>• Theme: light & dark with consistent surfaces and icons.</div>
             </div>
           </Card>
         </aside>
@@ -444,7 +566,7 @@ export default function PeriodicTablePage() {
 
       {/* Image / model dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className={clsx("max-w-4xl w-full p-0 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
+        <DialogContent className={clsx("max-w-4xl w-full p-3 rounded-2xl overflow-hidden", isDark ? "bg-black/90" : "bg-white")}>
           <DialogHeader>
             <DialogTitle>{currentElement?.name ?? "Model"}</DialogTitle>
           </DialogHeader>
@@ -461,7 +583,7 @@ export default function PeriodicTablePage() {
           <DialogFooter className="flex justify-between items-center p-4 border-t">
             <div className="text-xs opacity-60">Bohr model / element image</div>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)}><XIconFallback /></Button>
+              <Button variant="ghost" onClick={() => setDialogOpen(false)}><X /></Button>
               <Button variant="outline" onClick={() => { if (currentElement?.bohr_model_3d) window.open(currentElement.bohr_model_3d, "_blank"); }}><ExternalLink /></Button>
             </div>
           </DialogFooter>
@@ -469,22 +591,14 @@ export default function PeriodicTablePage() {
       </Dialog>
 
       <ThreeDViewer
-  open={modelDialogOpen}
-  onOpenChange={setModelDialogOpen}
-  modelUrl={currentElement?.bohr_model_3d}
-  elementName={currentElement?.name}
-  isDark={isDark}
-/>
-
+        open={modelDialogOpen}
+        onOpenChange={setModelDialogOpen}
+        modelUrl={currentElement?.bohr_model_3d}
+        elementName={currentElement?.name}
+        isDark={isDark}
+      />
     </div>
   );
 }
 
-/* Small fallback icon because we used X elsewhere above but not imported */
-function XIconFallback() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-      <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M18 6L6 18M6 6l12 12" />
-    </svg>
-  );
-}
+/* Small fallback icon (if X not imported elsewhere) kept out — we already used X from lucide */

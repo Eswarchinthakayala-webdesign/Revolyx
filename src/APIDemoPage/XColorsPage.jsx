@@ -304,7 +304,7 @@ export default function XColorsPage() {
   -----------------------------------------------------------*/
 
   return (
-    <div className={clsx("min-h-screen p-4 md:p-6", isDark ? "bg-black text-white" : "bg-white text-black")}>
+    <div className={clsx("min-h-screen pb-10 p-4 md:p-6", isDark ? "bg-black text-white" : "bg-white text-black")}>
       
       {/* ---------------- HEADER ---------------- */}
       <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
