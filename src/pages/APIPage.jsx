@@ -1629,7 +1629,7 @@ export default function ApisPage() {
                   <CategoryIcon category={selected.category} className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-extrabold truncate">{selected.name}</h2>
+                  <h2 className="text-2xl font-extrabold ">{selected.name}</h2>
                   <p className="text-sm opacity-60 mt-1">{selected.description}</p>
                 </div>
               </div>

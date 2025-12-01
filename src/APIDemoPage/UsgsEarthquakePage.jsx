@@ -439,7 +439,8 @@ function badgeClassFromTheme(selectedFeature, isDark) {
 
         {/* Search form */}
         <form onSubmit={handleSearch} className={clsx("relative w-full md:w-[720px] rounded-lg px-3 py-2", isDark ? "bg-black/60 border border-zinc-800" : "bg-white border border-zinc-200")}>
-          <div className="flex items-center gap-2 w-full">
+          <div className="flex items-center flex-wrap sm:flex-nowrap gap-2 w-full">
+            <div className="flex gap-1 items-center w-full">
             <Search className="opacity-60" />
             <Input
               placeholder="Filter by place or event id (e.g. 'us7000abcd' or 'Alaska')"
@@ -448,8 +449,9 @@ function badgeClassFromTheme(selectedFeature, isDark) {
               className="border-0 shadow-none bg-transparent outline-none"
               onFocus={() => setShowSuggest(true)}
             />
+            </div>
 
-        <div className="hidden sm:flex items-center gap-2 ml-2">
+        <div className="flex items-center  gap-2 ml-2">
   {/* Start Date */}
   <div className="flex items-center gap-1">
     <CalendarIcon className="opacity-70" size={16} />
@@ -480,7 +482,7 @@ function badgeClassFromTheme(selectedFeature, isDark) {
   </div>
 
   {/* End Date */}
-  <div className="flex items-center gap-1">
+  <div className="flex  items-center gap-1">
     <CalendarIcon className="opacity-70" size={16} />
 
     <Popover>
