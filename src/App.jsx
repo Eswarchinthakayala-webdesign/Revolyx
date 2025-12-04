@@ -124,6 +124,16 @@ import GoldApiPage2 from './APIDemoPage/GoldApiPage2'
 import FDAAnimalVetPage from './APIDemoPage/FDAAnimalVetPage'
 import WormsPage from './APIDemoPage/WormsPage'
 import OpenAQPage from './APIDemoPage/OpenAQPage'
+import VpicVehiclePage from './APIDemoPage/VpicVehiclePage'
+import OpenSkyPage from './APIDemoPage/OpenSkyPage'
+import YesNoGalleryPage from './APIDemoPage/YesNoGalleryPage'
+import NagerDatePage from './APIDemoPage/NagerDatePage'
+import XRatesPage from './APIDemoPage/XRatesPage'
+import VatComplyCountriesPage from './APIDemoPage/VatComplyCountriesPage'
+import FilterListsPage from './APIDemoPage/FilterListsPage'
+import OsfApiPage from './APIDemoPage/OsfApiPage'
+import PlaceKeanuPage from './APIDemoPage/PlaceKeanuPage'
+import AIToolsPage from './pages/AIToolsPage'
 
 const router=createBrowserRouter([
   {
@@ -521,6 +531,17 @@ const router=createBrowserRouter([
         element:<NobelPage/>
        },
        {
+        path:"/apis/vpic-nhtsa",
+        element:<VpicVehiclePage/>
+
+       },
+       {
+
+        path:"/apis/opensky-network",
+        element:<OpenSkyPage/>
+
+       },
+       {
         path:"/apis/github_contributions",
         element:<GhContribPage/>
        },
@@ -626,6 +647,38 @@ const router=createBrowserRouter([
       {
         path:"/apis/fdaAnimalVet",
         element:<FDAAnimalVetPage/>
+      },
+      {
+        path:"/apis/yesno",
+        element:<YesNoGalleryPage/>
+      },
+      {
+        path:"/apis/nagerdate",
+        element:<NagerDatePage/>
+      },
+      {
+        path:"/apis/xrates",
+        element:<XRatesPage/>
+      },
+      {
+        path:"/apis/vatcomply-countries",
+        element:<VatComplyCountriesPage/>
+      },
+      {
+        path:"/apis/filterlists",
+        element:<FilterListsPage/>
+      },
+      {
+        path:"/apis/osf",
+        element:<OsfApiPage/>
+      },
+      {
+        path:"/apis/placekeanu",
+        element:<PlaceKeanuPage/>
+      },
+      {
+        path:"/ai-tools",
+        element:<AIToolsPage/>
       }
 
       

@@ -424,7 +424,7 @@ export default function IpaApiPage() {
 
       {/* Map dialog */}
       <Dialog open={mapOpen} onOpenChange={setMapOpen}>
-        <DialogContent className={clsx("max-w-4xl w-full p-0 rounded-xl overflow-hidden", isDark ? "bg-black/80" : "bg-white")}>
+        <DialogContent className={clsx("max-w-4xl w-full p-3 rounded-xl overflow-hidden", isDark ? "bg-black/80" : "bg-white")}>
           <DialogHeader>
             <DialogTitle className={clsx(isDark ? "text-zinc-50" : "text-zinc-900")}>Map Preview</DialogTitle>
           </DialogHeader>

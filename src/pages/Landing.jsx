@@ -41,6 +41,7 @@ import {
   Server,
   Type,
   Dessert,
+  Brain,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -100,6 +101,7 @@ export default function LandingPage() {
     { name: "Code Snippet", icon: Code2, path: "/code-snippet" },
     { name: "Neumorphism", icon: Dessert, path: "/neumorphism" },
     { name: "APIs", icon:Server, path: "/apis" },
+    {name:"AI Tools",icon:Brain,path:"/ai-tools"}
   ];
 
   const faqs = [

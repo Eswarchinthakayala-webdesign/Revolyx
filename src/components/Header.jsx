@@ -19,7 +19,8 @@ import {
   LucideFootprints,
   Dessert,
   Type,
-  Server
+  Server,
+  Brain
 } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
 import { useTheme } from "@/components/theme-provider";
@@ -50,6 +51,7 @@ export default function Header() {
     { name: "Code Snippet", icon: Code2, path: "/code-snippet" },
     { name: "Neumorphism", icon: Dessert, path: "/neumorphism" },
     { name: "APIs", icon:Server, path: "/apis" },
+    {name:"AI Tools",icon:Brain,path:"/ai-tools"}
   ];
 
   // Desktop shows FIRST 5 → rest inside "More"

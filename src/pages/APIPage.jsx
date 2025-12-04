@@ -906,9 +906,9 @@ fetch("https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50")
 {
   id: "picsum",
   name: "Picsum Random Image API",
-  category: "Images / Placeholders",
+  category: "Images",
   endpoint: "https://picsum.photos/",
-  description: "Free API for generating random placeholder images with custom size. No API key required. Great for UI previews, mockups, and image loading tests.",
+  description: "Free API for generating random placeholder images with custom size",
   image: "/api_previews/picsum.png",
   code: `fetch("https://picsum.photos/600/400")
     .then(res => {
@@ -1263,6 +1263,116 @@ fetch("https://api.gold-api.com/symbols")
     .then(res => res.json())
     .then(console.log);`,
 },
+{
+  id: "vpic-nhtsa",
+  name: "NHTSA VPIC Vehicle API",
+  category: "Vehicle",
+  endpoint: "https://vpic.nhtsa.dot.gov/api/",
+  description: "Official NHTSA VPIC API providing detailed vehicle information ",
+  image: "/api_previews/vpic_nhtsa.png",
+  code: `fetch("https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMake/honda?format=json")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "opensky-network",
+  name: "OpenSky Network API",
+  category: "Aviation",
+  endpoint: "https://opensky-network.org/api/",
+  description: "OpenSky Network API provides real-time and historical aircraft tracking data ",
+  image: "/api_previews/opensky_network.png",
+  code: `fetch("https://opensky-network.org/api/states/all")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "yesno",
+  name: "YesNo API",
+  category: "Fun",
+  endpoint: "https://yesno.wtf/api",
+  description: "Simple fun API that returns a random YES / NO / MAYBE response with an animated GIF. No API key required.",
+  image: "/api_previews/yesno.png",
+  code: `fetch("https://yesno.wtf/api")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "nagerdate",
+  name: "Nager.Date Public Holidays API",
+  category: "Calendar",
+  endpoint: "https://date.nager.at/Api",
+  description: "Free API that provides worldwide public holidays, long weekends, country holiday lists.",
+  image: "/api_previews/nagerdate.png",
+  code: `fetch("https://date.nager.at/api/v3/PublicHolidays/2025/US")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "xrates",
+  name: "X-Rates Currency Data",
+  category: "Finance",
+  endpoint: "https://www.x-rates.com/",
+  description: "X-Rates provides real-time and historical international currency exchange rates",
+  image: "/api_previews/xrates.png",
+  code: `fetch("https://www.x-rates.com/calculator/?from=USD&to=INR&amount=1")
+    .then(res => res.text())
+    .then(console.log);`,
+}
+,
+{
+  id: "vatcomply-countries",
+  name: "VATComply Countries API",
+  category: "Finance",
+  endpoint: "https://api.vatcomply.com/countries",
+  description: "Complete list of countries with codes, VAT rates, currencies, and geographic information",
+  image: "/api_previews/vatcomply_countries.png",
+  code: `fetch("https://api.vatcomply.com/countries")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "filterlists",
+  name: "FilterLists API",
+  category: "Cybersecurity",
+  endpoint: "https://api.filterlists.com/",
+  description: "API providing data on 900+ ad-blocking, anti-tracking, and anti-malware filter lists used by privacy tools and browsers.",
+  image: "/api_previews/filterlists.png",
+  code: `fetch("https://api.filterlists.com/lists")
+    .then(res => res.json())
+    .then(console.log);`,
+},
+{
+  id: "osf",
+  name: "Open Science Framework API (OSF)",
+  category: "Research",
+  endpoint: "https://api.osf.io/v2",
+  description: "The OSF API provides access to scientific projects, research data, preprints, registrations, contributors, and file storage across the Open Science Framework",
+  image: "/api_previews/osf.png",
+  code: `fetch("https://api.osf.io/v2/nodes/?filter[title]=cancer")
+    .then(res => res.json())
+    .then(console.log);`,
+}
+,
+{
+  id: "placekeanu",
+  name: "PlaceKeanu Image API",
+  category: "Fun",
+  endpoint: "https://placekeanu.com/",
+  description: "Fun placeholder image API that serves random Keanu Reeves images in custom sizes. Completely free and requires no API key — useful for prototyping and UI mockups.",
+  image: "/api_previews/placekeanu.png",
+  code: `fetch("https://placekeanu.com/600/400")
+    .then(res => {
+      console.log("Image URL:", res.url);
+    });`,
+}
+
+
+
+
+
 
 
 ];
