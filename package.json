@@ -73,6 +73,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "crypto-js": "^4.2.0",
     "cryptocurrency-icons": "^0.18.1",
     "date-fns": "^4.1.0",
     "devicon": "^2.17.0",

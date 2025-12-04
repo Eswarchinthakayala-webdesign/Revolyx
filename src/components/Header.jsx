@@ -20,7 +20,12 @@ import {
   Dessert,
   Type,
   Server,
-  Brain
+  Brain,
+  Terminal,
+  Crop,
+  FileJson,
+  ShieldCheckIcon,
+  
 } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
 import { useTheme } from "@/components/theme-provider";
@@ -51,7 +56,11 @@ export default function Header() {
     { name: "Code Snippet", icon: Code2, path: "/code-snippet" },
     { name: "Neumorphism", icon: Dessert, path: "/neumorphism" },
     { name: "APIs", icon:Server, path: "/apis" },
-    {name:"AI Tools",icon:Brain,path:"/ai-tools"}
+    {name:"AI Tools",icon:Brain,path:"/ai-tools"},
+    {name:"WebUtilities",icon:Terminal,path:"/web-utilities"},
+    {name:"ImageTools",icon:Crop,path:"/image-tools"},
+    {name:"JSONTools",icon:FileJson,path:"/json-tools" },
+    {name:"SecurityTools",icon:ShieldCheckIcon,path:"/security-tools"},
   ];
 
   // Desktop shows FIRST 5 → rest inside "More"

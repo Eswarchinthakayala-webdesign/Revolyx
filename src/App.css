@@ -25,6 +25,11 @@
   transition: background 0.6s ease;
 }
 
+.leaflet-container {
+  z-index: 1 !important;
+}
+
+
 /* 🌙 DARK MODE (shadcn/ui adds .dark automatically) */
 .dark .grid-background {
   background: linear-gradient(

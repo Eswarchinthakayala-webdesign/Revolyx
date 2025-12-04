@@ -42,6 +42,10 @@ import {
   Type,
   Dessert,
   Brain,
+  Terminal,
+  Crop,
+  FileJson,
+ ShieldCheckIcon,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -101,7 +105,12 @@ export default function LandingPage() {
     { name: "Code Snippet", icon: Code2, path: "/code-snippet" },
     { name: "Neumorphism", icon: Dessert, path: "/neumorphism" },
     { name: "APIs", icon:Server, path: "/apis" },
-    {name:"AI Tools",icon:Brain,path:"/ai-tools"}
+    {name:"AI Tools",icon:Brain,path:"/ai-tools"},
+    {name:"WebUtilities",icon:Terminal,path:"/web-utilities"},
+     {name:"ImageTools",icon:Crop,path:"/image-tools"},
+      {name:"JSONTools",icon:FileJson,path:"/json-tools" },
+      {name:"SecurityTools",icon:ShieldCheckIcon,path:"/security-tools"},
+      
   ];
 
   const faqs = [
@@ -227,7 +236,7 @@ export default function LandingPage() {
 
       {/* === Explore Modal === */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-300 dark:border-zinc-700 rounded-2xl p-6">
+        <DialogContent className="max-w-2xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border  border-zinc-300 dark:border-zinc-700 rounded-2xl p-6">
           <DialogHeader>
             <DialogTitle className="text-center text-2xl font-bold bg-gradient-to-r from-zinc-900 to-zinc-500 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">
               Explore Revolyx Tools
@@ -237,6 +246,7 @@ export default function LandingPage() {
             </DialogDescription>
           </DialogHeader>
 
+        <div className="space-y-2 h-100 no-scrollbar overflow-y-auto">
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 p-2 sm:p-4">
   {navItems
     .filter((n) => n.name !== "Home")
@@ -261,6 +271,7 @@ export default function LandingPage() {
         </span>
       </Link>
     ))}
+</div>
 </div>
 
         </DialogContent>

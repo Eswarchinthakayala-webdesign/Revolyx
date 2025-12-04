@@ -134,6 +134,10 @@ import FilterListsPage from './APIDemoPage/FilterListsPage'
 import OsfApiPage from './APIDemoPage/OsfApiPage'
 import PlaceKeanuPage from './APIDemoPage/PlaceKeanuPage'
 import AIToolsPage from './pages/AIToolsPage'
+import WebUtilitiesPage from './pages/WebUtilitiesPage'
+import ImageToolsPage from './pages/ImageToolsPage'
+import JSONToolsPage from './pages/JSONToolsPage'
+import SecurityToolsPage from './pages/SecurityToolsPage'
 
 const router=createBrowserRouter([
   {
@@ -679,7 +683,24 @@ const router=createBrowserRouter([
       {
         path:"/ai-tools",
         element:<AIToolsPage/>
-      }
+      },
+      {
+        path:"/web-utilities",
+        element:<WebUtilitiesPage/>
+      },
+      {
+        path:"/image-tools",
+        element:<ImageToolsPage/>
+      },
+      {
+        path:"/json-tools",
+        element:<JSONToolsPage/>
+      },
+      {
+        path:"/security-tools",
+        element:<SecurityToolsPage/>
+      },
+      
 
       
       ]
