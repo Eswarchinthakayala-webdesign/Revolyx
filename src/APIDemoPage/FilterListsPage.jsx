@@ -54,7 +54,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow
 });
 
-const API_BASE = "https://api.filterlists.com"; // proxied
+const API_BASE = "/api/filterlists"; // proxied
 
 /* ---------- utilities ---------- */
 function prettyJSON(obj) {
