@@ -334,7 +334,7 @@ export default function VatComplyCountriesPage() {
           {Object.entries(rates).map(([k, v]) => (
             <div key={k} className="p-3 rounded-md border bg-white/50 dark:bg-zinc-900">
               <div className="text-xs opacity-60">{k}</div>
-              <div className="text-lg font-semibold">{v}</div>
+              <div className="text-lg font-semibold truncate">{v}</div>
               <div className="text-xs opacity-60 mt-1">{currencies[k]?.name || "—"}</div>
             </div>
           ))}

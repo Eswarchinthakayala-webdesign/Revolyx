@@ -138,6 +138,9 @@ import WebUtilitiesPage from './pages/WebUtilitiesPage'
 import ImageToolsPage from './pages/ImageToolsPage'
 import JSONToolsPage from './pages/JSONToolsPage'
 import SecurityToolsPage from './pages/SecurityToolsPage'
+import AudioToolsPage from './pages/AudioToolsPage'
+import VideoToolsPage from './pages/VideoToolsPage'
+import HardwareAndSystemTools from './pages/HardwareAndSystemTools'
 
 const router=createBrowserRouter([
   {
@@ -700,6 +703,18 @@ const router=createBrowserRouter([
         path:"/security-tools",
         element:<SecurityToolsPage/>
       },
+      {
+        path:"/audio-tools",
+        element:<AudioToolsPage/>
+      },
+      {
+        path:"/video-tools",
+        element:<VideoToolsPage/>
+      },
+      {
+        path:"/hardware-and-system-tools",
+        element:<HardwareAndSystemTools/>
+      }
       
 
       

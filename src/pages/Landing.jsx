@@ -46,6 +46,9 @@ import {
   Crop,
   FileJson,
  ShieldCheckIcon,
+ MicIcon,
+ VideoIcon,
+
 } from "lucide-react";
 import { useState } from "react";
 
@@ -110,6 +113,9 @@ export default function LandingPage() {
      {name:"ImageTools",icon:Crop,path:"/image-tools"},
       {name:"JSONTools",icon:FileJson,path:"/json-tools" },
       {name:"SecurityTools",icon:ShieldCheckIcon,path:"/security-tools"},
+      {name:"Audio Tools",icon:MicIcon,path:"/audio-tools"},
+       {name:"Video Tools",icon:VideoIcon,path:"/video-tools"},
+       {name:"Hardware & System",icon:Cpu,path:"/hardware-and-system-tools"},
       
   ];
 

@@ -54,7 +54,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow
 });
 
-const API_BASE = "/api/filterlists"; // proxied
+const API_BASE = "/filterlists"; // proxied
 
 /* ---------- utilities ---------- */
 function prettyJSON(obj) {
@@ -137,13 +137,13 @@ export default function FilterListsExplorer() {
       setError("");
       try {
         const endpoints = [
-          fetch(`/api/filterlists/lists`).then((r) => r.json()),
-          fetch(`/api/filterlists/languages`).then((r) => r.json()),
-          fetch(`/api/filterlists/licenses`).then((r) => r.json()),
-          fetch(`/api/filterlists/maintainers`).then((r) => r.json()),
-          fetch(`/api/filterlists/software`).then((r) => r.json()),
-          fetch(`/api/filterlists/syntaxes`).then((r) => r.json()),
-          fetch(`/api/filterlists/tags`).then((r) => r.json()),
+          fetch(`${API_BASE}/lists`).then((r) => r.json()),
+          fetch(`${API_BASE}/languages`).then((r) => r.json()),
+          fetch(`${API_BASE}/licenses`).then((r) => r.json()),
+          fetch(`${API_BASE}/maintainers`).then((r) => r.json()),
+          fetch(`${API_BASE}/software`).then((r) => r.json()),
+          fetch(`${API_BASE}/syntaxes`).then((r) => r.json()),
+          fetch(`${API_BASE}/tags`).then((r) => r.json()),
         ];
         const [listsRaw, languagesRaw, licensesRaw, maintainersRaw, softwareRaw, syntaxesRaw, tagsRaw] = await Promise.all(endpoints);
 
@@ -235,7 +235,7 @@ export default function FilterListsExplorer() {
     setSoftwareLoading(true);
     setSoftwareDialogOpen(true);
     try {
-      const res = await fetch(`/api/filterlists/software/${encodeURIComponent(sw.id)}`);
+      const res = await fetch(`${API_BASE}/software/${encodeURIComponent(sw.id)}`);
       if (!res.ok) throw new Error(`Failed to load software ${res.status}`);
       const json = await res.json();
       // defensive: some APIs return data in .data or .results

@@ -25,6 +25,9 @@ import {
   Crop,
   FileJson,
   ShieldCheckIcon,
+  MicIcon,
+  VideoIcon,
+  Cpu
   
 } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
@@ -61,6 +64,9 @@ export default function Header() {
     {name:"ImageTools",icon:Crop,path:"/image-tools"},
     {name:"JSONTools",icon:FileJson,path:"/json-tools" },
     {name:"SecurityTools",icon:ShieldCheckIcon,path:"/security-tools"},
+    {name:"Audio Tools",icon:MicIcon,path:"/audio-tools"},
+    {name:"Video Tools",icon:VideoIcon,path:"/video-tools"},
+    {name:"Hardware & System",icon:Cpu,path:"/hardware-and-system-tools"},
   ];
 
   // Desktop shows FIRST 5 → rest inside "More"
@@ -141,7 +147,7 @@ export default function Header() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute right-0 mt-3 w-56 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-border/40 rounded-xl shadow-xl p-3 grid grid-cols-1 gap-2 z-50"
+                    className="absolute right-0 mt-3 w-56 overflow-y-auto h-150 no-scrollbar bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-border/40 rounded-xl shadow-xl p-3 grid grid-cols-1 gap-2 z-50"
                   >
                     {desktopMore.map(({ name, icon: Icon, path }) => (
                       <Link
@@ -213,7 +219,7 @@ export default function Header() {
         initial={{ opacity: 0, y: 25 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-border backdrop-blur-xl bg-white/80 dark:bg-black/80 flex justify-around items-center py-3 lg:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40  border-t border-border backdrop-blur-xl bg-white/80 dark:bg-black/80 flex justify-around items-center py-3 lg:hidden"
       >
         {mobileMain.map(({ name, icon: Icon, path }) => (
           <Link

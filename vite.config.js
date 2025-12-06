@@ -121,12 +121,12 @@ export default defineConfig({
         secure: false,          // allow self-signed certs (not usually needed)
         rewrite: (path) => path.replace(/^\/api\/xrates/, ""),
       },
-      //  "/filterlists": {
-      //   target: "https://api.filterlists.com",
-      //   changeOrigin: true,
-      //   secure: true,
-      //   rewrite: (path) => path.replace(/^\/filterlists/, ""),
-      // },
+       "/filterlists": {
+        target: "https://api.filterlists.com",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/filterlists/, ""),
+      },
       "/osf": {
         target: "https://api.osf.io",
         changeOrigin: true,
