@@ -48,6 +48,8 @@ import {
  ShieldCheckIcon,
  MicIcon,
  VideoIcon,
+ FileQuestion,
+ FileArchiveIcon
 
 } from "lucide-react";
 import { useState } from "react";
@@ -116,6 +118,8 @@ export default function LandingPage() {
       {name:"Audio Tools",icon:MicIcon,path:"/audio-tools"},
        {name:"Video Tools",icon:VideoIcon,path:"/video-tools"},
        {name:"Hardware & System",icon:Cpu,path:"/hardware-and-system-tools"},
+        {name:"Merge & Split",icon:FileQuestion,path:"/merge-and-split"},
+        {name:"File & Conversion",icon:FileArchiveIcon,path:"/file-and-conversion"}
       
   ];
 

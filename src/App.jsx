@@ -141,6 +141,8 @@ import SecurityToolsPage from './pages/SecurityToolsPage'
 import AudioToolsPage from './pages/AudioToolsPage'
 import VideoToolsPage from './pages/VideoToolsPage'
 import HardwareAndSystemTools from './pages/HardwareAndSystemTools'
+import MergeAndSplitTools from './pages/MergeAndSplitTools'
+import FileAndConversionTools from './pages/FileAndConversionTools'
 
 const router=createBrowserRouter([
   {
@@ -714,6 +716,14 @@ const router=createBrowserRouter([
       {
         path:"/hardware-and-system-tools",
         element:<HardwareAndSystemTools/>
+      },
+      {
+        path:"/merge-and-split",
+        element:<MergeAndSplitTools/>
+      },
+      {
+        path:"/file-and-conversion",
+        element:<FileAndConversionTools/>
       }
       
 

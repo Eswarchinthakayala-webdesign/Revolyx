@@ -25,7 +25,7 @@ import {
   Square,
   User,
   Image as ImageIcon,
-  MicIcon,
+  Mic as MicIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,19 @@ import { useTheme } from "../components/theme-provider";
 import { showToast } from "../lib/ToastHelper";
 import { toast } from "sonner"; // lightweight toasts
 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  CartesianGrid,
+  Area,
+} from "recharts";
+
 // ---------------- Tools Enum ----------------
 const TOOLS = {
   PLAYER: "audio_player",
@@ -51,8 +64,7 @@ const TOOLS = {
   VOICE: "voice_changer",
 };
 
-// ---------------- Helpers: WAV encoder + audio utils ----------------
-// Minimal WAV encoder for Float32Array -> WAV Blob
+// ---------------- Helpers: WAV encoder + audio utils (unchanged) ----------------
 function encodeWAV(float32Array, sampleRate) {
   const buffer = new ArrayBuffer(44 + float32Array.length * 2);
   const view = new DataView(buffer);
@@ -86,12 +98,10 @@ function encodeWAV(float32Array, sampleRate) {
   return new Blob([view], { type: "audio/wav" });
 }
 
-// decode an ArrayBuffer to AudioBuffer using AudioContext
 async function decodeAudioBuffer(arrayBuffer, audioContext) {
   return await audioContext.decodeAudioData(arrayBuffer.slice(0));
 }
 
-// slice an AudioBuffer between startSec and endSec and return Float32Array mono mix
 function sliceAudioBufferToMonoFloat32(audioBuffer, startSec, endSec) {
   const sampleRate = audioBuffer.sampleRate;
   const startSample = Math.max(0, Math.floor(startSec * sampleRate));
@@ -109,7 +119,6 @@ function sliceAudioBufferToMonoFloat32(audioBuffer, startSec, endSec) {
   return { samples: tmp, sampleRate };
 }
 
-// render an AudioBuffer with a given playbackRate into a new AudioBuffer via OfflineAudioContext
 async function renderBufferWithRate(audioBuffer, playbackRate) {
   if (playbackRate <= 0) throw new Error("playbackRate must be > 0");
 
@@ -138,14 +147,10 @@ async function renderBufferWithRate(audioBuffer, playbackRate) {
   return rendered;
 }
 
-// render effect: robot (ring-mod + distortion) using OfflineAudioContext
 async function renderBufferWithEffect(audioBuffer, effectName, effectParams = {}) {
   const sampleRate = audioBuffer.sampleRate;
-  const length = Math.ceil(audioBuffer.length); // keep same length for effects that preserve duration
-
   const offlineCtx = new OfflineAudioContext(1, audioBuffer.length, sampleRate);
 
-  // create single-channel buffer and copy (mixdown)
   const single = offlineCtx.createBuffer(1, audioBuffer.length, sampleRate);
   const chCount = audioBuffer.numberOfChannels;
   for (let i = 0; i < audioBuffer.length; i++) {
@@ -157,27 +162,7 @@ async function renderBufferWithEffect(audioBuffer, effectName, effectParams = {}
   const src = offlineCtx.createBufferSource();
   src.buffer = single;
 
-  let nodeChainStart = src;
-  let nodeChainEnd = offlineCtx.destination;
-
   if (effectName === "robot") {
-    // ring modulation: multiply signal by oscillator
-    const gainNode = offlineCtx.createGain();
-    const modOsc = offlineCtx.createOscillator();
-    const modGain = offlineCtx.createGain();
-
-    // mod frequency
-    const freq = effectParams.freq || 30;
-    modOsc.frequency.value = freq;
-    modGain.gain.value = 0.5;
-
-    // create a modulation path: modOsc -> modGain -> gainNode.gain (needs periodicWave)
-    // In OfflineAudioContext we cannot connect oscillator to parameter directly, so we approximate
-    // by using a Waveshaper for amplitude shaping after mixing (simple approach)
-    // Simpler approach: create a dry + multiply by oscillator via ScriptProcessor is not allowed offline.
-    // Instead, approximate robot effect by doubling and using distortion + ring-like filter.
-
-    // create biquad & distortion for metallic effect
     const biquad = offlineCtx.createBiquadFilter();
     biquad.type = "highpass";
     biquad.frequency.value = 800;
@@ -192,21 +177,15 @@ async function renderBufferWithEffect(audioBuffer, effectName, effectParams = {}
     distortion.curve = curve;
     distortion.oversample = "4x";
 
-    // simple ring-ish effect: duplicate, detune slightly (by playbackRate), mix with original after processing
-    const splitter = offlineCtx.createChannelSplitter(1);
-    const merger = offlineCtx.createChannelMerger(1);
-
     src.connect(biquad);
     biquad.connect(distortion);
-    distortion.connect(offlineCtx.destination); // processed path
-    src.connect(offlineCtx.destination); // dry path - mixing both gives metallic sound
+    distortion.connect(offlineCtx.destination);
+    src.connect(offlineCtx.destination);
 
-    // start and render
     src.start(0);
     const rendered = await offlineCtx.startRendering();
     return rendered;
   } else {
-    // default: no extra processing, just render single
     src.connect(offlineCtx.destination);
     src.start(0);
     const rendered = await offlineCtx.startRendering();
@@ -214,64 +193,51 @@ async function renderBufferWithEffect(audioBuffer, effectName, effectParams = {}
   }
 }
 
-// ----------------- Cover art extraction (MP3 ID3v2 APIC) -----------------
-// Replace your old extractCoverFromFile with this improved version
+// ----------------- Cover art extraction (unchanged) -----------------
 async function extractCoverFromFile(file) {
-  // read the first 10 bytes to get ID3 header and declared tag size
   try {
     const headBuf = await file.slice(0, 10).arrayBuffer();
     const head = new Uint8Array(headBuf);
     if (head.length < 10) return null;
-    if (head[0] !== 0x49 || head[1] !== 0x44 || head[2] !== 0x33) return null; // not ID3
+    if (head[0] !== 0x49 || head[1] !== 0x44 || head[2] !== 0x33) return null;
 
-    const versionMajor = head[3]; // 2, 3 or 4
-    // header size is syncsafe 4 bytes (ID3v2 header always uses syncsafe)
+    const versionMajor = head[3];
     const tagSize =
       (head[6] & 0x7f) * 0x200000 +
       (head[7] & 0x7f) * 0x4000 +
       (head[8] & 0x7f) * 0x80 +
       (head[9] & 0x7f);
 
-    // cap tag read size to avoid reading enormous files in browser (adjust as needed)
-    const cap = Math.min(tagSize + 10, 5 * 1024 * 1024); // 5 MB max
+    const cap = Math.min(tagSize + 10, 5 * 1024 * 1024);
     const fullBuf = await file.slice(0, cap).arrayBuffer();
     const bytes = new Uint8Array(fullBuf);
 
-    // helper to read 32-bit big-endian
     const readUInt32BE = (arr, off) =>
       (arr[off] << 24) | (arr[off + 1] << 16) | (arr[off + 2] << 8) | arr[off + 3];
-
-    // helper to read 3-byte size (v2.2)
     const readUInt24BE = (arr, off) =>
       (arr[off] << 16) | (arr[off + 1] << 8) | arr[off + 2];
 
-    // walk frames starting after header (offset 10)
     let offset = 10;
     const end = Math.min(10 + tagSize, bytes.length);
 
     while (offset + 10 < end) {
-      // frame ID and size depend on version
       let frameId = "";
       let frameSize = 0;
       let headerSize = 0;
 
       if (versionMajor === 2) {
-        // ID3v2.2: 3-byte id, 3-byte size
         if (offset + 6 > bytes.length) break;
         frameId = String.fromCharCode(bytes[offset], bytes[offset + 1], bytes[offset + 2]);
         frameSize = readUInt24BE(bytes, offset + 3);
         headerSize = 6;
       } else if (versionMajor === 3) {
-        // ID3v2.3: 4-byte id, 4-byte size (big-endian)
         if (offset + 10 > bytes.length) break;
         frameId = String.fromCharCode(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]);
         frameSize = readUInt32BE(bytes, offset + 4);
         headerSize = 10;
       } else if (versionMajor === 4) {
-        // ID3v2.4: 4-byte id, 4-byte syncsafe size
         if (offset + 10 > bytes.length) break;
         frameId = String.fromCharCode(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]);
-        // syncsafe -> convert 4 bytes to int
         frameSize =
           (bytes[offset + 4] & 0x7f) * 0x200000 +
           (bytes[offset + 5] & 0x7f) * 0x4000 +
@@ -279,88 +245,67 @@ async function extractCoverFromFile(file) {
           (bytes[offset + 7] & 0x7f);
         headerSize = 10;
       } else {
-        // unknown version
         break;
       }
 
       offset += headerSize;
-      if (frameSize <= 0 || offset + frameSize > bytes.length) {
-        // frame size invalid or not fully in buffer — break to avoid infinite loop
-        break;
-      }
+      if (frameSize <= 0 || offset + frameSize > bytes.length) break;
 
-      // APIC in v2.3/2.4; PIC in v2.2
       if (frameId === "APIC" || frameId === "PIC") {
-        // parse APIC/PIC frame structure
         const frameData = bytes.subarray(offset, offset + frameSize);
         let p = 0;
         const encoding = frameData[p++];
 
-        // read MIME (APIC) or image format (PIC v2.2) up to null
         let mime = "";
         if (frameId === "APIC") {
           while (p < frameData.length && frameData[p] !== 0) mime += String.fromCharCode(frameData[p++]);
-          p++; // skip null
+          p++;
         } else {
-          // PIC: 3-byte image format, e.g. "JPG"
           mime = String.fromCharCode(frameData[p], frameData[p + 1], frameData[p + 2]);
-          // map common PIC codes to mime
           if (mime.toUpperCase() === "JPG") mime = "image/jpeg";
           else mime = "image/" + mime.toLowerCase();
           p += 3;
         }
 
-        // picture type byte
         const picType = frameData[p++];
 
-        // description: terminated by 0 (encoding aware) -> we just skip until 0
         while (p < frameData.length && frameData[p] !== 0) p++;
         if (p < frameData.length && frameData[p] === 0) p++;
 
-        // remaining bytes are image binary
         const imageData = frameData.subarray(p);
         if (imageData && imageData.length > 16) {
           const blob = new Blob([imageData], { type: mime || "image/jpeg" });
           const url = URL.createObjectURL(blob);
           return url;
         } else {
-          // image data too small — probably truncated or not fully read
           return null;
         }
       }
 
-      // move to next frame
       offset += frameSize;
     }
   } catch (err) {
-    // ignore parse errors
-    // console.warn("cover parse failed", err);
     return null;
   }
   return null;
 }
 
-
-// ----------------- Main component -----------------
+// ----------------- Main component (enhanced) -----------------
 export default function AudioToolsPage() {
   const { theme } = useTheme();
   const isDark =
     theme === "dark" ||
     (theme === "system" && typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
 
-  // tool selection (sync to ?tool param on first mount)
   const [selectedTool, setSelectedTool] = useState(TOOLS.PLAYER);
 
-  // file and audio state
   const [audioFile, setAudioFile] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
   const [audioBuffer, setAudioBuffer] = useState(null);
   const audioCtxRef = useRef(null);
 
-  // extracted cover
   const [coverUrl, setCoverUrl] = useState(null);
 
-  // player state
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -368,44 +313,68 @@ export default function AudioToolsPage() {
   const [volume, setVolume] = useState(1);
   const [playbackRate, setPlaybackRate] = useState(1.0);
 
-  // cutter state
   const [cutStart, setCutStart] = useState(0);
   const [cutEnd, setCutEnd] = useState(0);
 
-  // voice changer state
-  const [voiceEffect, setVoiceEffect] = useState("chipmunk"); // chipmunk | deep | robot
-  const [voiceEffectParam, setVoiceEffectParam] = useState(1.4); // e.g., factor for chipmunk/deep or freq for robot
+  const [voiceEffect, setVoiceEffect] = useState("chipmunk");
+  const [voiceEffectParam, setVoiceEffectParam] = useState(1.4);
 
-  // loading / UI
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // transcription state
   const [transcript, setTranscript] = useState("");
   const [recognizing, setRecognizing] = useState(false);
   const recognitionRef = useRef(null);
 
-  // debug / info
   const [sampleRate, setSampleRate] = useState(null);
   const [channels, setChannels] = useState(null);
   const [file, setFile] = useState(null);
 
-  // read ?tool param on mount (vanilla)
+  // === Visualizer & analyzer refs/state ===
+  const analyserRef = useRef(null);
+  const dataArrayRef = useRef(null);
+  const timeDomainRef = useRef(null);
+  const animationFrameRef = useRef(null);
+
+  const mediaSourceRef = useRef(null);
+
+  // Recharts-friendly state (throttled updates)
+  const [freqChartData, setFreqChartData] = useState([]); // array of {x, value}
+  const [realtimeWaveData, setRealtimeWaveData] = useState([]); // array of {x, y}
+  const [staticWaveData, setStaticWaveData] = useState([]); // computed once when buffer loads
+
+  // equalizer bands (6-band peaking filters)
+  const EQ_BANDS = [
+    { label: "60Hz", freq: 60 },
+    { label: "170Hz", freq: 170 },
+    { label: "350Hz", freq: 350 },
+    { label: "1kHz", freq: 1000 },
+    { label: "3.5kHz", freq: 3500 },
+    { label: "10kHz", freq: 10000 },
+  ];
+  const [eqGains, setEqGains] = useState(new Array(EQ_BANDS.length).fill(0)); // dB
+
+  // noise/stats
+  const [rms, setRms] = useState(0);
+  const [noiseEstimate, setNoiseEstimate] = useState(0);
+  const [spectralFlatness, setSpectralFlatness] = useState(0);
+
+  // BPM
+  const [detectedBpm, setDetectedBpm] = useState(null);
+  const [bpmConfidence, setBpmConfidence] = useState(null);
+
+  // throttle refs to prevent state flooding (avoid max update depth)
+  const lastUpdateRef = useRef(0); // timestamp of last setState update
+  const updateIntervalMs = 80; // ~12 updates/sec
+
+  // ensure AudioContext created early
   useEffect(() => {
-    try {
-      if (typeof window === "undefined") return;
-      const params = new URLSearchParams(window.location.search);
-      const t = params.get("tool");
-      if (t && Object.values(TOOLS).includes(t)) setSelectedTool(t);
-    } catch (e) {
-      /* ignore */
-    }
     if (!audioCtxRef.current && typeof window !== "undefined") {
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
   }, []);
 
-  // sync URL when selectedTool changes
+  // sync selectedTool query param
   useEffect(() => {
     try {
       if (typeof window === "undefined") return;
@@ -415,21 +384,17 @@ export default function AudioToolsPage() {
       else params.delete("tool");
       const q = params.toString();
       window.history.replaceState(null, "", pathname + (q ? `?${q}` : ""));
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
   }, [selectedTool]);
 
-  // cleanup audioURL/cover when file changes
   useEffect(() => {
     return () => {
       if (audioUrl) URL.revokeObjectURL(audioUrl);
       if (coverUrl) URL.revokeObjectURL(coverUrl);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // on unmount
 
-  // handle file input
+  // ---------------- File handling ----------------
   const handleFileChange = useCallback(
     async (e) => {
       const f = e.target.files?.[0];
@@ -454,7 +419,6 @@ export default function AudioToolsPage() {
       const url = URL.createObjectURL(f);
       setAudioUrl(url);
 
-      // attempt to extract cover art (best effort for MP3 APIC)
       try {
         const cover = await extractCoverFromFile(f);
         if (cover) {
@@ -477,6 +441,26 @@ export default function AudioToolsPage() {
         setCutStart(0);
         setCutEnd(decoded.duration);
         showToast("success", `Loaded ${f.name}`);
+
+        // run BPM detection (synchronous here)
+        try {
+          const { bpm, confidence } = estimateBPMFromAudioBuffer(decoded);
+          if (bpm) {
+            setDetectedBpm(Math.round(bpm));
+            setBpmConfidence(Math.round(confidence * 100));
+          } else {
+            setDetectedBpm(null);
+            setBpmConfidence(null);
+          }
+        } catch (err) {
+          console.warn("BPM detect failed", err);
+          setDetectedBpm(null);
+          setBpmConfidence(null);
+        }
+
+        // compute static waveform data (for Recharts)
+        const sw = computeStaticWaveformData(decoded, 500); // produce up to 500 samples
+        setStaticWaveData(sw);
       } catch (err) {
         console.error("decode error", err);
         showToast("error", "Failed to decode audio (file may be unsupported)");
@@ -488,7 +472,7 @@ export default function AudioToolsPage() {
     [audioUrl, coverUrl]
   );
 
-  // audio element event handlers (progress)
+  // ---------------- Audio element events ----------------
   useEffect(() => {
     const audioEl = audioRef.current;
     if (!audioEl) return;
@@ -514,7 +498,6 @@ export default function AudioToolsPage() {
     };
   }, [duration]);
 
-  // update volume & playbackRate on audio element
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
@@ -524,11 +507,9 @@ export default function AudioToolsPage() {
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
-    // when using voice preview for certain effects we will create a separate WebAudio chain
     el.playbackRate = playbackRate;
   }, [playbackRate]);
 
-  // quick play/pause button
   const togglePlay = useCallback(async () => {
     const el = audioRef.current;
     if (!el) {
@@ -547,7 +528,6 @@ export default function AudioToolsPage() {
     }
   }, []);
 
-  // seek
   const handleSeek = useCallback((value) => {
     const el = audioRef.current;
     if (!el) return;
@@ -555,7 +535,7 @@ export default function AudioToolsPage() {
     setCurrentTime(Number(value));
   }, []);
 
-  // ---------------- CUTTER: export selection to WAV ----------------
+  // ---------------- CUTTER & SPEED & VOICE (unchanged behavior) ----------------
   const exportCutAsWav = useCallback(async () => {
     if (!audioBuffer) {
       showToast("error", "No audio loaded");
@@ -586,7 +566,6 @@ export default function AudioToolsPage() {
     }
   }, [audioBuffer, cutStart, cutEnd]);
 
-  // preview cut: play from start to end (temporarily)
   const previewCut = useCallback(() => {
     if (!audioRef.current || !audioBuffer) {
       showToast("error", "Nothing to preview");
@@ -596,7 +575,6 @@ export default function AudioToolsPage() {
     el.currentTime = Math.max(0, cutStart);
     el.playbackRate = playbackRate;
     el.play().catch(() => {});
-    // stop at cutEnd
     const stopAt = () => {
       if (el.currentTime >= cutEnd - 0.05) {
         el.pause();
@@ -606,7 +584,6 @@ export default function AudioToolsPage() {
     el.addEventListener("timeupdate", stopAt);
   }, [cutStart, cutEnd, playbackRate, audioBuffer]);
 
-  // ---------------- SPEED: export rendered buffer at playbackRate ----------------
   const exportSpeedAdjusted = useCallback(
     async (rate) => {
       if (!audioBuffer) {
@@ -650,164 +627,133 @@ export default function AudioToolsPage() {
     [audioBuffer]
   );
 
-  // ---------------- VOICE CHANGER: preview and export ----------------
-  // preview: simple approach using AudioContext nodes (not offline)
-// preview: simple approach using AudioContext nodes (not offline)
-// (replace your existing previewVoiceEffect with this)
-const stopVoicePreview = useCallback(() => {
-  try {
-    const ctx = audioCtxRef.current;
-    if (!ctx) return;
-    // call stored cleanup if present
-    if (typeof ctx.__voicePreviewCleanup === "function") {
-      try { ctx.__voicePreviewCleanup(); } catch (e) { /* ignore */ }
-      delete ctx.__voicePreviewCleanup;
-    }
-
-    // stop stored source if exists
-    if (ctx.__voicePreviewSource) {
-      try { ctx.__voicePreviewSource.stop(0); } catch (e) {}
-      try { ctx.__voicePreviewSource.disconnect(); } catch (e) {}
-      delete ctx.__voicePreviewSource;
-    }
-    // stop stored osc if exists
-    if (ctx.__voicePreviewOsc) {
-      try { ctx.__voicePreviewOsc.stop(0); } catch (e) {}
-      try { ctx.__voicePreviewOsc.disconnect(); } catch (e) {}
-      delete ctx.__voicePreviewOsc;
-    }
-    // clear any preview timeout
-    if (ctx.__voicePreviewTimeout) {
-      clearTimeout(ctx.__voicePreviewTimeout);
-      delete ctx.__voicePreviewTimeout;
-    }
-  } catch (err) {
-    // swallow cleanup errors
-    console.warn("stopVoicePreview error", err);
-  }
-}, []);
-const previewVoiceEffect = useCallback(async () => {
-  if (!audioBuffer) {
-    showToast("error", "No audio loaded");
-    return;
-  }
-  try {
-    const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
-    audioCtxRef.current = ctx;
-
-    // ensure previous preview is fully stopped
-    stopVoicePreview();
-
-    // create source from buffer (mono mixdown)
-    const src = ctx.createBufferSource();
-    const single = ctx.createBuffer(1, audioBuffer.length, audioBuffer.sampleRate);
-    const chCount = audioBuffer.numberOfChannels;
-    for (let i = 0; i < audioBuffer.length; i++) {
-      let sum = 0;
-      for (let ch = 0; ch < chCount; ch++) sum += audioBuffer.getChannelData(ch)[i];
-      single.getChannelData(0)[i] = sum / chCount;
-    }
-    src.buffer = single;
-
-    // store source for cleanup
-    ctx.__voicePreviewSource = src;
-
-    // create a cleanup function scoped here (so we can call it from onended or stopVoicePreview)
-    const cleanup = () => {
-      try {
-        if (ctx.__voicePreviewSource) {
-          try { ctx.__voicePreviewSource.stop(0); } catch (e) {}
-          try { ctx.__voicePreviewSource.disconnect(); } catch (e) {}
-          delete ctx.__voicePreviewSource;
-        }
-        if (ctx.__voicePreviewOsc) {
-          try { ctx.__voicePreviewOsc.stop(0); } catch (e) {}
-          try { ctx.__voicePreviewOsc.disconnect(); } catch (e) {}
-          delete ctx.__voicePreviewOsc;
-        }
-        if (ctx.__voicePreviewTimeout) {
-          clearTimeout(ctx.__voicePreviewTimeout);
-          delete ctx.__voicePreviewTimeout;
-        }
-      } catch (e) {
-        /* ignore cleanup errors */
+  // ---------------- VOICE CHANGER (existing preview/export code reused) ----------------
+  const stopVoicePreview = useCallback(() => {
+    try {
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      if (typeof ctx.__voicePreviewCleanup === "function") {
+        try { ctx.__voicePreviewCleanup(); } catch (e) {}
+        delete ctx.__voicePreviewCleanup;
       }
-    };
-
-    // store cleanup so stopVoicePreview can call it
-    ctx.__voicePreviewCleanup = cleanup;
-
-    if (voiceEffect === "chipmunk") {
-      src.playbackRate.value = voiceEffectParam || 1.6;
-      src.connect(ctx.destination);
-      src.start(0);
-      // when playback ends clean up
-      src.onended = () => cleanup();
-    } else if (voiceEffect === "deep") {
-      src.playbackRate.value = voiceEffectParam || 0.75;
-      src.connect(ctx.destination);
-      src.start(0);
-      src.onended = () => cleanup();
-    } else if (voiceEffect === "robot") {
-      // robot preview: ring-mod style using an oscillator modulating a gain node
-      const gain = ctx.createGain();
-      const modOsc = ctx.createOscillator();
-      const modGain = ctx.createGain();
-
-      // parameters
-      modOsc.type = "square";
-      modOsc.frequency.value = voiceEffectParam || 30;
-      modGain.gain.value = 0.5;
-
-      // routing: src -> gain -> destination
-      // oscillator -> modGain -> gain.gain (AudioParam) — this is allowed
-      // connect modOsc -> modGain -> gain.gain
-      try {
-        modOsc.connect(modGain);
-        // connect modGain to the AudioParam (gain.gain)
-        modGain.connect(gain.gain);
-      } catch (e) {
-        // some browsers may disallow direct AudioParam connections in some contexts,
-        // fall back to simpler chain
-        modOsc.disconnect();
-        modGain.disconnect();
+      if (ctx.__voicePreviewSource) {
+        try { ctx.__voicePreviewSource.stop(0); } catch (e) {}
+        try { ctx.__voicePreviewSource.disconnect(); } catch (e) {}
+        delete ctx.__voicePreviewSource;
       }
+      if (ctx.__voicePreviewOsc) {
+        try { ctx.__voicePreviewOsc.stop(0); } catch (e) {}
+        try { ctx.__voicePreviewOsc.disconnect(); } catch (e) {}
+        delete ctx.__voicePreviewOsc;
+      }
+      if (ctx.__voicePreviewTimeout) {
+        clearTimeout(ctx.__voicePreviewTimeout);
+        delete ctx.__voicePreviewTimeout;
+      }
+    } catch (err) {
+      console.warn("stopVoicePreview error", err);
+    }
+  }, []);
 
-      src.connect(gain);
-      gain.connect(ctx.destination);
+  const previewVoiceEffect = useCallback(async () => {
+    if (!audioBuffer) {
+      showToast("error", "No audio loaded");
+      return;
+    }
+    try {
+      const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
+      audioCtxRef.current = ctx;
 
-      // store oscillator for cleanup
-      ctx.__voicePreviewOsc = modOsc;
+      stopVoicePreview();
+
+      const src = ctx.createBufferSource();
+      const single = ctx.createBuffer(1, audioBuffer.length, audioBuffer.sampleRate);
+      const chCount = audioBuffer.numberOfChannels;
+      for (let i = 0; i < audioBuffer.length; i++) {
+        let sum = 0;
+        for (let ch = 0; ch < chCount; ch++) sum += audioBuffer.getChannelData(ch)[i];
+        single.getChannelData(0)[i] = sum / chCount;
+      }
+      src.buffer = single;
+
       ctx.__voicePreviewSource = src;
 
-      // start oscillator & source
-      try { modOsc.start(0); } catch (e) {}
-      try { src.start(0); } catch (e) {}
+      const cleanup = () => {
+        try {
+          if (ctx.__voicePreviewSource) {
+            try { ctx.__voicePreviewSource.stop(0); } catch (e) {}
+            try { ctx.__voicePreviewSource.disconnect(); } catch (e) {}
+            delete ctx.__voicePreviewSource;
+          }
+          if (ctx.__voicePreviewOsc) {
+            try { ctx.__voicePreviewOsc.stop(0); } catch (e) {}
+            try { ctx.__voicePreviewOsc.disconnect(); } catch (e) {}
+            delete ctx.__voicePreviewOsc;
+          }
+          if (ctx.__voicePreviewTimeout) {
+            clearTimeout(ctx.__voicePreviewTimeout);
+            delete ctx.__voicePreviewTimeout;
+          }
+        } catch (e) {}
+      };
 
-      // schedule cleanup when source ends
-      src.onended = () => cleanup();
+      ctx.__voicePreviewCleanup = cleanup;
 
-      // also attach a safety timeout (in case onended isn't fired reliably)
-      ctx.__voicePreviewTimeout = setTimeout(() => {
-        cleanup();
-      }, Math.ceil(src.buffer.duration * 1000) + 500);
+      if (voiceEffect === "chipmunk") {
+        src.playbackRate.value = voiceEffectParam || 1.6;
+        src.connect(ctx.destination);
+        src.start(0);
+        src.onended = () => cleanup();
+      } else if (voiceEffect === "deep") {
+        src.playbackRate.value = voiceEffectParam || 0.75;
+        src.connect(ctx.destination);
+        src.start(0);
+        src.onended = () => cleanup();
+      } else if (voiceEffect === "robot") {
+        const gain = ctx.createGain();
+        const modOsc = ctx.createOscillator();
+        const modGain = ctx.createGain();
+
+        modOsc.type = "square";
+        modOsc.frequency.value = voiceEffectParam || 30;
+        modGain.gain.value = 0.5;
+
+        try {
+          modOsc.connect(modGain);
+          modGain.connect(gain.gain);
+        } catch (e) {
+          modOsc.disconnect();
+          modGain.disconnect();
+        }
+
+        src.connect(gain);
+        gain.connect(ctx.destination);
+
+        ctx.__voicePreviewOsc = modOsc;
+        ctx.__voicePreviewSource = src;
+
+        try { modOsc.start(0); } catch (e) {}
+        try { src.start(0); } catch (e) {}
+
+        src.onended = () => cleanup();
+        ctx.__voicePreviewTimeout = setTimeout(() => {
+          cleanup();
+        }, Math.ceil(src.buffer.duration * 1000) + 500);
+      }
+
+      showToast("success", "Previewing voice effect");
+    } catch (err) {
+      console.error("voice preview error", err);
+      showToast("error", "Voice preview failed");
     }
+  }, [audioBuffer, voiceEffect, voiceEffectParam, stopVoicePreview]);
 
-    showToast("success", "Previewing voice effect");
-  } catch (err) {
-    console.error("voice preview error", err);
-    showToast("error", "Voice preview failed");
-  }
-}, [audioBuffer, voiceEffect, voiceEffectParam, stopVoicePreview]);
- // cleanup preview nodes on unmount
-useEffect(() => {
-  return () => {
-    stopVoicePreview();
-  };
-}, [stopVoicePreview]);
+  useEffect(() => {
+    return () => {
+      stopVoicePreview();
+    };
+  }, [stopVoicePreview]);
 
-
-  // export voice-changed result (OfflineAudioContext)
   const exportVoiceChanged = useCallback(async () => {
     if (!audioBuffer) {
       showToast("error", "No audio loaded");
@@ -816,7 +762,6 @@ useEffect(() => {
     setLoading(true);
     try {
       if (voiceEffect === "chipmunk" || voiceEffect === "deep") {
-        // use renderBufferWithRate for chipmunk/deep
         const rate = voiceEffect === "chipmunk" ? (voiceEffectParam || 1.6) : (voiceEffectParam || 0.75);
         const rendered = await renderBufferWithRate(audioBuffer, rate);
         const samples = rendered.numberOfChannels === 1
@@ -839,7 +784,6 @@ useEffect(() => {
         URL.revokeObjectURL(url);
         showToast("success", "Export complete");
       } else if (voiceEffect === "robot") {
-        // use renderBufferWithEffect which approximates robot effect
         const rendered = await renderBufferWithEffect(audioBuffer, "robot", { freq: voiceEffectParam || 30 });
         const samples = rendered.numberOfChannels === 1
           ? rendered.getChannelData(0).slice(0)
@@ -871,7 +815,7 @@ useEffect(() => {
     }
   }, [audioBuffer, voiceEffect, voiceEffectParam]);
 
-  // ---------------- TRANSCRIBE: Web Speech API (microphone capture) ----------------
+  // ---------------- TRANSCRIBE (unchanged) ----------------
   const startTranscription = useCallback(() => {
     if (typeof window === "undefined") return;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -939,7 +883,6 @@ useEffect(() => {
     setRecognizing(false);
   }, []);
 
-  // copy transcript
   const copyTranscript = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(transcript || "");
@@ -949,7 +892,6 @@ useEffect(() => {
     }
   }, [transcript]);
 
-  // download transcript
   const downloadTranscript = useCallback(() => {
     if (!transcript) {
       showToast("error", "No transcript");
@@ -965,7 +907,6 @@ useEffect(() => {
     showToast("success", "Downloaded transcript");
   }, [transcript]);
 
-  // small helpers
   const formatTime = (s = 0) => {
     if (!isFinite(s)) return "0:00";
     const m = Math.floor(s / 60);
@@ -974,6 +915,298 @@ useEffect(() => {
       .padStart(2, "0");
     return `${m}:${sec}`;
   };
+
+  // ---------------- Visualizer / Analyser setup (Recharts integration) ----------------
+  useEffect(() => {
+    // stop previous loop to safely rebuild chain
+    stopVisualizerLoop();
+
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+
+    const audioEl = audioRef.current;
+    if (!audioEl || !audioUrl) {
+      analyserRef.current = null;
+      return;
+    }
+
+    // --- Create MediaElementSource only once ---
+    if (!mediaSourceRef.current) {
+      try {
+        mediaSourceRef.current = ctx.createMediaElementSource(audioEl);
+      } catch (e) {
+        console.warn("createMediaElementSource failed", e);
+        analyserRef.current = null;
+        return;
+      }
+    }
+
+    const source = mediaSourceRef.current;
+
+    // build EQ nodes
+    const eqNodes = EQ_BANDS.map((b, i) => {
+      const n = ctx.createBiquadFilter();
+      n.type = "peaking";
+      n.frequency.value = b.freq;
+      n.Q.value = 1.0;
+      n.gain.value = eqGains[i] ?? 0;
+      return n;
+    });
+
+    // disconnect previous connections from source before reconnecting to new chain
+    try {
+      source.disconnect();
+    } catch (e) {
+      // ignore
+    }
+
+    // connect chain
+    source.connect(eqNodes[0]);
+    for (let i = 0; i < eqNodes.length - 1; i++) {
+      eqNodes[i].connect(eqNodes[i + 1]);
+    }
+
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.8;
+
+    eqNodes[eqNodes.length - 1].connect(analyser);
+    analyser.connect(ctx.destination);
+
+    analyserRef.current = { analyser, eqNodes, source };
+
+    const bufferLength = analyser.frequencyBinCount;
+    dataArrayRef.current = new Uint8Array(bufferLength);
+    timeDomainRef.current = new Uint8Array(analyser.fftSize);
+
+    // start visualizer loop
+    if (!animationFrameRef.current) startVisualizerLoop();
+
+    return () => {
+      if (analyserRef.current) {
+        const { analyser: an, eqNodes: nodes } = analyserRef.current;
+        nodes.forEach((n) => {
+          try { n.disconnect(); } catch {}
+        });
+        if (an) try { an.disconnect(); } catch {}
+      }
+      analyserRef.current = null;
+    };
+  }, [audioUrl, eqGains]); // re-run on audio url change or eq changes
+
+  // visualizer loop (compute arrays and throttle setState)
+  const startVisualizerLoop = useCallback(() => {
+    if (animationFrameRef.current) return;
+
+    const draw = () => {
+      try {
+        const ctx = audioCtxRef.current;
+        const analyzerData = analyserRef.current;
+        if (!ctx || !analyzerData) {
+          animationFrameRef.current = requestAnimationFrame(draw);
+          return;
+        }
+        const { analyser } = analyzerData;
+
+        analyser.getByteFrequencyData(dataArrayRef.current);
+        analyser.getByteTimeDomainData(timeDomainRef.current);
+
+        // compute RMS & noise estimate & spectral flatness
+        {
+          // RMS from timeDomainRef
+          let sumSq = 0;
+          for (let i = 0; i < timeDomainRef.current.length; i++) {
+            const n = (timeDomainRef.current[i] - 128) / 128;
+            sumSq += n * n;
+          }
+          const _rms = Math.sqrt(sumSq / timeDomainRef.current.length);
+          // update quickly but not every frame via throttled setState
+          setRms(_rms);
+
+          // noise estimate: average of high-frequency bins (top 30%)
+          const freqArr = dataArrayRef.current;
+          const startIdx = Math.floor(freqArr.length * 0.7);
+          let hfSum = 0;
+          for (let i = startIdx; i < freqArr.length; i++) hfSum += freqArr[i];
+          const hfAvg = hfSum / Math.max(1, freqArr.length - startIdx);
+          setNoiseEstimate(hfAvg / 255);
+
+          // spectral flatness (geometric mean / arithmetic mean)
+          let geo = 1.0;
+          let ar = 0;
+          let small = 1e-12;
+          const cap = Math.min(freqArr.length, 1024);
+          for (let i = 0; i < cap; i++) {
+            const v = (freqArr[i] + 1) / 256; // avoid zeros
+            geo *= v;
+            ar += v;
+          }
+          geo = Math.pow(geo + small, 1 / cap);
+          ar = ar / cap;
+          const flatness = geo / (ar + small);
+          setSpectralFlatness(flatness);
+        }
+
+        // Prepare Recharts-friendly arrays but throttle setState to avoid rerender flood
+        const now = performance.now();
+        const shouldUpdate = now - (lastUpdateRef.current || 0) > updateIntervalMs;
+        if (shouldUpdate) {
+          lastUpdateRef.current = now;
+
+          // Reduce frequency data to a manageable number of points for charting (e.g., 128)
+          const freqLen = Math.min(128, dataArrayRef.current.length);
+          const step = Math.floor(dataArrayRef.current.length / freqLen) || 1;
+          const freqPoints = [];
+          for (let i = 0; i < dataArrayRef.current.length; i += step) {
+            const v = dataArrayRef.current[i] / 255;
+            freqPoints.push({ x: i, value: Math.round(v * 100) }); // scale 0..100 for chart
+            if (freqPoints.length >= freqLen) break;
+          }
+
+          // Realtime waveform: sample down the time domain to e.g., 300 points
+          const waveLen = 300;
+          const tStep = Math.floor(timeDomainRef.current.length / waveLen) || 1;
+          const wavePoints = [];
+          for (let i = 0; i < timeDomainRef.current.length; i += tStep) {
+            const v = (timeDomainRef.current[i] - 128) / 128; // -1..1
+            wavePoints.push({ x: i, y: parseFloat(v.toFixed(3)) });
+            if (wavePoints.length >= waveLen) break;
+          }
+
+          // Apply state updates (throttled)
+          setFreqChartData(freqPoints);
+          setRealtimeWaveData(wavePoints);
+        }
+      } catch (err) {
+        // swallow errors
+      } finally {
+        animationFrameRef.current = requestAnimationFrame(draw);
+      }
+    };
+
+    animationFrameRef.current = requestAnimationFrame(draw);
+  }, []);
+
+  const stopVisualizerLoop = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+  }, []);
+
+  // stop when component unmount
+  useEffect(() => {
+    return () => {
+      stopVisualizerLoop();
+      if (analyserRef.current) {
+        try {
+          const { analyser, eqNodes, source } = analyserRef.current;
+          if (source) try { source.disconnect(); } catch (e) {}
+          if (eqNodes) eqNodes.forEach((n) => { try { n.disconnect(); } catch {} });
+          if (analyser) try { analyser.disconnect(); } catch (e) {}
+        } catch (e) {}
+      }
+    };
+  }, [stopVisualizerLoop]);
+
+  // draw static waveform from decoded AudioBuffer -> compute array for recharts
+  function computeStaticWaveformData(audioBuf, maxPoints = 500) {
+    try {
+      if (!audioBuf) return [];
+      const channelCount = audioBuf.numberOfChannels;
+      // mixdown to mono (first channel or averaged)
+      const len = audioBuf.length;
+      const raw = new Float32Array(len);
+      if (channelCount === 1) {
+        raw.set(audioBuf.getChannelData(0));
+      } else {
+        for (let ch = 0; ch < channelCount; ch++) {
+          const chd = audioBuf.getChannelData(ch);
+          for (let i = 0; i < len; i++) {
+            raw[i] = (raw[i] || 0) + chd[i] / channelCount;
+          }
+        }
+      }
+
+      const blockSize = Math.ceil(len / maxPoints);
+      const data = [];
+      for (let i = 0; i < len; i += blockSize) {
+        let maxVal = 0;
+        for (let j = 0; j < blockSize && i + j < len; j++) {
+          const v = Math.abs(raw[i + j]);
+          if (v > maxVal) maxVal = v;
+        }
+        data.push({ x: i, y: parseFloat((maxVal * (raw[i] < 0 ? -1 : 1)).toFixed(3)) });
+      }
+      return data;
+    } catch (err) {
+      return [];
+    }
+  }
+
+  // ---------------- Equalizer UI -> update gain on nodes ----------------
+  useEffect(() => {
+    if (!analyserRef.current) return;
+    const { eqNodes } = analyserRef.current;
+    if (!eqNodes) return;
+    for (let i = 0; i < eqNodes.length; i++) {
+      try {
+        eqNodes[i].gain.setValueAtTime(eqGains[i] || 0, audioCtxRef.current.currentTime);
+      } catch (e) {}
+    }
+  }, [eqGains]);
+
+  // ----------------- BPM detection function (naive energy autocorrelation) -----------------
+  function estimateBPMFromAudioBuffer(audioBuf) {
+    try {
+      const sr = audioBuf.sampleRate;
+      const data = audioBuf.getChannelData(0);
+      const len = data.length;
+      const downsample = Math.max(1, Math.floor(sr / 8000)); // down to ~8kHz
+      const small = [];
+      for (let i = 0; i < len; i += downsample) small.push(data[i]);
+      const frameSize = 1024;
+      const hop = 512;
+      const energy = [];
+      for (let i = 0; i + frameSize < small.length; i += hop) {
+        let e = 0;
+        for (let j = 0; j < frameSize; j++) {
+          const v = small[i + j] || 0;
+          e += v * v;
+        }
+        energy.push(Math.log(e + 1e-8));
+      }
+      const n = energy.length;
+      if (n < 16) return { bpm: null, confidence: 0 };
+
+      const ac = new Float32Array(n);
+      for (let lag = 0; lag < n; lag++) {
+        let s = 0;
+        for (let i = 0; i < n - lag; i++) {
+          s += (energy[i] - 0) * (energy[i + lag] - 0);
+        }
+        ac[lag] = s;
+      }
+      const secondsPerFrame = (hop * downsample) / sr;
+      const bpmCandidates = [];
+      for (let lag = 1; lag < ac.length; lag++) {
+        const periodSeconds = lag * secondsPerFrame;
+        const bpm = 60 / periodSeconds;
+        if (bpm >= 40 && bpm <= 240) {
+          bpmCandidates.push({ lag, bpm, val: ac[lag] });
+        }
+      }
+      if (bpmCandidates.length === 0) return { bpm: null, confidence: 0 };
+      bpmCandidates.sort((a, b) => b.val - a.val);
+      const top = bpmCandidates.slice(0, 4);
+      const weightSum = top.reduce((s, c) => s + Math.abs(c.val), 0) || 1;
+      const bpm = top.reduce((s, c) => s + c.bpm * Math.abs(c.val), 0) / weightSum;
+      const conf = Math.min(1, Math.abs(top[0].val) / (Math.abs(top[1]?.val || top[0].val) + 1e-9));
+      return { bpm, confidence: conf };
+    } catch (err) {
+      return { bpm: null, confidence: 0 };
+    }
+  }
 
   // ---------------- UI rendering ----------------
   const toolLabel = useMemo(() => {
@@ -994,21 +1227,19 @@ useEffect(() => {
   }, [selectedTool]);
 
   return (
-    <div className="min-h-screen max-w-8xl mx-auto py-8 px-4 md:px-8">
+    <div className="min-h-screen max-w-8xl overflow-hidden mx-auto py-8 px-4 md:px-8">
       <Toaster richColors />
 
       <header className="mb-6">
         <div className="flex flex-row items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold leading-tight flex items-center gap-3">
-             Audio Tools
+              Audio Tools
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">Play • Cut • Change speed • Transcribe • Voice changer</p>
+            <p className="text-sm text-muted-foreground mt-1">Play • Cut • Change speed • Transcribe • Voice changer • Visualize</p>
           </div>
 
           <div className="flex items-center gap-3">
-
-
             <Button className="cursor-pointer" variant="outline" onClick={() => setDialogOpen(true)}>
               <Zap className="w-4 h-4" /> Info
             </Button>
@@ -1023,7 +1254,7 @@ useEffect(() => {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Controls</span>
-                <Badge  className="backdrop-blur-md bg-orange-500/10 border border-orange-500/20 text-orange-700 dark:text-orange-300" >{selectedTool === TOOLS.TRANSCRIBE ? "Speech" : "Audio"}</Badge>
+                <Badge className="backdrop-blur-md bg-orange-500/10 border border-orange-500/20 text-orange-700 dark:text-orange-300">{selectedTool === TOOLS.TRANSCRIBE ? "Speech" : "Audio"}</Badge>
               </CardTitle>
             </CardHeader>
 
@@ -1046,14 +1277,13 @@ useEffect(() => {
                 <Separator />
 
                 <Label className="text-xs">Upload audio file</Label>
-                     <div className="relative">
-                        <Input id="audio-upload" type="file" accept="audio/*" onChange={handleFileChange} className=" border-2 border-dashed cursor-pointer opacity-0 absolute inset-0 w-full h-full z-10" />
-                    <div className="flex items-center justify-center h-12 rounded-md border-2 border-dashed text-sm">
-                        <MicIcon className="w-4  h-4 mr-2" />
-            
+                <div className="relative">
+                  <Input id="audio-upload" type="file" accept="audio/*" onChange={handleFileChange} className=" border-2 border-dashed cursor-pointer opacity-0 absolute inset-0 w-full h-full z-10" />
+                  <div className="flex items-center justify-center h-12 rounded-md border-2 border-dashed text-sm">
+                    <MicIcon className="w-4 h-4 mr-2" />
                     {file ? file.name : "Upload Audio"}
-                    </div>
-                   </div>
+                  </div>
+                </div>
 
                 {audioFile && (
                   <div className="text-xs opacity-80">
@@ -1063,7 +1293,6 @@ useEffect(() => {
 
                 <Separator />
 
-                {/* Tool specific controls */}
                 {selectedTool === TOOLS.CUTTER && (
                   <>
                     <Label className="text-xs">Cut range (seconds)</Label>
@@ -1087,13 +1316,13 @@ useEffect(() => {
                   <>
                     <Label className="text-xs">Playback rate</Label>
                     <div className="flex items-center gap-3">
-                      <Slider  min={0.5} max={2.0} step={0.05} value={[playbackRate]} onValueChange={(v) => setPlaybackRate(v[0])} className="w-full cursor-pointer" />
+                      <Slider min={0.5} max={2.0} step={0.05} value={[playbackRate]} onValueChange={(v) => setPlaybackRate(v[0])} className="w-full cursor-pointer" />
                       <div className="text-xs w-14 text-right">{playbackRate.toFixed(2)}x</div>
                     </div>
 
                     <div className="text-xs opacity-70">Preview uses playback rate. Export will render a new audio file at this speed.</div>
                     <div className="flex gap-2 mt-2">
-                      <Button  onClick={() => exportSpeedAdjusted(playbackRate)} className="flex-1 cursor-pointer">
+                      <Button onClick={() => exportSpeedAdjusted(playbackRate)} className="flex-1 cursor-pointer">
                         <Download className="w-4 h-4" /> Export at {playbackRate.toFixed(2)}x
                       </Button>
                       <Button className="cursor-pointer" onClick={() => { setPlaybackRate(1); showToast("success", "Reset to 1.0x"); }} variant="outline">
@@ -1117,15 +1346,14 @@ useEffect(() => {
 
                     <Label className="text-xs mt-3">Effect parameter</Label>
                     <div className="flex items-center gap-3">
-                   <Slider
+                      <Slider
                         min={voiceEffect === "robot" ? 10 : 0.5}
                         max={voiceEffect === "robot" ? 100 : 2.5}
                         step={voiceEffect === "robot" ? 1 : 0.05}
                         value={[voiceEffectParam]}
                         onValueChange={(val) => setVoiceEffectParam(val[0])}
                         className="w-full cursor-pointer"
-                        />
-
+                      />
                       <div className="text-xs w-20 text-right">{voiceEffectParam}</div>
                     </div>
 
@@ -1134,7 +1362,7 @@ useEffect(() => {
                       <Button onClick={previewVoiceEffect} className="flex-1 cursor-pointer">
                         <Play className="w-4 h-4 " /> Preview
                       </Button>
-                      <Button  onClick={exportVoiceChanged} className="flex-1  bg-red-500 hover:bg-red-600 dark:text-white text-black cursor-pointer">
+                      <Button onClick={exportVoiceChanged} className="flex-1 bg-red-500 hover:bg-red-600 dark:text-white text-black cursor-pointer">
                         <Download className="w-4 h-4 " /> Export
                       </Button>
                     </div>
@@ -1188,7 +1416,7 @@ useEffect(() => {
           </Card>
         </aside>
 
-        {/* Center: player / preview */}
+        {/* Center: player / preview & visualizers */}
         <main className="lg:col-span-6 space-y-6">
           <Card className="shadow-md dark:bg-black/80 bg-white/80">
             <CardHeader className="flex items-center justify-between">
@@ -1208,7 +1436,6 @@ useEffect(() => {
 
             <CardContent>
               <div className="rounded-lg border p-4 bg-white/50 dark:bg-zinc-950/50">
-                {/* Cover image / placeholder */}
                 <div className="w-full h-full flex items-center justify-center border m-2 p-2 border-dashed rounded-2xl ">
                   {coverUrl ? (
                     <img src={coverUrl} alt="Cover" className=" object-contain rounded-md shadow-sm" />
@@ -1243,6 +1470,101 @@ useEffect(() => {
 
                   <audio ref={audioRef} src={audioUrl || ""} controls={false} style={{ width: "100%" }} onEnded={() => setPlaying(false)} />
 
+                  {/* Visualizers (Recharts) */}
+                  <div className="mt-4 grid grid-cols-1 gap-3">
+                    {/* Frequency Visualizer (Bar-like) */}
+                    <div className="rounded-md border p-3 bg-white/60 dark:bg-zinc-950/60">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-medium">Frequency Visualizer</div>
+                        <div className="text-xs opacity-70">{Math.round((noiseEstimate || 0) * 100)}% noise • RMS: {rms.toFixed(3)} • Flatness: {spectralFlatness.toFixed(3)}</div>
+                      </div>
+                      <div className="w-full h-28">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={freqChartData}>
+                            <XAxis dataKey="x" hide />
+                            <YAxis hide domain={[0, 100]} />
+                            <Bar dataKey="value" fill="#10b981" isAnimationActive={false} radius={[3,3,3,3]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Realtime Waveform */}
+                    <div className="rounded-md border p-3 bg-white/60 dark:bg-zinc-950/60">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-medium">Waveform</div>
+                        <div className="text-xs opacity-70">Realtime + static</div>
+                      </div>
+
+                      {/* Realtime waveform */}
+                      <div className="w-full h-20 mb-2">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={realtimeWaveData}>
+                            <XAxis dataKey="x" hide />
+                            <YAxis domain={[-1, 1]} hide />
+                            <Line type="monotone" dataKey="y" stroke={isDark ? "#DDD" : "#111"} strokeWidth={2} dot={false} isAnimationActive={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      {/* Static waveform */}
+                      <div className="w-full h-12">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={staticWaveData}>
+                            <XAxis dataKey="x" hide />
+                            <YAxis domain={[-1, 1]} hide />
+                            <Area type="monotone" dataKey="y" stroke="#10b981" fill="#10b98133" isAnimationActive={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Equalizer Simulator */}
+                    <div className="rounded-md border p-3 bg-white/60 dark:bg-zinc-950/60">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-medium">Equalizer Simulator</div>
+                        <div className="text-xs opacity-70">Adjust band gains (dB)</div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {EQ_BANDS.map((b, i) => (
+                          <div key={b.label} className="flex flex-col">
+                            <div className="flex items-center justify-between text-xs mb-1">
+                              <span>{b.label}</span>
+                              <span className="font-medium">{eqGains[i].toFixed(1)} dB</span>
+                            </div>
+                            <Slider
+                              min={-12}
+                              max={12}
+                              step={0.5}
+                              value={[eqGains[i]]}
+                              onValueChange={(val) =>
+                                setEqGains((prev) => {
+                                  const next = [...prev];
+                                  next[i] = val[0];
+                                  return next;
+                                })
+                              }
+                              className="w-full cursor-pointer"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Noise Analyzer & BPM */}
+                    <div className="rounded-md border p-3 bg-white/60 dark:bg-zinc-950/60">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-medium">Noise Analyzer & BPM</div>
+                        <div className="text-xs opacity-70">BPM: {detectedBpm ?? "—"} {bpmConfidence ? `(${bpmConfidence}% confident)` : ""}</div>
+                      </div>
+                      <div className="text-xs">
+                        <div>RMS (volume): {rms.toFixed(3)}</div>
+                        <div>High-frequency noise estimate: {(noiseEstimate * 100).toFixed(1)}%</div>
+                        <div>Spectral flatness: {spectralFlatness.toFixed(3)}</div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* display transcript when transcribe tool selected */}
                   {selectedTool === TOOLS.TRANSCRIBE && (
                     <div className="mt-3">
@@ -1266,7 +1588,6 @@ useEffect(() => {
                     </div>
                   )}
 
-                  {/* voice changer preview info */}
                   {selectedTool === TOOLS.VOICE && (
                     <div className="mt-3 text-sm text-muted-foreground">
                       <div>Effect: <span className="font-medium">{voiceEffect}</span> • Param: <span className="font-medium">{voiceEffectParam}</span></div>
@@ -1279,7 +1600,6 @@ useEffect(() => {
             </CardContent>
           </Card>
 
-          {/* Speed preview card */}
           {selectedTool === TOOLS.SPEED && (
             <Card className="shadow-sm dark:bg-black/80 bg-white/80">
               <CardHeader>
@@ -1290,7 +1610,6 @@ useEffect(() => {
               </CardContent>
             </Card>
           )}
-
         </main>
 
         {/* Right column: Debug / actions */}
@@ -1327,6 +1646,7 @@ useEffect(() => {
                       <li>Transcription uses the browser's Web Speech API and listens to microphone input.</li>
                       <li>Exported files are WAV (mono, 16-bit PCM) for broad compatibility.</li>
                       <li>Cover art extraction currently detects ID3v2 APIC frames in MP3 files (best-effort).</li>
+                      <li>Visualizers use the Web Audio API AnalyserNode — enable audio playback to see realtime results.</li>
                     </ul>
                   </div>
 
@@ -1367,8 +1687,9 @@ useEffect(() => {
               <li><strong>Player:</strong> Upload and play audio locally. Cover art (if embedded in MP3 ID3v2 APIC) will be shown automatically.</li>
               <li><strong>Cutter:</strong> Select a range and export as WAV (mono, 16-bit PCM).</li>
               <li><strong>Speed:</strong> Change playback rate for preview; export a new WAV rendered at the selected speed.</li>
-              <li><strong>Voice changer:</strong> Apply simple effects (Chipmunk/Deep via playback rate; Robot via processing) and export to WAV.</li>
+                      <li><strong>Voice changer:</strong> Apply simple effects (Chipmunk/Deep via playback rate; Robot via processing) and export to WAV.</li>
               <li><strong>Audio → Text:</strong> Uses the Web Speech API to transcribe microphone input (browser support required). Uploads cannot be transcribed directly unless played into the mic or server-side transcription is used.</li>
+              <li><strong>Visualizers:</strong> Frequency visualizer, waveform, equalizer simulator, noise analyzer and BPM detection are computed client-side using Web Audio API and Recharts for visualization.</li>
             </ul>
             <div className="mt-4 flex gap-2 justify-end">
               <Button className="cursor-pointer" onClick={() => setDialogOpen(false)}>Close</Button>
