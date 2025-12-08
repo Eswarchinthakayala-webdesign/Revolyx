@@ -302,7 +302,7 @@ useEffect(() => {
 
   // AI generation calling Gemini — optional and requires a valid env var in Vite
   async function generateWithAI(prompt) {
-    const key = import.meta.env.VITE_GEMINI_API_KEY;
+    const key ="AIzaSyBbqI8q_23KRxom-RsU83UOMBj2M6Z-8Lc"
     if (!key) {
       showToast("error","Missing Gemini API key (VITE_GEMINI_API_KEY)",2000,"");
       return;

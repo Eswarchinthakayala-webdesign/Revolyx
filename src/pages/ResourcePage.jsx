@@ -121,9 +121,9 @@ function extractJsonArrayFromText(text) {
 
 /* ------------------ AI call helper (returns raw text) ------------------ */
 async function generateResourcesWithAI(prompt) {
-  const key = import.meta.env.VITE_GEMINI_API_KEY;
+  const key = "AIzaSyBOUPRZxmhfO_HH6GCZK71UnIrrTeaEQ_g";
   if (!key) throw new Error("Missing VITE_GEMINI_API_KEY");
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
 
   const body = {
     contents: [
@@ -197,7 +197,7 @@ export default function ResourcesFinderPage() {
   const subColor = palette[subIdx % palette.length];
 
   const isDark = typeof window !== "undefined" && document.documentElement.classList.contains("dark");
-  const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY || null;
+  const GEMINI_KEY = "AIzaSyBOUPRZxmhfO_HH6GCZK71UnIrrTeaEQ_g"
 
   /* sync ?q= in url (debounced-ish) */
   useEffect(() => {

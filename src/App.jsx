@@ -143,6 +143,7 @@ import VideoToolsPage from './pages/VideoToolsPage'
 import HardwareAndSystemTools from './pages/HardwareAndSystemTools'
 import MergeAndSplitTools from './pages/MergeAndSplitTools'
 import FileAndConversionTools from './pages/FileAndConversionTools'
+import NetworkingToolsPage from './pages/NetworkingToolsPage'
 
 const router=createBrowserRouter([
   {
@@ -724,6 +725,10 @@ const router=createBrowserRouter([
       {
         path:"/file-and-conversion",
         element:<FileAndConversionTools/>
+      },
+      {
+        path:"/networktools",
+        element:<NetworkingToolsPage/>
       }
       
 
