@@ -143,7 +143,7 @@ import VideoToolsPage from './pages/VideoToolsPage'
 import HardwareAndSystemTools from './pages/HardwareAndSystemTools'
 import MergeAndSplitTools from './pages/MergeAndSplitTools'
 import FileAndConversionTools from './pages/FileAndConversionTools'
-import NetworkingToolsPage from './pages/NetworkingToolsPage'
+import GradientPlayground from './pages/GradientPlayground'
 
 const router=createBrowserRouter([
   {
@@ -727,8 +727,8 @@ const router=createBrowserRouter([
         element:<FileAndConversionTools/>
       },
       {
-        path:"/networktools",
-        element:<NetworkingToolsPage/>
+        path:"/gradient-playground",
+        element:<GradientPlayground/>
       }
       
 

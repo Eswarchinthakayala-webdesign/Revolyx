@@ -50,7 +50,7 @@ import {
  VideoIcon,
  FileQuestion,
  FileArchiveIcon,
- 
+ Paintbrush2
 
 } from "lucide-react";
 import { useState } from "react";
@@ -121,7 +121,7 @@ export default function LandingPage() {
        {name:"Hardware & System",icon:Cpu,path:"/hardware-and-system-tools"},
         {name:"Merge & Split",icon:FileQuestion,path:"/merge-and-split"},
         {name:"File & Conversion",icon:FileArchiveIcon,path:"/file-and-conversion"},
-        {name:"Network Tools",icon:Network,path:"/networktools"},
+        {name:"Gradient Playground",icon: Paintbrush2,path:"/gradient-playground"}
       
   ];
 

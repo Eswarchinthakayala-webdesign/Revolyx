@@ -30,7 +30,8 @@ import {
   Cpu,
   FileQuestion,
   FileArchiveIcon,
-  Network
+  Paintbrush2
+  
   
 } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
@@ -72,7 +73,7 @@ export default function Header() {
     {name:"Hardware & System",icon:Cpu,path:"/hardware-and-system-tools"},
     {name:"Merge & Split",icon:FileQuestion,path:"/merge-and-split"},
     {name:"File & Conversion",icon:FileArchiveIcon,path:"/file-and-conversion"},
-    {name:"Network Tools",icon:Network,path:"/networktools"},
+    {name:"Gradient Playground",icon: Paintbrush2,path:"/gradient-playground"}
   ];
 
   // Desktop shows FIRST 5 → rest inside "More"
