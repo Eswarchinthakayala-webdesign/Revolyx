@@ -30,7 +30,8 @@ import {
   Cpu,
   FileQuestion,
   FileArchiveIcon,
-  Paintbrush2
+  Paintbrush2,
+  Grid
   
   
 } from "lucide-react";
@@ -73,7 +74,8 @@ export default function Header() {
     {name:"Hardware & System",icon:Cpu,path:"/hardware-and-system-tools"},
     {name:"Merge & Split",icon:FileQuestion,path:"/merge-and-split"},
     {name:"File & Conversion",icon:FileArchiveIcon,path:"/file-and-conversion"},
-    {name:"Gradient Playground",icon: Paintbrush2,path:"/gradient-playground"}
+    {name:"Gradient Playground",icon: Paintbrush2,path:"/gradient-playground"},
+    {name:"Grid Playground",icon:Grid,path:"/grid-playground"}
   ];
 
   // Desktop shows FIRST 5 → rest inside "More"

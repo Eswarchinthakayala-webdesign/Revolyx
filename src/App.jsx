@@ -144,6 +144,7 @@ import HardwareAndSystemTools from './pages/HardwareAndSystemTools'
 import MergeAndSplitTools from './pages/MergeAndSplitTools'
 import FileAndConversionTools from './pages/FileAndConversionTools'
 import GradientPlayground from './pages/GradientPlayground'
+import GridLayoutPlayground from './pages/GridLayoutPlayground'
 
 const router=createBrowserRouter([
   {
@@ -729,6 +730,10 @@ const router=createBrowserRouter([
       {
         path:"/gradient-playground",
         element:<GradientPlayground/>
+      },
+      {
+        path:"/grid-playground",
+        element:<GridLayoutPlayground/>
       }
       
 

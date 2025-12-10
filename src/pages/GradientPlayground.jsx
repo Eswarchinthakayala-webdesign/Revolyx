@@ -19,6 +19,8 @@ import {
   Copyright,
   Stamp,
   Check,
+  MinusCircle,
+  PlusCircle,
 } from "lucide-react";
 
 import { toPng } from "html-to-image"; // npm i html-to-image
@@ -439,41 +441,105 @@ const PRESETS = [
                   {/* Color bar */}
                   <div className="h-9 rounded-md mb-3 border overflow-hidden" style={{ backgroundImage: colorBarCss }} aria-hidden />
 
-                  <div className="space-y-3">
-                    {sortedStops.map((st, idx) => (
-                      <div key={st.id} className="flex items-center flex-wrap gap-2">
-                        <div className="relative">
-                          <div style={{ background: st.color }} className="w-10 h-8 rounded border" />
-                          <input
-                            type="color"
-                            value={st.color}
-                            onChange={(e) => updateStop(st.id, { color: e.target.value })}
-                            className="absolute inset-0 opacity-0 w-10 h-8 cursor-pointer"
-                            aria-label={`Stop color ${idx + 1}`}
-                          />
-                        </div>
+<div className="space-y-4">
+  {sortedStops.map((st, idx) => (
+    <div
+      key={st.id}
+      className="
+        flex flex-col sm:flex-row '
+        flex-wrap
+        sm:items-center gap-3 p-3 
+        rounded-lg border bg-muted/30
+      "
+    >
+      {/* Row 1: Color + HEX + Remove */}
+      <div className="flex items-center  gap-3 w-full sm:w-auto">
+        
+        {/* Color Preview + Invisible Input */}
+        <div className="relative">
+          <div
+            style={{ background: st.color }}
+            className="w-10 h-10 rounded-md border shadow-sm"
+          />
+          <input
+            type="color"
+            value={st.color}
+            onChange={(e) => updateStop(st.id, { color: e.target.value })}
+            className="absolute inset-0 opacity-0 cursor-pointer"
+            aria-label={`Stop color ${idx + 1}`}
+          />
+        </div>
 
-                        <input
-                          className="w-28 h-8 rounded px-2 border font-mono text-sm"
-                          value={st.color}
-                          onChange={(e) => updateStop(st.id, { color: e.target.value })}
-                          aria-label={`Stop hex ${idx + 1}`}
-                        />
+        {/* HEX Input */}
+        <input
+          className="
+            w-32 h-10 rounded px-2 border 
+            font-mono text-sm bg-background
+          "
+          value={st.color}
+          onChange={(e) => updateStop(st.id, { color: e.target.value })}
+          aria-label={`Stop hex ${idx + 1}`}
+        />
 
-                        <div className="flex-1">
-                          <Slider className="cursor-pointer" value={[st.pos]} onValueChange={(v) => updateStop(st.id, { pos: Math.round(v[0]) })} min={0} max={100} step={1} />
-                        </div>
+        {/* Remove (mobile friendly) */}
+        <Button
+          size="icon"
+          variant="destructive"
+          className="shrink-0 cursor-pointer sm:hidden"
+          onClick={() => removeStop(st.id)}
+          disabled={sortedStops.length <= 2}
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+            <Button className="cursor-pointer shrink-0 sm:hidden" size="sm" variant="outline" onClick={() => nudgeStop(st.id, -1)}>
+            <MinusCircle/>
+          </Button>
+          <Button className="cursor-pointer shrink-0 sm:hidden" size="sm" variant="outline" onClick={() => nudgeStop(st.id, 1)}>
+            <PlusCircle/>
+          </Button>
+      </div>
 
-                        <div className="text-xs w-10 text-right">{st.pos}%</div>
+      {/* Row 2: Slider + % + Nudge Buttons */}
+      <div className="flex items-center gap-3 flex-1">
 
-                        <div className="flex items-center gap-1">
-                          <Button className="cursor-pointer" size="sm" variant="ghost" onClick={() => nudgeStop(st.id, -1)}>-</Button>
-                          <Button className="cursor-pointer" size="sm" variant="ghost" onClick={() => nudgeStop(st.id, 1)}>+</Button>
-                          <Button className="cursor-pointer bg-red-600 hover:bg-red-500" size="sm"  onClick={() => removeStop(st.id)} disabled={sortedStops.length <= 2}><Trash2 className="w-4 h-4" /></Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+        {/* Slider grows nicely */}
+        <div className="flex-1">
+          <Slider
+            value={[st.pos]}
+            onValueChange={(v) => updateStop(st.id, { pos: Math.round(v[0]) })}
+            min={0}
+            max={100}
+            step={1}
+            className="cursor-pointer"
+          />
+        </div>
+
+        <div className="text-xs w-12 text-right">{st.pos}%</div>
+
+        {/* Desktop: Nudge Buttons */}
+        <div className="hidden sm:flex items-center gap-1">
+          <Button className="cursor-pointer" size="sm" variant="outline" onClick={() => nudgeStop(st.id, -1)}>
+            <MinusCircle/>
+          </Button>
+          <Button className="cursor-pointer" size="sm" variant="outline" onClick={() => nudgeStop(st.id, 1)}>
+            <PlusCircle/>
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => removeStop(st.id)}
+            disabled={sortedStops.length <= 2}
+            className="cursor-pointer"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+
+      </div>
+    </div>
+  ))}
+</div>
+
                 </div>
 
                 <Separator />
