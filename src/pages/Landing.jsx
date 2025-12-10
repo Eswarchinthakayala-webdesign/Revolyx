@@ -52,6 +52,9 @@ import {
  FileArchiveIcon,
  Paintbrush2,
  Grid,
+ PlayCircle,
+ Component,
+ Images
 
 } from "lucide-react";
 import { useState } from "react";
@@ -114,16 +117,20 @@ export default function LandingPage() {
     { name: "APIs", icon:Server, path: "/apis" },
     {name:"AI Tools",icon:Brain,path:"/ai-tools"},
     {name:"WebUtilities",icon:Terminal,path:"/web-utilities"},
-     {name:"ImageTools",icon:Crop,path:"/image-tools"},
-      {name:"JSONTools",icon:FileJson,path:"/json-tools" },
-      {name:"SecurityTools",icon:ShieldCheckIcon,path:"/security-tools"},
-      {name:"Audio Tools",icon:MicIcon,path:"/audio-tools"},
-       {name:"Video Tools",icon:VideoIcon,path:"/video-tools"},
-       {name:"Hardware & System",icon:Cpu,path:"/hardware-and-system-tools"},
-        {name:"Merge & Split",icon:FileQuestion,path:"/merge-and-split"},
-        {name:"File & Conversion",icon:FileArchiveIcon,path:"/file-and-conversion"},
-        {name:"Gradient Playground",icon: Paintbrush2,path:"/gradient-playground"},
-            {name:"Grid Playground",icon:Grid,path:"/grid-playground"}
+    {name:"ImageTools",icon:Crop,path:"/image-tools"},
+    {name:"JSONTools",icon:FileJson,path:"/json-tools" },
+    {name:"SecurityTools",icon:ShieldCheckIcon,path:"/security-tools"},
+    {name:"Audio Tools",icon:MicIcon,path:"/audio-tools"},
+    {name:"Video Tools",icon:VideoIcon,path:"/video-tools"},
+    {name:"Hardware & System",icon:Cpu,path:"/hardware-and-system-tools"},
+    {name:"Merge & Split",icon:FileQuestion,path:"/merge-and-split"},
+    {name:"File & Conversion",icon:FileArchiveIcon,path:"/file-and-conversion"},
+    {name:"Gradient Playground",icon: Paintbrush2,path:"/gradient-playground"},
+    {name:"Grid Playground",icon:Grid,path:"/grid-playground"},
+    {name:"Border Radius",icon:PlayCircle,path:"/border-radius"},
+    {name:"Clip Path",icon:Component,path:"/clip-path"},
+     {name:"Image Playground",icon:Images,path:"/image-playground"}
+    
       
   ];
 

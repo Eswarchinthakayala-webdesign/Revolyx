@@ -31,7 +31,10 @@ import {
   FileQuestion,
   FileArchiveIcon,
   Paintbrush2,
-  Grid
+  Grid,
+  PlayCircle,
+  Component,
+  Images
   
   
 } from "lucide-react";
@@ -75,7 +78,13 @@ export default function Header() {
     {name:"Merge & Split",icon:FileQuestion,path:"/merge-and-split"},
     {name:"File & Conversion",icon:FileArchiveIcon,path:"/file-and-conversion"},
     {name:"Gradient Playground",icon: Paintbrush2,path:"/gradient-playground"},
-    {name:"Grid Playground",icon:Grid,path:"/grid-playground"}
+    {name:"Grid Playground",icon:Grid,path:"/grid-playground"},
+    {name:"Border Radius",icon:PlayCircle,path:"/border-radius"},
+    {name:"Clip Path",icon:Component,path:"/clip-path"},
+    {name:"Image Playground",icon:Images,path:"/image-playground"}
+    
+
+
   ];
 
   // Desktop shows FIRST 5 → rest inside "More"
@@ -228,7 +237,7 @@ export default function Header() {
         initial={{ opacity: 0, y: 25 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="fixed bottom-0 left-0 right-0 z-40  border-t border-border backdrop-blur-xl bg-white/80 dark:bg-black/80 flex justify-around items-center py-3 lg:hidden"
+        className="fixed bottom-0 left-0 right-0 z-400  border-t border-border backdrop-blur-xl bg-white/80 dark:bg-black/80 flex justify-around items-center py-3 lg:hidden"
       >
         {mobileMain.map(({ name, icon: Icon, path }) => (
           <Link

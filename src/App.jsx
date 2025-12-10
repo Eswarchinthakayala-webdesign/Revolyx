@@ -145,6 +145,9 @@ import MergeAndSplitTools from './pages/MergeAndSplitTools'
 import FileAndConversionTools from './pages/FileAndConversionTools'
 import GradientPlayground from './pages/GradientPlayground'
 import GridLayoutPlayground from './pages/GridLayoutPlayground'
+import BorderRadiusPlayground from './pages/BorderRadiusPlayground'
+import ClipPathPlayground from './pages/ClipPathPlayground'
+import NotFound from './pages/NotFound'
 
 const router=createBrowserRouter([
   {
@@ -734,6 +737,18 @@ const router=createBrowserRouter([
       {
         path:"/grid-playground",
         element:<GridLayoutPlayground/>
+      },
+      {
+        path:"/border-radius",
+        element:<BorderRadiusPlayground/>
+      },
+      {
+        path:"/clip-path",
+        element:<ClipPathPlayground/>
+      },
+      {
+        path:"*",
+        element:<NotFound/>
       }
       
 
