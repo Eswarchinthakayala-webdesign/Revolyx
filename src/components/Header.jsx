@@ -34,7 +34,8 @@ import {
   Grid,
   PlayCircle,
   Component,
-  Images
+  Images,
+  Scale
   
   
 } from "lucide-react";
@@ -81,7 +82,8 @@ export default function Header() {
     {name:"Grid Playground",icon:Grid,path:"/grid-playground"},
     {name:"Border Radius",icon:PlayCircle,path:"/border-radius"},
     {name:"Clip Path",icon:Component,path:"/clip-path"},
-    {name:"Image Playground",icon:Images,path:"/image-playground"}
+    {name:"Image Playground",icon:Images,path:"/image-playground"},
+    {name:"Unit Measurements",icon:Scale,path:"/measurement-tools"}
     
 
 

@@ -735,14 +735,15 @@ export default function ClipPathPlayground() {
                             left,
                             top,
                             transform: "translate(-50%,-50%)",
-                            width: 14,
-                            height: 14,
+                            width: 18,
+                            height: 18,
                             borderRadius: 999,
                             background: isDark?"#fff":"#000",
                             border: "2px solid rgba(0,0,0,0.6)",
                             boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
                             cursor: "grab",
                             zIndex: 10,
+                            
                           }}
                           aria-hidden
                         />

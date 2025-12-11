@@ -148,6 +148,7 @@ import GridLayoutPlayground from './pages/GridLayoutPlayground'
 import BorderRadiusPlayground from './pages/BorderRadiusPlayground'
 import ClipPathPlayground from './pages/ClipPathPlayground'
 import NotFound from './pages/NotFound'
+import  UnitMeasurementTools  from './pages/UnitMeasurementTools'
 
 const router=createBrowserRouter([
   {
@@ -749,6 +750,10 @@ const router=createBrowserRouter([
       {
         path:"*",
         element:<NotFound/>
+      },
+      {
+        path:"measurement-tools",
+        element:<UnitMeasurementTools/>
       }
       
 
