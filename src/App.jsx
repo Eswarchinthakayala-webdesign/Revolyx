@@ -149,6 +149,8 @@ import BorderRadiusPlayground from './pages/BorderRadiusPlayground'
 import ClipPathPlayground from './pages/ClipPathPlayground'
 import NotFound from './pages/NotFound'
 import  UnitMeasurementTools  from './pages/UnitMeasurementTools'
+import BinaryConverterTools from './pages/BinaryConverterTools'
+import MiscToolsPage from './pages/MiscToolsPage'
 
 const router=createBrowserRouter([
   {
@@ -752,8 +754,16 @@ const router=createBrowserRouter([
         element:<NotFound/>
       },
       {
-        path:"measurement-tools",
+        path:"/measurement-tools",
         element:<UnitMeasurementTools/>
+      },
+      {
+        path:"/binary-tools",
+        element:<BinaryConverterTools/>
+      },
+      {
+        path:"/misc-tools",
+        element:<MiscToolsPage/>
       }
       
 

@@ -54,6 +54,9 @@ import {
   ChartArea,
   ArrowRight,
   Stars,
+  Binary,
+  Scale,
+  Command
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -182,6 +185,9 @@ export default function LandingPage() {
     { name: "Border Radius", icon: PlayCircle, path: "/border-radius", gradient: "" },
     { name: "Clip Path", icon: Component, path: "/clip-path", gradient: "" },
     { name: "Image Playground", icon: Images, path: "/image-playground", gradient: "" },
+    {name:"Binary Tools",icon:Binary,path:"/binary-tools", gradient: ""},
+    {name:"Unit Measurements",icon:Scale,path:"/measurement-tools", gradient: ""},
+    {name:"Misc Tools",icon:Command,path:"/misc-tools",gradient:""},
   ];
 
   // Build full features list: start with initialFeatures, then append all navItems (exclude Home duplication)

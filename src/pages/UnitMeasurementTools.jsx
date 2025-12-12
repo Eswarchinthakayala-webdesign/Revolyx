@@ -29,7 +29,7 @@ import { useTheme } from "../components/theme-provider";
 import { showToast } from "../lib/ToastHelper";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
-
+import { motion, useScroll, useTransform } from "framer-motion";
 /* ==========================
    Conversion helpers
    ========================== */
@@ -1251,7 +1251,7 @@ const UnitsSelector = ({ def, value, onChange }) => {
       <SelectTrigger className="w-full cursor-pointer">
         <SelectValue />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="h-50 overflow-y-auto no-scrollbar">
         {Object.keys(def.units).map((u) => (
           <SelectItem className="cursor-pointer" key={u} value={u}>
             <div className="flex flex-col">
@@ -1268,62 +1268,78 @@ const UnitsSelector = ({ def, value, onChange }) => {
 };
 
 
-  // render results for converters with many units
-  const ResultsGrid = ({ def, results }) => {
-    if (!def) return null;
+// modern / futuristic ResultsGrid
+const ResultsGrid = ({ def, results }) => {
+  if (!def) return null;
 
-    if (selectedTool === "Number to Roman Numerals") {
-      return (
-        <div className="space-y-2">
-          <div className="text-sm">Roman Numeral</div>
-          <div className="rounded border p-3 bg-white/60 dark:bg-zinc-900/60 text-lg font-medium">{results.roman}</div>
-        </div>
-      );
-    }
-    if (selectedTool === "Roman Numerals to Number") {
-      return (
-        <div className="space-y-2">
-          <div className="text-sm">Number</div>
-          <div className="rounded border p-3 bg-white/60 dark:bg-zinc-900/60 text-lg font-medium">{results.number}</div>
-        </div>
-      );
-    }
-
-    if (!def.units) {
-      return <div className="text-sm opacity-70">No units defined for this tool.</div>;
-    }
-
-    // list each unit with formatted value
+  // special cases
+  if (selectedTool === "Number to Roman Numerals") {
     return (
-<div className="space-y-2">
-  {Object.keys(def.units).map((u) => {
-    const val = results?.[u];
-    // human readable names
-    const fromFull = def.unitNames?.[fromUnit] || fromUnit || "";
-    const toFull = def.unitNames?.[u] || u;
-
-    // pretty label: "Meter to Kilometer"
-    const label = `${fromFull} to ${toFull}`;
-
-    return (
-      <div key={u} className="flex items-center justify-between rounded-lg border p-3 bg-white/60 dark:bg-zinc-900/60">
-        <div className="flex items-center gap-4">
-          <div className="text-sm font-medium">{label}</div>
-          <div className="text-xs opacity-70">{/* optional small subtext */}</div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="font-mono font-semibold text-sm">{fmt(val)}</div>
-        <Button className="cursor-pointer" size="sm" variant="ghost" onClick={() => handleCopy(fmt(val))}> <Copy className="w-3 h-3" /> </Button>
-       
+      <div className="space-y-2">
+        <div className="text-sm text-muted-foreground">Roman Numeral</div>
+        <div className="rounded-xl p-4 bg-gradient-to-tr from-emerald-50/40 to-zinc-50/10 dark:from-emerald-900/30 dark:to-zinc-900/10 border border-transparent">
+          <div className="rounded-lg px-4 py-6 bg-white/70 dark:bg-zinc-900/60 shadow-sm text-center text-2xl font-semibold">{results.roman || "—"}</div>
         </div>
       </div>
     );
-  })}
-</div>
+  }
 
+  if (selectedTool === "Roman Numerals to Number") {
+    return (
+      <div className="space-y-2">
+        <div className="text-sm text-muted-foreground">Number</div>
+        <div className="rounded-xl p-4 bg-gradient-to-tr from-amber-50/40 to-rose-50/10 dark:from-amber-900/30 dark:to-rose-900/10 border border-transparent">
+          <div className="rounded-lg px-4 py-6 bg-white/70 dark:bg-zinc-900/60 shadow-sm text-center text-2xl font-semibold">{results.number ?? "—"}</div>
+        </div>
+      </div>
     );
-  };
+  }
+
+  if (!def.units) {
+    return <div className="text-sm opacity-70">No units defined for this tool.</div>;
+  }
+
+  // grid layout with futuristic card styling
+  return (
+    <div className="grid grid-cols-1 gap-2">
+      {Object.keys(def.units).map((u) => {
+        const val = results?.[u];
+        const fromFull = def.unitNames?.[fromUnit] || fromUnit || fromUnit;
+        const toFull = def.unitNames?.[u] || u;
+        const label = `${fromFull} → ${toFull}`;
+
+        return (
+          <motion.div
+            key={u}
+           
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="relative rounded-2xl"
+          >
+            {/* gradient border */}
+            <div className="rounded-2xl cursor-pointer hover:bg-zinc-600/30  bg-gradient-to-r from-zinc-500/30 via-zinc-400/20 to-emerald-400/15 dark:from-zinc-400/15 dark:via-zinc-700/10 dark:to-emerald-700/10">
+              {/* inner glass card */}
+              <div className="rounded-2xl bg-white/70 dark:bg-zinc-900/60 backdrop-blur-sm p-4 flex sm:flex-row flex-col items-start  justify-between gap-4 shadow-md">
+                <div className="flex flex-col">
+                  <div className="flex items-baseline gap-3">
+                    <div className="text-lg font-semibold">{u}</div>
+                    {def.unitNames?.[u] && <div className="text-xs opacity-70">{def.unitNames[u]}</div>}
+                  </div>
+                  <Badge className="text-xs backdrop-blur-md bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300  mt-2">{label}</Badge>
+                </div>
+
+                <div className="flex flex-col items-end gap-3">
+                  <div className="font-mono font-semibold text-right text-lg">{fmt(val)}</div>
+       
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+};
+
 
   // center preview: show remaining values and highlight selected toUnit if provided
   const CenterPreview = () => {
@@ -1344,8 +1360,8 @@ const UnitsSelector = ({ def, value, onChange }) => {
 
   <div
     className="
-      rounded border p-3
-      bg-white/60 dark:bg-zinc-900/60
+      border p-3
+      rounded-2xl  hover:bg-zinc-600/30  bg-gradient-to-r from-zinc-200/80 via-zinc-100 to-zinc-100/50 dark:from-zinc-400/15 dark:via-zinc-700/10 dark:to-emerald-700/10
       flex flex-col sm:flex-row
         items-center
       justify-center sm:justify-between gap-3
@@ -1454,13 +1470,6 @@ const UnitsSelector = ({ def, value, onChange }) => {
             <p className="text-sm text-muted-foreground mt-1">Length • Area • Weight • Volume • Temperature • and many more</p>
           </div>
 
-          <div className="flex items-center gap-3">
-      
-
-            <Button className="cursor-pointer" variant="secondary" onClick={() => setDialogOpen(true)}>
-              <Settings className="w-4 h-4 " /> Info
-            </Button>
-          </div>
         </div>
       </header>
 
@@ -1481,7 +1490,7 @@ const UnitsSelector = ({ def, value, onChange }) => {
                   <SelectTrigger className="w-full cursor-pointer">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="h-60">
                     {converterKeys.map((k) => (
                       <SelectItem className="cursor-pointer" key={k} value={k}>
                         {k}

@@ -35,7 +35,9 @@ import {
   PlayCircle,
   Component,
   Images,
-  Scale
+  Scale,
+  Binary,
+  Command
   
   
 } from "lucide-react";
@@ -83,7 +85,9 @@ export default function Header() {
     {name:"Border Radius",icon:PlayCircle,path:"/border-radius"},
     {name:"Clip Path",icon:Component,path:"/clip-path"},
     {name:"Image Playground",icon:Images,path:"/image-playground"},
-    {name:"Unit Measurements",icon:Scale,path:"/measurement-tools"}
+    {name:"Unit Measurements",icon:Scale,path:"/measurement-tools"},
+    {name:"Binary Tools",icon:Binary,path:"/binary-tools"},
+     {name:"Misc Tools",icon:Command,path:"/misc-tools"},
     
 
 
