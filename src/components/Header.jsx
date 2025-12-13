@@ -37,7 +37,8 @@ import {
   Images,
   Scale,
   Binary,
-  Command
+  Command,
+  Calculator
   
   
 } from "lucide-react";
@@ -88,6 +89,7 @@ export default function Header() {
     {name:"Unit Measurements",icon:Scale,path:"/measurement-tools"},
     {name:"Binary Tools",icon:Binary,path:"/binary-tools"},
      {name:"Misc Tools",icon:Command,path:"/misc-tools"},
+     {name:"Calculators",icon: Calculator,path:"/calculators"}
     
 
 
@@ -210,9 +212,10 @@ export default function Header() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xl flex items-center justify-center"
+            className="fixed inset-0 z-50 bg-black/50  backdrop-blur-xl flex items-center justify-center"
           >
-            <div className="relative bg-white/80 dark:bg-zinc-900/80 rounded-3xl p-6 grid grid-cols-3 gap-6 max-w-sm mx-auto shadow-2xl">
+            <div className="space-y-2 ">
+            <div className="relative h-140 overflow-y-auto bg-white/80 dark:bg-zinc-900/80 rounded-3xl p-6 grid grid-cols-3 gap-6 max-w-sm mx-auto shadow-2xl">
               {navItems.map(({ name, icon: Icon, path }) => (
                 <Link
                   key={name}
@@ -229,10 +232,11 @@ export default function Header() {
 
               <button
                 onClick={() => setIsMenuOpen(false)}
-                className="absolute top-5 right-5 text-gray-700 dark:text-gray-300"
+                className="fixed top-5 right-5 text-gray-700 dark:text-gray-300"
               >
                 <X size={24} />
               </button>
+            </div>
             </div>
           </motion.div>
         )}
@@ -243,8 +247,9 @@ export default function Header() {
         initial={{ opacity: 0, y: 25 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="fixed bottom-0 left-0 right-0 z-400  border-t border-border backdrop-blur-xl bg-white/80 dark:bg-black/80 flex justify-around items-center py-3 lg:hidden"
+        className="fixed bottom-0 left-0 right-0 z-400   border-t border-border backdrop-blur-xl bg-white/80 dark:bg-black/80 flex justify-around items-center py-3 lg:hidden"
       >
+      
         {mobileMain.map(({ name, icon: Icon, path }) => (
           <Link
             key={name}
@@ -257,6 +262,7 @@ export default function Header() {
             <span className="text-[11px]">{name}</span>
           </Link>
         ))}
+       
 
         {/* More Button */}
         <button
@@ -274,7 +280,7 @@ export default function Header() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 15 }}
-              className="absolute bottom-16 right-3 bg-white/90 dark:bg-zinc-900/90 border rounded-xl shadow-lg p-4 grid grid-cols-3 gap-4"
+              className="absolute bottom-16 right-3 h-140 no-scrollbar overflow-y-auto bg-white/90 dark:bg-zinc-900/90 border rounded-xl shadow-lg p-4 grid grid-cols-3 gap-4"
             >
               {mobileMore.map(({ name, icon: Icon, path }) => (
                 <Link

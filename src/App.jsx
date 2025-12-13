@@ -151,6 +151,7 @@ import NotFound from './pages/NotFound'
 import  UnitMeasurementTools  from './pages/UnitMeasurementTools'
 import BinaryConverterTools from './pages/BinaryConverterTools'
 import MiscToolsPage from './pages/MiscToolsPage'
+import CalculatorsPage from './pages/CalculatorsPage'
 
 const router=createBrowserRouter([
   {
@@ -764,6 +765,10 @@ const router=createBrowserRouter([
       {
         path:"/misc-tools",
         element:<MiscToolsPage/>
+      },
+      {
+        path:"/calculators",
+        element:<CalculatorsPage/>
       }
       
 

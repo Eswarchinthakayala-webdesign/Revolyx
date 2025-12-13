@@ -56,7 +56,8 @@ import {
   Stars,
   Binary,
   Scale,
-  Command
+  Command,
+  Calculator
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -75,7 +76,13 @@ import { useState, useRef, useEffect } from "react";
  */
 
 export default function LandingPage() {
+
+  
   const { theme } = useTheme();
+  const isDark =
+  theme === "dark" ||
+  (theme === "system" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches);
   const [open, setOpen] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const heroRef = useRef(null);
@@ -188,6 +195,7 @@ export default function LandingPage() {
     {name:"Binary Tools",icon:Binary,path:"/binary-tools", gradient: ""},
     {name:"Unit Measurements",icon:Scale,path:"/measurement-tools", gradient: ""},
     {name:"Misc Tools",icon:Command,path:"/misc-tools",gradient:""},
+     {name:"Calculators",icon: Calculator,path:"/calculators"}
   ];
 
   // Build full features list: start with initialFeatures, then append all navItems (exclude Home duplication)
@@ -241,14 +249,33 @@ export default function LandingPage() {
         <div className={`absolute bottom-0 right-1/4 w-[600px] h-[600px] rounded-full blur-3xl animate-pulse ${GRADIENT_GROUPS.group2.glow}`} style={{ animationDelay: "1s" }} />
         <div className={`absolute top-1/2 left-1/2 w-[400px] h-[400px] rounded-full blur-3xl animate-pulse ${GRADIENT_GROUPS.group3.glow}`} style={{ animationDelay: "2s" }} />
       </div>
-
-      {/* Cursor follower radial (neutral gray) */}
       <motion.div
-        className="pointer-events-none fixed inset-0 z-30 transition duration-300"
-        style={{
-          background: `radial-gradient(600px at ${mousePosition.x}px ${mousePosition.y}px, rgba(120,120,120,0.06), transparent 80%)`,
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-20"
+        animate={{
+          background: isDark
+            ? `radial-gradient(
+                520px at ${mousePosition.x}px ${mousePosition.y}px,
+                rgba(255,255,255,0.06),
+                rgba(255,255,255,0.025) 25%,
+                rgba(0,0,0,0.15) 55%,
+                transparent 70%
+              )`
+            : `radial-gradient(
+                520px at ${mousePosition.x}px ${mousePosition.y}px,
+                rgba(0,0,0,0.09),
+                rgba(0,0,0,0.095) 25%,
+                rgba(255,255,255,0.15) 55%,
+                transparent 70%
+              )`,
+        }}
+        transition={{
+          type: "tween",
+          ease: "easeOut",
+          duration: 0.25,
         }}
       />
+
 
       {/* HERO */}
       <motion.section
