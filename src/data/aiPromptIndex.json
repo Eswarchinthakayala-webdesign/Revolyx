@@ -1,0 +1,468 @@
+{
+  "Anthropic": [
+    {
+      "name": "Claude Code 2.0.txt",
+      "path": "Anthropic/Claude Code 2.0.txt",
+      "category": "Anthropic"
+    },
+    {
+      "name": "Sonnet 4.5 Prompt.txt",
+      "path": "Anthropic/Sonnet 4.5 Prompt.txt",
+      "category": "Anthropic"
+    }
+  ],
+  "Claude Code": [
+    {
+      "name": "Prompt.txt",
+      "path": "Anthropic/Claude Code/Prompt.txt",
+      "category": "Anthropic"
+    }
+  ],
+  "Augment Code": [
+    {
+      "name": "claude-4-sonnet-agent-prompts.txt",
+      "path": "Augment Code/claude-4-sonnet-agent-prompts.txt",
+      "category": "Augment Code"
+    },
+    {
+      "name": "gpt-5-agent-prompts.txt",
+      "path": "Augment Code/gpt-5-agent-prompts.txt",
+      "category": "Augment Code"
+    }
+  ],
+  "Cluely": [
+    {
+      "name": "Default Prompt.txt",
+      "path": "Cluely/Default Prompt.txt",
+      "category": "Cluely"
+    },
+    {
+      "name": "Enterprise Prompt.txt",
+      "path": "Cluely/Enterprise Prompt.txt",
+      "category": "Cluely"
+    }
+  ],
+  "CodeBuddy Prompts": [
+    {
+      "name": "Chat Prompt.txt",
+      "path": "CodeBuddy Prompts/Chat Prompt.txt",
+      "category": "CodeBuddy Prompts"
+    },
+    {
+      "name": "Craft Prompt.txt",
+      "path": "CodeBuddy Prompts/Craft Prompt.txt",
+      "category": "CodeBuddy Prompts"
+    }
+  ],
+  "Comet Assistant": [
+    {
+      "name": "System Prompt.txt",
+      "path": "Comet Assistant/System Prompt.txt",
+      "category": "Comet Assistant"
+    }
+  ],
+  "Cursor Prompts": [
+    {
+      "name": "Agent CLI Prompt 2025-08-07.txt",
+      "path": "Cursor Prompts/Agent CLI Prompt 2025-08-07.txt",
+      "category": "Cursor Prompts"
+    },
+    {
+      "name": "Agent Prompt 2.0.txt",
+      "path": "Cursor Prompts/Agent Prompt 2.0.txt",
+      "category": "Cursor Prompts"
+    },
+    {
+      "name": "Agent Prompt 2025-09-03.txt",
+      "path": "Cursor Prompts/Agent Prompt 2025-09-03.txt",
+      "category": "Cursor Prompts"
+    },
+    {
+      "name": "Agent Prompt v1.0.txt",
+      "path": "Cursor Prompts/Agent Prompt v1.0.txt",
+      "category": "Cursor Prompts"
+    },
+    {
+      "name": "Agent Prompt v1.2.txt",
+      "path": "Cursor Prompts/Agent Prompt v1.2.txt",
+      "category": "Cursor Prompts"
+    },
+    {
+      "name": "Chat Prompt.txt",
+      "path": "Cursor Prompts/Chat Prompt.txt",
+      "category": "Cursor Prompts"
+    }
+  ],
+  "Devin AI": [
+    {
+      "name": "DeepWiki Prompt.txt",
+      "path": "Devin AI/DeepWiki Prompt.txt",
+      "category": "Devin AI"
+    },
+    {
+      "name": "Prompt.txt",
+      "path": "Devin AI/Prompt.txt",
+      "category": "Devin AI"
+    }
+  ],
+  "Emergent": [
+    {
+      "name": "Prompt.txt",
+      "path": "Emergent/Prompt.txt",
+      "category": "Emergent"
+    }
+  ],
+  "Antigravity": [
+    {
+      "name": "Fast Prompt.txt",
+      "path": "Google/Antigravity/Fast Prompt.txt",
+      "category": "Google"
+    },
+    {
+      "name": "planning-mode.txt",
+      "path": "Google/Antigravity/planning-mode.txt",
+      "category": "Google"
+    }
+  ],
+  "Gemini": [
+    {
+      "name": "AI Studio vibe-coder.txt",
+      "path": "Google/Gemini/AI Studio vibe-coder.txt",
+      "category": "Google"
+    }
+  ],
+  "Junie": [
+    {
+      "name": "Prompt.txt",
+      "path": "Junie/Prompt.txt",
+      "category": "Junie"
+    }
+  ],
+  "Kiro": [
+    {
+      "name": "Mode_Clasifier_Prompt.txt",
+      "path": "Kiro/Mode_Clasifier_Prompt.txt",
+      "category": "Kiro"
+    },
+    {
+      "name": "Spec_Prompt.txt",
+      "path": "Kiro/Spec_Prompt.txt",
+      "category": "Kiro"
+    },
+    {
+      "name": "Vibe_Prompt.txt",
+      "path": "Kiro/Vibe_Prompt.txt",
+      "category": "Kiro"
+    }
+  ],
+  "Leap.new": [
+    {
+      "name": "Prompts.txt",
+      "path": "Leap.new/Prompts.txt",
+      "category": "Leap.new"
+    }
+  ],
+  "Lovable": [
+    {
+      "name": "Agent Prompt.txt",
+      "path": "Lovable/Agent Prompt.txt",
+      "category": "Lovable"
+    }
+  ],
+  "Manus Agent Tools & Prompt": [
+    {
+      "name": "Agent loop.txt",
+      "path": "Manus Agent Tools & Prompt/Agent loop.txt",
+      "category": "Manus Agent Tools & Prompt"
+    },
+    {
+      "name": "Modules.txt",
+      "path": "Manus Agent Tools & Prompt/Modules.txt",
+      "category": "Manus Agent Tools & Prompt"
+    },
+    {
+      "name": "Prompt.txt",
+      "path": "Manus Agent Tools & Prompt/Prompt.txt",
+      "category": "Manus Agent Tools & Prompt"
+    }
+  ],
+  "NotionAi": [
+    {
+      "name": "Prompt.txt",
+      "path": "NotionAi/Prompt.txt",
+      "category": "NotionAi"
+    }
+  ],
+  "Bolt": [
+    {
+      "name": "Prompt.txt",
+      "path": "Open Source prompts/Bolt/Prompt.txt",
+      "category": "Open Source prompts"
+    }
+  ],
+  "Cline": [
+    {
+      "name": "Prompt.txt",
+      "path": "Open Source prompts/Cline/Prompt.txt",
+      "category": "Open Source prompts"
+    }
+  ],
+  "Codex CLI": [
+    {
+      "name": "Prompt.txt",
+      "path": "Open Source prompts/Codex CLI/Prompt.txt",
+      "category": "Open Source prompts"
+    },
+    {
+      "name": "openai-codex-cli-system-prompt-20250820.txt",
+      "path": "Open Source prompts/Codex CLI/openai-codex-cli-system-prompt-20250820.txt",
+      "category": "Open Source prompts"
+    }
+  ],
+  "Gemini CLI": [
+    {
+      "name": "google-gemini-cli-system-prompt.txt",
+      "path": "Open Source prompts/Gemini CLI/google-gemini-cli-system-prompt.txt",
+      "category": "Open Source prompts"
+    }
+  ],
+  "Lumo": [
+    {
+      "name": "Prompt.txt",
+      "path": "Open Source prompts/Lumo/Prompt.txt",
+      "category": "Open Source prompts"
+    }
+  ],
+  "RooCode": [
+    {
+      "name": "Prompt.txt",
+      "path": "Open Source prompts/RooCode/Prompt.txt",
+      "category": "Open Source prompts"
+    }
+  ],
+  "Orchids.app": [
+    {
+      "name": "Decision-making prompt.txt",
+      "path": "Orchids.app/Decision-making prompt.txt",
+      "category": "Orchids.app"
+    },
+    {
+      "name": "System Prompt.txt",
+      "path": "Orchids.app/System Prompt.txt",
+      "category": "Orchids.app"
+    }
+  ],
+  "Perplexity": [
+    {
+      "name": "Prompt.txt",
+      "path": "Perplexity/Prompt.txt",
+      "category": "Perplexity"
+    }
+  ],
+  "Poke": [
+    {
+      "name": "Poke agent.txt",
+      "path": "Poke/Poke agent.txt",
+      "category": "Poke"
+    },
+    {
+      "name": "Poke_p1.txt",
+      "path": "Poke/Poke_p1.txt",
+      "category": "Poke"
+    },
+    {
+      "name": "Poke_p2.txt",
+      "path": "Poke/Poke_p2.txt",
+      "category": "Poke"
+    },
+    {
+      "name": "Poke_p3.txt",
+      "path": "Poke/Poke_p3.txt",
+      "category": "Poke"
+    },
+    {
+      "name": "Poke_p4.txt",
+      "path": "Poke/Poke_p4.txt",
+      "category": "Poke"
+    },
+    {
+      "name": "Poke_p5.txt",
+      "path": "Poke/Poke_p5.txt",
+      "category": "Poke"
+    },
+    {
+      "name": "Poke_p6.txt",
+      "path": "Poke/Poke_p6.txt",
+      "category": "Poke"
+    }
+  ],
+  "Qoder": [
+    {
+      "name": "Quest Action.txt",
+      "path": "Qoder/Quest Action.txt",
+      "category": "Qoder"
+    },
+    {
+      "name": "Quest Design.txt",
+      "path": "Qoder/Quest Design.txt",
+      "category": "Qoder"
+    },
+    {
+      "name": "prompt.txt",
+      "path": "Qoder/prompt.txt",
+      "category": "Qoder"
+    }
+  ],
+  "Replit": [
+    {
+      "name": "Prompt.txt",
+      "path": "Replit/Prompt.txt",
+      "category": "Replit"
+    }
+  ],
+  "Same.dev": [
+    {
+      "name": "Prompt.txt",
+      "path": "Same.dev/Prompt.txt",
+      "category": "Same.dev"
+    }
+  ],
+  "Trae": [
+    {
+      "name": "Builder Prompt.txt",
+      "path": "Trae/Builder Prompt.txt",
+      "category": "Trae"
+    },
+    {
+      "name": "Chat Prompt.txt",
+      "path": "Trae/Chat Prompt.txt",
+      "category": "Trae"
+    }
+  ],
+  "Traycer AI": [
+    {
+      "name": "phase_mode_prompts.txt",
+      "path": "Traycer AI/phase_mode_prompts.txt",
+      "category": "Traycer AI"
+    }
+  ],
+  "VSCode Agent": [
+    {
+      "name": "Prompt.txt",
+      "path": "VSCode Agent/Prompt.txt",
+      "category": "VSCode Agent"
+    },
+    {
+      "name": "chat-titles.txt",
+      "path": "VSCode Agent/chat-titles.txt",
+      "category": "VSCode Agent"
+    },
+    {
+      "name": "claude-sonnet-4.txt",
+      "path": "VSCode Agent/claude-sonnet-4.txt",
+      "category": "VSCode Agent"
+    },
+    {
+      "name": "gemini-2.5-pro.txt",
+      "path": "VSCode Agent/gemini-2.5-pro.txt",
+      "category": "VSCode Agent"
+    },
+    {
+      "name": "gpt-4.1.txt",
+      "path": "VSCode Agent/gpt-4.1.txt",
+      "category": "VSCode Agent"
+    },
+    {
+      "name": "gpt-4o.txt",
+      "path": "VSCode Agent/gpt-4o.txt",
+      "category": "VSCode Agent"
+    },
+    {
+      "name": "gpt-5-mini.txt",
+      "path": "VSCode Agent/gpt-5-mini.txt",
+      "category": "VSCode Agent"
+    },
+    {
+      "name": "gpt-5.txt",
+      "path": "VSCode Agent/gpt-5.txt",
+      "category": "VSCode Agent"
+    },
+    {
+      "name": "nes-tab-completion.txt",
+      "path": "VSCode Agent/nes-tab-completion.txt",
+      "category": "VSCode Agent"
+    }
+  ],
+  "Warp.dev": [
+    {
+      "name": "Prompt.txt",
+      "path": "Warp.dev/Prompt.txt",
+      "category": "Warp.dev"
+    }
+  ],
+  "Windsurf": [
+    {
+      "name": "Prompt Wave 11.txt",
+      "path": "Windsurf/Prompt Wave 11.txt",
+      "category": "Windsurf"
+    },
+    {
+      "name": "Tools Wave 11.txt",
+      "path": "Windsurf/Tools Wave 11.txt",
+      "category": "Windsurf"
+    }
+  ],
+  "Xcode": [
+    {
+      "name": "DocumentAction.txt",
+      "path": "Xcode/DocumentAction.txt",
+      "category": "Xcode"
+    },
+    {
+      "name": "ExplainAction.txt",
+      "path": "Xcode/ExplainAction.txt",
+      "category": "Xcode"
+    },
+    {
+      "name": "MessageAction.txt",
+      "path": "Xcode/MessageAction.txt",
+      "category": "Xcode"
+    },
+    {
+      "name": "PlaygroundAction.txt",
+      "path": "Xcode/PlaygroundAction.txt",
+      "category": "Xcode"
+    },
+    {
+      "name": "PreviewAction.txt",
+      "path": "Xcode/PreviewAction.txt",
+      "category": "Xcode"
+    },
+    {
+      "name": "System.txt",
+      "path": "Xcode/System.txt",
+      "category": "Xcode"
+    }
+  ],
+  "Z.ai Code": [
+    {
+      "name": "prompt.txt",
+      "path": "Z.ai Code/prompt.txt",
+      "category": "Z.ai Code"
+    }
+  ],
+  "dia": [
+    {
+      "name": "Prompt.txt",
+      "path": "dia/Prompt.txt",
+      "category": "dia"
+    }
+  ],
+  "v0 Prompts and Tools": [
+    {
+      "name": "Prompt.txt",
+      "path": "v0 Prompts and Tools/Prompt.txt",
+      "category": "v0 Prompts and Tools"
+    }
+  ]
+}

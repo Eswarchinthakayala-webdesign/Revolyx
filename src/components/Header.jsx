@@ -38,7 +38,11 @@ import {
   Scale,
   Binary,
   Command,
-  Calculator
+  Calculator,
+  TextCursorIcon,
+  BrickWallFire,
+  BrickWallFireIcon,
+  BrainCircuit,
   
   
 } from "lucide-react";
@@ -89,7 +93,10 @@ export default function Header() {
     {name:"Unit Measurements",icon:Scale,path:"/measurement-tools"},
     {name:"Binary Tools",icon:Binary,path:"/binary-tools"},
      {name:"Misc Tools",icon:Command,path:"/misc-tools"},
-     {name:"Calculators",icon: Calculator,path:"/calculators"}
+     {name:"Calculators",icon: Calculator,path:"/calculators"},
+     {name:"Prompts",icon: TextCursorIcon,path:"/leaked-prompts"},
+     {name:"Public Apis",icon:BrickWallFireIcon,path:"/public-apis"},
+     {name:"ALL AIs",icon:BrainCircuit,path:"/all-ais"}
     
 
 

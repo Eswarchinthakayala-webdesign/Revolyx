@@ -152,6 +152,8 @@ import  UnitMeasurementTools  from './pages/UnitMeasurementTools'
 import BinaryConverterTools from './pages/BinaryConverterTools'
 import MiscToolsPage from './pages/MiscToolsPage'
 import CalculatorsPage from './pages/CalculatorsPage'
+import PromptsPage from './pages/PromptsPage'
+import AllAisPage from './components/AllAisPage'
 
 const router=createBrowserRouter([
   {
@@ -769,6 +771,18 @@ const router=createBrowserRouter([
       {
         path:"/calculators",
         element:<CalculatorsPage/>
+      },
+      {
+        path:"/leaked-prompts",
+        element:<PromptsPage/>
+      },
+      {
+        path:"/public-apis",
+        element:<PublicApisPage/>
+      },
+      {
+        path:"/all-ais",
+        element:<AllAisPage/>
       }
       
 

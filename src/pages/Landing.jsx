@@ -57,7 +57,10 @@ import {
   Binary,
   Scale,
   Command,
-  Calculator
+  Calculator,
+   TextCursorIcon,
+   BrickWallFireIcon,
+   BrainCircuit
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -195,7 +198,10 @@ export default function LandingPage() {
     {name:"Binary Tools",icon:Binary,path:"/binary-tools", gradient: ""},
     {name:"Unit Measurements",icon:Scale,path:"/measurement-tools", gradient: ""},
     {name:"Misc Tools",icon:Command,path:"/misc-tools",gradient:""},
-     {name:"Calculators",icon: Calculator,path:"/calculators"}
+     {name:"Calculators",icon: Calculator,path:"/calculators"},
+      {name:"Prompts",icon: TextCursorIcon,path:"/leaked-prompts"},
+         {name:"Public Apis",icon:BrickWallFireIcon,path:"/public-apis"},
+          {name:"ALL AIs",icon:BrainCircuit,path:"/all-ais"}
   ];
 
   // Build full features list: start with initialFeatures, then append all navItems (exclude Home duplication)
@@ -304,8 +310,8 @@ export default function LandingPage() {
   transition={{ delay: 0.2, duration: 0.6 }}
   className="
     inline-flex items-center gap-2 
-    px-[clamp(12px,2vw,20px)] 
-    py-[clamp(6px,1.2vw,10px)]
+    px-[clamp(10px,2vw,20px)] 
+    py-[clamp(4px,1.2vw,10px)]
     rounded-full 
     backdrop-blur-xl 
     bg-orange-500/10 
@@ -326,9 +332,11 @@ export default function LandingPage() {
   </motion.div>
 
   {/* Text */}
+  <Link to="/public-apis">
   <span className="text-[clamp(11px,1.2vw,14px)] font-semibold whitespace-nowrap">
-    New: AI-Powered Tools
+    New: Public Apis
   </span>
+  </Link>
 
   {/* Sparkles */}
   <Sparkles className="w-[clamp(14px,1.8vw,18px)] h-[clamp(14px,1.8vw,18px)] flex-shrink-0" />
