@@ -51,7 +51,18 @@ import {
   Coffee,
   CalendarCheck,
   Headset,
-  BookOpenCheck, // For General AI
+  BookOpenCheck,
+  Wrench,
+  CpuIcon,
+  ImageDown,
+  PercentDiamondIcon,
+  Images,
+  MicVocalIcon,
+  Music3,
+  Megaphone,
+  Sparkles,
+  GraduationCap,
+  MountainSnowIcon, // For General AI
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -92,8 +103,25 @@ const CATEGORIES = [
  { id: "productivity", label: "Productivity Tools", Icon: Coffee },
  { id: "meeting", label: "Meeting Assistants", Icon: CalendarCheck },
  { id: "academia", label: "Academia & Research Tools", Icon: BookOpenCheck },
-{ id: "customerSupport", label: "Customer Support AI", Icon: Headset }
-
+{ id: "customerSupport", label: "Customer Support AI", Icon: Headset },
+{ id: "developer", label: "Developer Tools", Icon: Wrench },
+{ id: "image-models", label: "Image Models", Icon: CpuIcon },
+{ id: "image-services", label: "Image Services & Tools", Icon: ImageDown },
+{ id: "graphic-design", label: "Graphic Design", Icon: PercentDiamondIcon },
+{ id: "image-libraries", label: "Image Libraries", Icon: Images },
+{ id: "model-libraries", label: "Model Libraries", Icon: Database },
+{ id: "sd-resources", label: "Stable Diffusion Resources", Icon: Layers },
+{ id: "voice", label: "AI Voice & Cloning", Icon: MicVocalIcon },
+{ id: "ai-music", label: "AI Music Generation", Icon: Music3 },
+{ id: "marketing", label: "Marketing AI Tools", Icon: Megaphone },
+{ id: "phone", label: "AI Phone Calls", Icon: Phone },
+{ id: "speech", label: "Speech & Voice AI", Icon: Mic },
+{ id: "other", label: "Other AI Tools", Icon: Sparkles },
+{ id: "learning", label: "Learning Resources", Icon: BookOpen },
+{ id: "ai_free", label: "Learn AI (Free)", Icon: GraduationCap },
+{ id: "deep_learning", label: "Deep learning", Icon: MountainSnowIcon },
+{ id: "nvidia", label: "NVIDIA Platform Extensions", Icon: Cpu },
+{ id: "awesome", label: "Related Awesome Lists", Icon: Star },
 
 
 
@@ -105,6 +133,1167 @@ const CATEGORIES = [
 
 /* ---------- Sample AI data ---------- */
 const SAMPLE_AIS = {
+  nvidia: [
+  {
+    name: "NVIDIA Omniverse AI Animal Explorer",
+    description:
+      "An Omniverse extension that enables creators to rapidly prototype and generate AI-powered 3D animal meshes.",
+    website:
+      "https://docs.omniverse.nvidia.com/extensions/latest/ext_animal-explorer.html#installation",
+    pricing: "Free",
+    tags: ["nvidia", "omniverse", "3d", "generative-ai"],
+    featured: false,
+  },
+],
+
+  awesome: [
+  {
+    name: "Altern",
+    description: "A curated platform to discover and compare the best AI tools.",
+    website: "https://altern.ai",
+    pricing: "Free",
+    tags: ["ai-tools", "directory"],
+    featured: true,
+  },
+  {
+    name: "Best of AI",
+    description:
+      "A Michelin-style curated list highlighting the highest-quality AI tools and products.",
+    website: "https://github.com/best-of-ai/best-of-ai",
+    pricing: "Free",
+    tags: ["ai", "curated", "tools"],
+    featured: true,
+  },
+  {
+    name: "Awesome AI Models",
+    description:
+      "A curated list of top AI models and large language models used in research and production.",
+    website: "https://github.com/dariubs/awesome-ai-models",
+    pricing: "Free",
+    tags: ["ai-models", "llms", "research"],
+    featured: false,
+  },
+  {
+    name: "Top AI Directories",
+    description:
+      "An extensive list of AI directories where developers can submit and discover AI tools.",
+    website: "https://github.com/best-of-ai/ai-directories",
+    pricing: "Free",
+    tags: ["ai", "directories", "marketing"],
+    featured: false,
+  },
+],
+
+
+
+  "deep_learning": [
+  {
+    name: "Neural Networks for Machine Learning (Hinton)",
+    description:
+      "Legendary deep learning lectures by Geoffrey Hinton, still referenced widely despite being removed from Coursera.",
+    website: "https://medium.com/kaggle-blog",
+    pricing: "Free",
+    tags: ["deep-learning", "neural-networks", "theory"],
+    featured: false,
+  },
+  {
+    name: "Fast.ai Courses",
+    description:
+      "Hands-on deep learning courses focused on practical results, with all content freely available online.",
+    website: "https://www.fast.ai/",
+    pricing: "Free",
+    tags: ["deep-learning", "practical", "fastai"],
+    featured: true,
+  },
+  {
+    name: "Coursera Deep Learning Specialization Notes",
+    description:
+      "Community-maintained notes, assignments, and quizzes from the Deep Learning specialization by DeepLearning.AI.",
+    website:
+      "https://github.com/pratham5368/coursera-deep-learning-specialization",
+    pricing: "Free",
+    tags: ["deep-learning", "notes", "assignments"],
+    featured: false,
+  },
+  {
+    name: "PyTorch Learning Notes",
+    description:
+      "Well-organized PyTorch notes with examples, optimized for Google Colab and hands-on learning.",
+    website:
+      "https://github.com/pratham5368/Tecnologies-I-Learn/tree/main/31-pytorch",
+    pricing: "Free",
+    tags: ["pytorch", "deep-learning", "hands-on"],
+    featured: false,
+  },
+],
+
+
+  "ai_free": [
+  {
+    name: "Machine Learning Roadmap",
+    description:
+      "A structured roadmap connecting key machine learning concepts, tools, and resources from beginner to advanced levels.",
+    website: "https://github.com/mrdbourke/machine-learning-roadmap",
+    pricing: "Free",
+    tags: ["machine-learning", "roadmap", "beginner"],
+    featured: true,
+  },
+  {
+    name: "Andrew Ng’s Machine Learning",
+    description:
+      "A foundational machine learning course covering supervised and unsupervised learning, widely considered a classic.",
+    website: "https://www.coursera.org/learn/machine-learning",
+    pricing: "Free",
+    tags: ["machine-learning", "foundations", "coursera"],
+    featured: true,
+  },
+  {
+    name: "Sebastian Thrun’s Intro to Machine Learning",
+    description:
+      "A practical introduction to machine learning concepts that also serves as the base for Udacity’s Data Analyst path.",
+    website: "https://www.udacity.com/course/intro-to-machine-learning--ud120",
+    pricing: "Free",
+    tags: ["machine-learning", "udacity", "practical"],
+    featured: false,
+  },
+  {
+    name: "AI & ML Roadmaps (Scaler)",
+    description:
+      "Curated roadmaps highlighting essential AI and ML concepts along with recommended learning paths and tools.",
+    website:
+      "https://www.scaler.com/blog/category/artificial-intelligence-machine-learning/",
+    pricing: "Free",
+    tags: ["ai", "machine-learning", "roadmap"],
+    featured: false,
+  },
+  {
+    name: "How to Learn Artificial Intelligence",
+    description:
+      "A step-by-step beginner-friendly guide covering programming, math, ML, deep learning, and neural networks.",
+    website:
+      "https://www.appliedaicourse.com/blog/how-to-learn-artificial-intelligence-ai/",
+    pricing: "Free",
+    tags: ["ai", "beginners", "learning-path"],
+    featured: false,
+  },
+],
+
+
+  learning: [
+  {
+    name: "Learn Prompting",
+    description:
+      "A free, open-source curriculum focused on teaching effective communication with AI systems through prompt engineering techniques.",
+    website: "https://learnprompting.org/",
+    pricing: "Free",
+    tags: ["prompt-engineering", "llms", "beginner", "open-source"],
+    featured: true,
+  },
+  {
+    name: "Prompt Engineering Guide",
+    description:
+      "Comprehensive guide and curated resources covering prompt engineering patterns, techniques, and best practices.",
+    website: "https://github.com/dair-ai/Prompt-Engineering-Guide",
+    pricing: "Free",
+    tags: ["prompt-engineering", "research", "llms", "github"],
+    featured: true,
+  },
+  {
+    name: "ChatGPT Prompt Engineering for Developers",
+    description:
+      "Hands-on short course by OpenAI and DeepLearning.AI covering structured prompting, system messages, and practical AI workflows.",
+    website:
+      "https://www.deeplearning.ai/short-courses/chatgpt-prompt-engineering-for-developers/",
+    pricing: "Free",
+    tags: ["prompt-engineering", "developers", "openai", "course"],
+    featured: true,
+  },
+  {
+    name: "OpenAI Cookbook",
+    description:
+      "Official collection of examples, guides, and best practices for building applications using the OpenAI API.",
+    website: "https://github.com/openai/openai-cookbook",
+    pricing: "Free",
+    tags: ["openai", "api", "developers", "examples"],
+    featured: true,
+  },
+  {
+    name: "Robert Miles – AI Safety",
+    description:
+      "Educational YouTube channel explaining AI alignment, existential risks, and safety concerns in an accessible way.",
+    website: "https://www.youtube.com/@RobertMilesAI",
+    pricing: "Free",
+    tags: ["ai-safety", "ethics", "youtube", "research"],
+    featured: false,
+  },
+]
+,
+  other: [
+  {
+    name: "Taranify",
+    description:
+      "AI-powered recommendation engine that suggests Spotify playlists, Netflix shows, books, and even food based on your mood and preferences.",
+    website: "https://www.taranify.com",
+    pricing: "Free",
+    tags: ["recommendation", "entertainment", "lifestyle"],
+    featured: true,
+  },
+  {
+    name: "Diagram",
+    description:
+      "AI-first design platform that introduces magical workflows for product design, UI exploration, and rapid ideation.",
+    website: "https://diagram.com/",
+    pricing: "Freemium",
+    tags: ["design", "ui-ux", "product"],
+    featured: true,
+  },
+  {
+    name: "PromptBase",
+    description:
+      "Marketplace for buying and selling high-quality prompts for models like GPT, DALL·E, Midjourney, and Stable Diffusion.",
+    website: "https://promptbase.com/",
+    pricing: "Paid",
+    tags: ["prompts", "marketplace", "creators"],
+    featured: true,
+  },
+  {
+    name: "This Image Does Not Exist",
+    description:
+      "Fun AI experiment that challenges users to distinguish between human-created and AI-generated images.",
+    website: "https://thisimagedoesnotexist.com/",
+    pricing: "Free",
+    tags: ["gan", "images", "experiment"],
+    featured: false,
+  },
+  {
+    name: "Have I Been Trained?",
+    description:
+      "Tool that allows artists to check whether their images were used in the training of popular AI art models.",
+    website: "https://haveibeentrained.com/",
+    pricing: "Free",
+    tags: ["ethics", "ai-training", "artists"],
+    featured: true,
+  },
+  {
+    name: "AI Dungeon",
+    description:
+      "AI-powered interactive storytelling and role-playing game where the narrative evolves dynamically based on your choices.",
+    website: "https://aidungeon.io/",
+    pricing: "Freemium",
+    tags: ["gaming", "storytelling", "creative-writing"],
+    featured: true,
+  },
+  {
+    name: "Clickable",
+    description:
+      "Generate brand-consistent, high-converting ad creatives instantly using AI for all major marketing channels.",
+    website: "https://www.clickable.so/",
+    pricing: "Paid",
+    tags: ["marketing", "ads", "copywriting"],
+    featured: true,
+  },
+  {
+    name: "Scale Spellbook",
+    description:
+      "Platform for building, evaluating, and deploying large language model applications with enterprise-grade tooling.",
+    website: "https://scale.com/spellbook",
+    pricing: "Paid",
+    tags: ["llm", "enterprise", "evaluation"],
+    featured: false,
+  },
+  {
+    name: "Scenario",
+    description:
+      "Generate high-quality AI-powered game assets including characters, props, and environments.",
+    website: "https://www.scenario.com/",
+    pricing: "Paid",
+    tags: ["gaming", "assets", "image-generation"],
+    featured: true,
+  },
+  {
+    name: "Teleprompter",
+    description:
+      "On-device AI assistant for meetings that listens in real time and suggests concise, charismatic talking points.",
+    website: "https://github.com/danielgross/teleprompter",
+    pricing: "Free",
+    tags: ["meetings", "productivity", "open-source"],
+    featured: false,
+  },
+  {
+    name: "FinChat",
+    description:
+      "AI-powered financial assistant that answers questions about public companies, earnings, and investors.",
+    website: "https://finchat.io/",
+    pricing: "Freemium",
+    tags: ["finance", "stocks", "research"],
+    featured: true,
+  },
+  {
+    name: "Petals",
+    description:
+      "Distributed system for running large AI models collaboratively, inspired by BitTorrent-style architecture.",
+    website: "https://github.com/bigscience-workshop/petals",
+    pricing: "Free",
+    tags: ["distributed-ai", "open-source", "research"],
+    featured: false,
+  },
+  {
+    name: "Shotstack Workflows",
+    description:
+      "No-code automation platform for building scalable generative AI video and media workflows.",
+    website: "https://shotstack.io/product/workflows/",
+    pricing: "Paid",
+    tags: ["video", "automation", "no-code"],
+    featured: false,
+  },
+  {
+    name: "GummySearch",
+    description:
+      "AI-driven Reddit research tool to discover customer pain points, sentiment, and product opportunities.",
+    website: "https://gummysearch.com/",
+    pricing: "Paid",
+    tags: ["market-research", "reddit", "startups"],
+    featured: true,
+  },
+  {
+    name: "Taplio",
+    description:
+      "All-in-one AI-powered LinkedIn growth tool for content creation, scheduling, analytics, and lead generation.",
+    website: "https://taplio.com/",
+    pricing: "Paid",
+    tags: ["linkedin", "social-media", "marketing"],
+    featured: true,
+  },
+  {
+    name: "Napkin",
+    description:
+      "Turns written ideas into clear visuals and diagrams, making communication fast and effective.",
+    website: "https://www.napkin.ai/",
+    pricing: "Freemium",
+    tags: ["visuals", "communication", "diagrams"],
+    featured: true,
+  },
+  {
+    name: "Interview Solver",
+    description:
+      "AI copilot that helps candidates solve problems and perform better during live coding interviews.",
+    website: "https://interviewsolver.com",
+    pricing: "Paid",
+    tags: ["interviews", "coding", "career"],
+    featured: true,
+  },
+  {
+    name: "Hyperbrowser",
+    description:
+      "Advanced browser infrastructure for AI agents with automation, proxy handling, captcha solving, and session recording.",
+    website: "https://hyperbrowser.ai/",
+    pricing: "Paid",
+    tags: ["automation", "ai-agents", "infrastructure"],
+    featured: true,
+  },
+  {
+    name: "Bricks",
+    description:
+      "AI-native spreadsheet platform that reimagines spreadsheets with natural language intelligence.",
+    website: "https://www.thebricks.com/",
+    pricing: "Freemium",
+    tags: ["spreadsheets", "productivity", "business"],
+    featured: true,
+  },
+  {
+    name: "MindStudio",
+    description:
+      "Visual no-code platform to build powerful AI agents for personal, team, and enterprise use cases.",
+    website: "https://mindstudio.ai/",
+    pricing: "Freemium",
+    tags: ["ai-agents", "no-code", "automation"],
+    featured: true,
+  },
+]
+,
+
+  speech: [
+  {
+    name: "ElevenLabs",
+    description:
+      "State-of-the-art AI voice generator with realistic text-to-speech and voice cloning.",
+    website: "https://beta.elevenlabs.io/",
+    pricing: "Freemium",
+    tags: ["tts", "voice-cloning", "speech"],
+    featured: true,
+  },
+  {
+    name: "Resemble AI",
+    description:
+      "Advanced AI voice synthesis and cloning platform for real-time text-to-speech.",
+    website: "https://www.resemble.ai/",
+    pricing: "Paid",
+    tags: ["voice", "tts", "cloning"],
+    featured: true,
+  },
+  {
+    name: "Play.ht",
+    description:
+      "AI voice generator for creating natural-sounding audio from text.",
+    website: "https://play.ht/",
+    pricing: "Freemium",
+    tags: ["text-to-speech", "audio", "content"],
+    featured: false,
+  },
+  {
+    name: "Coqui",
+    description:
+      "Open-source generative AI platform for speech synthesis and voice applications.",
+    website: "https://coqui.ai/",
+    pricing: "Free",
+    tags: ["open-source", "speech", "tts"],
+    featured: false,
+  },
+  {
+    name: "Bark",
+    description:
+      "Open-source transformer-based text-to-audio model supporting music, speech, and sound effects.",
+    website: "https://github.com/suno-ai/bark",
+    pricing: "Free",
+    tags: ["open-source", "audio", "tts"],
+    featured: true,
+  },
+  {
+    name: "EKHOS AI",
+    description:
+      "AI-powered speech-to-text platform with real-time transcription and proofreading.",
+    website: "https://ekhos.ai",
+    pricing: "Paid",
+    tags: ["speech-to-text", "transcription", "audio"],
+    featured: false,
+  },
+]
+,phone: [
+  {
+    name: "AICaller.io",
+    description:
+      "Automated AI calling platform for lead qualification, surveys, and data collection with API support.",
+    website: "https://aicaller.io/",
+    pricing: "Freemium",
+    tags: ["voice-ai", "calling", "automation", "api"],
+    featured: true,
+  },
+  {
+    name: "DialLink AI Voice Agents",
+    description:
+      "AI voice agents for handling business calls and routine tasks via cloud phone systems.",
+    website: "https://diallink.com/",
+    pricing: "Paid",
+    tags: ["voice-agents", "business", "calls"],
+    featured: false,
+  },
+  {
+    name: "Cald.ai",
+    description:
+      "AI-based inbound and outbound calling agents for sales and customer support.",
+    website: "https://cald.ai",
+    pricing: "Paid",
+    tags: ["calling", "sales", "support"],
+    featured: false,
+  },
+  {
+    name: "Rosie",
+    description:
+      "AI-powered phone answering service designed for small businesses.",
+    website: "https://heyrosie.com/",
+    pricing: "Paid",
+    tags: ["phone", "assistant", "customer-support"],
+    featured: false,
+  },
+]
+,
+  marketing: [
+  {
+    name: "Jasper AI",
+    description:
+      "AI-powered marketing content platform for blogs, emails, ads, and brand-focused copy generation.",
+    website: "https://www.jasper.ai/",
+    pricing: "Paid",
+    tags: ["marketing", "content", "copywriting", "branding"],
+    featured: true,
+  },
+  {
+    name: "Mutiny",
+    description:
+      "AI personalization platform that optimizes website experiences to increase B2B conversion rates.",
+    website: "https://www.mutinyhq.com/",
+    pricing: "Paid",
+    tags: ["personalization", "conversion", "b2b", "website"],
+    featured: true,
+  },
+  {
+    name: "Clearbit",
+    description:
+      "Lead enrichment and data intelligence platform providing firmographic and demographic insights.",
+    website: "https://clearbit.com/",
+    pricing: "Paid",
+    tags: ["leads", "data", "sales", "enrichment"],
+    featured: true,
+  },
+  {
+    name: "Seventh Sense",
+    description:
+      "AI-driven email optimization tool that predicts the best send time for higher engagement.",
+    website: "https://www.theseventhsense.com/",
+    pricing: "Paid",
+    tags: ["email", "optimization", "engagement"],
+    featured: false,
+  },
+  {
+    name: "Smartly.io",
+    description:
+      "End-to-end automation platform for creating, managing, and optimizing social media advertising.",
+    website: "https://www.smartly.io/",
+    pricing: "Paid",
+    tags: ["ads", "social-media", "automation"],
+    featured: true,
+  },
+  {
+    name: "Adzooma",
+    description:
+      "AI-powered PPC campaign management platform for Google, Facebook, and Microsoft Ads.",
+    website: "https://www.adzooma.com/",
+    pricing: "Freemium",
+    tags: ["ppc", "ads", "optimization"],
+    featured: false,
+  },
+  {
+    name: "Phrasee",
+    description:
+      "Generates high-performing marketing copy using AI trained on brand language and tone.",
+    website: "https://www.phrasee.co/",
+    pricing: "Paid",
+    tags: ["copywriting", "email", "branding"],
+    featured: false,
+  },
+  {
+    name: "MarketMuse",
+    description:
+      "AI-powered SEO and content intelligence platform for content planning and optimization.",
+    website: "https://www.marketmuse.com/",
+    pricing: "Freemium",
+    tags: ["seo", "content", "optimization"],
+    featured: true,
+  },
+  {
+    name: "Chatfuel",
+    description:
+      "AI chatbot platform for automating customer engagement on Messenger and websites.",
+    website: "https://www.chatfuel.com/",
+    pricing: "Freemium",
+    tags: ["chatbot", "customer-support", "automation"],
+    featured: false,
+  },
+  {
+    name: "LogicBalls",
+    description:
+      "All-in-one AI writing assistant to generate marketing, social, and business content.",
+    website: "https://logicballs.com/",
+    pricing: "Freemium",
+    tags: ["writing", "productivity", "marketing"],
+    featured: false,
+  },
+  {
+    name: "PersonaForce",
+    description:
+      "Create, analyze, and chat with AI-generated buyer personas for smarter marketing decisions.",
+    website: "https://personaforce.ai/",
+    pricing: "Paid",
+    tags: ["personas", "strategy", "b2b"],
+    featured: false,
+  },
+  {
+    name: "Keyla.AI",
+    description:
+      "AI-powered platform to create high-converting video ads in minutes.",
+    website: "https://keyla.ai/",
+    pricing: "Paid",
+    tags: ["video", "ads", "creative"],
+    featured: true,
+  },
+]
+,
+ "ai-music": [
+  {
+    name: "AIVA",
+    description:
+      "AI composer specializing in cinematic, orchestral, and classical music for film and games.",
+    website: "https://www.aiva.ai",
+    pricing: "Paid",
+    tags: ["music", "composition", "cinematic"],
+    featured: true,
+  },
+  {
+    name: "Mubert",
+    description:
+      "Generates royalty-free music in real time, tailored to different moods and use cases.",
+    website: "https://www.mubert.com",
+    pricing: "Freemium",
+    tags: ["music", "generative", "royalty-free"],
+    featured: true,
+  },
+  {
+    name: "Soundraw",
+    description:
+      "Customizable AI music generator allowing users to fine-tune mood, genre, and structure.",
+    website: "https://soundraw.io",
+    pricing: "Paid",
+    tags: ["music", "customization", "creators"],
+    featured: false,
+  },
+  {
+    name: "Boomy",
+    description:
+      "Create, release, and monetize AI-generated music tracks with minimal effort.",
+    website: "https://www.boomy.com",
+    pricing: "Freemium",
+    tags: ["music", "creation", "monetization"],
+    featured: false,
+  },
+  {
+    name: "Soundful",
+    description:
+      "High-quality, royalty-free AI-generated music designed for content creators and brands.",
+    website: "https://www.soundful.com",
+    pricing: "Paid",
+    tags: ["music", "royalty-free", "branding"],
+    featured: false,
+  },
+]
+,
+  voice: [
+  {
+    name: "ElevenLabs",
+    description:
+      "Industry-leading AI voice synthesis and cloning platform known for ultra-realistic voices and emotion modeling.",
+    website: "https://elevenlabs.io/",
+    pricing: "Freemium",
+    tags: ["voice", "cloning", "tts", "emotion"],
+    featured: true,
+  },
+  {
+    name: "Descript Overdub",
+    description:
+      "Voice cloning tool seamlessly integrated into Descript for fast voiceovers and audio editing workflows.",
+    website: "https://www.descript.com/overdub",
+    pricing: "Paid",
+    tags: ["voice", "editing", "content-creation"],
+    featured: false,
+  },
+  {
+    name: "Respeecher",
+    description:
+      "Professional-grade voice cloning widely used in film, TV, and gaming for emotion-rich performances.",
+    website: "https://www.respeecher.com/",
+    pricing: "Paid",
+    tags: ["voice", "cloning", "entertainment", "studio"],
+    featured: false,
+  },
+  {
+    name: "Resemble AI",
+    description:
+      "Real-time voice synthesis and cloning platform offering extensive customization for developers and creatives.",
+    website: "https://www.resemble.ai/",
+    pricing: "Paid",
+    tags: ["voice", "api", "real-time", "developers"],
+    featured: false,
+  },
+  {
+    name: "Murf AI",
+    description:
+      "User-friendly AI voiceover platform popular for ads, presentations, and marketing content.",
+    website: "https://murf.ai/",
+    pricing: "Freemium",
+    tags: ["voice", "voiceover", "marketing"],
+    featured: false,
+  },
+  {
+    name: "Azure Neural TTS",
+    description:
+      "Enterprise-scale neural text-to-speech service with deep customization and cloud integration.",
+    website:
+      "https://azure.microsoft.com/en-us/services/cognitive-services/text-to-speech/",
+    pricing: "Paid",
+    tags: ["voice", "enterprise", "tts", "cloud"],
+    featured: false,
+  },
+  {
+    name: "TTS WebUI",
+    description:
+      "Open-source generative AI application supporting 15+ text-to-speech models for voice and music.",
+    website: "https://github.com/rsxdalv/tts-generation-webui",
+    pricing: "Free",
+    tags: ["voice", "open-source", "tts", "community"],
+    featured: false,
+  },
+]
+,
+
+  "sd-resources": [
+  {
+    name: "Stable Horde",
+    description:
+      "Crowdsourced distributed network providing free Stable Diffusion image generation.",
+    website: "https://stablehorde.net/",
+    pricing: "Free",
+    tags: ["stable-diffusion", "distributed", "open"],
+    featured: true,
+  },
+  {
+    name: "Public Prompts",
+    description:
+      "Large collection of high-quality, free prompts for Stable Diffusion and AI art generation.",
+    website: "https://publicprompts.art/",
+    pricing: "Free",
+    tags: ["prompts", "stable-diffusion", "art"],
+    featured: false,
+  },
+  {
+    name: "Hugging Face Diffusion Models Course",
+    description:
+      "Hands-on Python course teaching diffusion models, training techniques, and Stable Diffusion internals.",
+    website: "https://github.com/huggingface/diffusion-models-class",
+    pricing: "Free",
+    tags: ["education", "diffusion-models", "huggingface"],
+    featured: true,
+  },
+]
+,
+
+  "model-libraries": [
+  {
+    name: "Civitai",
+    description:
+      "Community-driven platform for sharing Stable Diffusion models, LoRAs, checkpoints, and embeddings.",
+    website: "https://civitai.com/",
+    pricing: "Free",
+    tags: ["models", "stable-diffusion", "community"],
+    featured: true,
+  },
+  {
+    name: "Stable Diffusion Models List",
+    description:
+      "Comprehensive curated list of Stable Diffusion checkpoints and resources hosted on rentry.org.",
+    website: "https://rentry.org/sdmodels",
+    pricing: "Free",
+    tags: ["stable-diffusion", "models", "checkpoints"],
+    featured: false,
+  },
+]
+,
+
+  "image-libraries": [
+  {
+    name: "Lexica",
+    description:
+      "Search engine for Stable Diffusion images and prompts, widely used for inspiration and prompt engineering.",
+    website: "https://lexica.art/",
+    pricing: "Free",
+    tags: ["stable-diffusion", "prompts", "search"],
+    featured: true,
+  },
+  {
+    name: "Libraire",
+    description:
+      "One of the largest curated libraries of AI-generated images for creative exploration.",
+    website: "https://libraire.ai/",
+    pricing: "Free",
+    tags: ["image-library", "ai-art", "inspiration"],
+    featured: false,
+  },
+  {
+    name: "KREA",
+    description:
+      "Explore millions of AI-generated images and prompts with real-time Stable Diffusion generation.",
+    website: "https://www.krea.ai/",
+    pricing: "Freemium",
+    tags: ["stable-diffusion", "real-time", "prompts"],
+    featured: true,
+  },
+  {
+    name: "OpenArt",
+    description:
+      "Prompt search and AI image generation platform supporting Stable Diffusion and DALL·E.",
+    website: "https://openart.ai/",
+    pricing: "Freemium",
+    tags: ["image-generation", "prompts", "stable-diffusion", "dalle"],
+    featured: true,
+  },
+  {
+    name: "Phygital",
+    description:
+      "Template-driven AI image generation and editing tool for both digital and physical designs.",
+    website: "https://app.phygital.plus/",
+    pricing: "Paid",
+    tags: ["templates", "image-editing", "design"],
+    featured: false,
+  },
+  {
+    name: "Canva AI Image Generator",
+    description:
+      "Generate AI images directly inside Canva with seamless integration into design workflows.",
+    website: "https://www.canva.com/ai-image-generator/",
+    pricing: "Freemium",
+    tags: ["design", "image-generation", "canva"],
+    featured: true,
+  },
+]
+,
+
+  "graphic-design": [
+  {
+    name: "Brandmark",
+    description:
+      "AI-powered logo design platform that generates professional brand identities including logos, color palettes, and typography.",
+    website: "https://brandmark.io/",
+    pricing: "Paid",
+    tags: ["logo", "branding", "design", "ai"],
+    featured: true,
+  },
+  {
+    name: "Gamma",
+    description:
+      "Create visually stunning presentations, documents, and webpages without manual formatting or design effort.",
+    website: "https://gamma.app/",
+    pricing: "Freemium",
+    tags: ["presentations", "webpages", "design", "productivity"],
+    featured: true,
+  },
+  {
+    name: "Microsoft Designer",
+    description:
+      "AI-assisted design tool from Microsoft for creating social posts, banners, and marketing visuals instantly.",
+    website: "https://designer.microsoft.com/",
+    pricing: "Free",
+    tags: ["design", "social-media", "marketing", "microsoft"],
+    featured: false,
+  },
+  {
+    name: "SVGStud.io",
+    description:
+      "AI-based SVG generation and semantic search tool for scalable vector graphics and illustrations.",
+    website: "https://svgstud.io/",
+    pricing: "Free",
+    tags: ["svg", "vector", "illustrations", "ai"],
+    featured: false,
+  },
+  {
+    name: "Text2Infographic",
+    description:
+      "Turn plain text into professional infographics using AI-powered layouts and visual elements.",
+    website: "https://text2infographic.com/",
+    pricing: "Freemium",
+    tags: ["infographics", "data-visualization", "design"],
+    featured: false,
+  },
+  {
+    name: "Seede.ai",
+    description:
+      "Poster and marketing creative generator that produces eye-catching designs in under a minute.",
+    website: "https://seede.ai/",
+    pricing: "Paid",
+    tags: ["posters", "marketing", "design", "ai"],
+    featured: false,
+  },
+  {
+    name: "Magic Patterns",
+    description:
+      "AI-powered UI design tool that generates interface layouts with Figma export and React code support.",
+    website: "https://www.magicpatterns.com/",
+    pricing: "Freemium",
+    tags: ["ui", "ux", "figma", "react", "design"],
+    featured: true,
+  },
+]
+,
+
+  "image-services": [
+  {
+    name: "Canva",
+    description:
+      "All-in-one design platform with AI-powered image generation, editing, and branding tools.",
+    website: "https://www.canva.com/",
+    pricing: "Freemium",
+    tags: ["design", "editing", "templates", "ai-tools"],
+    featured: true,
+  },
+  {
+    name: "Craiyon",
+    description:
+      "Formerly DALL·E mini, a lightweight AI tool that generates images from text prompts for free.",
+    website: "https://www.craiyon.com/",
+    pricing: "Free",
+    tags: ["text-to-image", "free", "creative"],
+    featured: false,
+  },
+  {
+    name: "DreamStudio",
+    description:
+      "Official web interface for generating images using Stable Diffusion models by Stability AI.",
+    website: "https://beta.dreamstudio.ai/",
+    pricing: "Paid",
+    tags: ["stable-diffusion", "official", "image-generation"],
+    featured: true,
+  },
+  {
+    name: "Artbreeder",
+    description:
+      "Collaborative creative platform that allows users to blend, remix, and evolve images using AI.",
+    website: "https://www.artbreeder.com/",
+    pricing: "Freemium",
+    tags: ["creative", "collaboration", "art"],
+    featured: false,
+  },
+  {
+    name: "GauGAN2",
+    description:
+      "AI-powered tool for generating photorealistic images using text prompts and segmentation sketches.",
+    website: "http://gaugan.org/gaugan2/",
+    pricing: "Research",
+    tags: ["sketch-to-image", "photorealism", "nvidia"],
+    featured: false,
+  },
+  {
+    name: "Magic Eraser",
+    description:
+      "Simple AI tool to remove unwanted objects from images within seconds.",
+    website: "https://www.magiceraser.io/",
+    pricing: "Freemium",
+    tags: ["image-editing", "background-removal"],
+    featured: false,
+  },
+  {
+    name: "Playground AI",
+    description:
+      "Free AI-powered image creation platform for art, social media, posters, presentations, and more.",
+    website: "https://playgroundai.com/",
+    pricing: "Freemium",
+    tags: ["design", "social-media", "image-generation"],
+    featured: true,
+  },
+  {
+    name: "PhotoRoom",
+    description:
+      "AI image editing app focused on background removal, product photos, and portrait enhancement.",
+    website: "https://www.photoroom.com/",
+    pricing: "Freemium",
+    tags: ["photo-editing", "ecommerce", "background-removal"],
+    featured: true,
+  },
+  {
+    name: "Lensa",
+    description:
+      "Mobile-first AI photo editing app famous for personalized avatar generation using diffusion models.",
+    website: "https://prisma-ai.com/lensa",
+    pricing: "Paid",
+    tags: ["avatars", "mobile", "photo-editing"],
+    featured: true,
+  },
+  {
+    name: "ClipDrop",
+    description:
+      "Professional AI-powered image editing suite by Stability AI for cleanup, relighting, and composition.",
+    website: "https://clipdrop.co/",
+    pricing: "Freemium",
+    tags: ["editing", "stability-ai", "professional"],
+    featured: true,
+  },
+  {
+    name: "VectorArt.ai",
+    description:
+      "AI tool specialized in generating vector-based illustrations and scalable graphics.",
+    website: "https://vectorart.ai",
+    pricing: "Freemium",
+    tags: ["vector", "illustration", "design"],
+    featured: false,
+  },
+]
+,
+  "image-models": [
+  {
+    name: "DALL·E 2",
+    description:
+      "Text-to-image model by OpenAI capable of generating realistic images and artistic illustrations from natural language prompts.",
+    website: "https://openai.com/dall-e-2/",
+    pricing: "Paid",
+    tags: ["image-generation", "text-to-image", "openai", "art"],
+    featured: true,
+  },
+  {
+    name: "Stable Diffusion",
+    description:
+      "State-of-the-art open-source text-to-image diffusion model by Stability AI, widely used for fine-tuning and custom image generation.",
+    website: "https://huggingface.co/CompVis/stable-diffusion-v1-4",
+    pricing: "Free",
+    tags: ["open-source", "diffusion", "text-to-image", "research"],
+    featured: true,
+  },
+  {
+    name: "Midjourney",
+    description:
+      "High-quality proprietary image generation model known for cinematic, artistic, and highly stylized outputs.",
+    website: "https://www.midjourney.com/",
+    pricing: "Paid",
+    tags: ["creative", "art", "diffusion", "premium"],
+    featured: true,
+  },
+  {
+    name: "Imagen",
+    description:
+      "Google’s advanced diffusion-based text-to-image model focused on photorealism and deep language understanding.",
+    website: "https://imagen.research.google/",
+    pricing: "Research",
+    tags: ["google", "photorealism", "diffusion", "research"],
+    featured: false,
+  },
+  {
+    name: "Make-A-Scene",
+    description:
+      "Meta’s multimodal image generation model enabling creative control using text descriptions and freeform sketches.",
+    website:
+      "https://ai.facebook.com/blog/greater-creative-control-for-ai-image-generation/",
+    pricing: "Research",
+    tags: ["multimodal", "sketch-to-image", "meta", "research"],
+    featured: false,
+  },
+  {
+    name: "DragGAN",
+    description:
+      "Interactive GAN-based image manipulation technique allowing users to drag points to edit images realistically.",
+    website: "https://github.com/XingangPan/DragGAN",
+    pricing: "Free",
+    tags: ["open-source", "gan", "image-editing", "research"],
+    featured: false,
+  },
+]
+,
+
+
+  developer: [
+  {
+    name: "Ollama",
+    description:
+      "Run and manage large language models locally on your machine for development, experimentation, and private inference.",
+    website: "https://ollama.com/",
+    pricing: "Free",
+    tags: ["llm", "local", "open-source", "inference", "developers"],
+    featured: true,
+  },
+  {
+    name: "Cohere",
+    description:
+      "Enterprise-grade NLP and LLM platform offering text generation, embeddings, classification, and multilingual support via APIs.",
+    website: "https://cohere.ai/",
+    pricing: "Paid",
+    tags: ["nlp", "llm", "api", "enterprise"],
+    featured: true,
+  },
+  {
+    name: "LangChain",
+    description:
+      "Popular framework for building LLM-powered applications using chains, tools, agents, and memory.",
+    website: "https://langchain.com/",
+    pricing: "Free",
+    tags: ["framework", "agents", "llm", "open-source"],
+    featured: true,
+  },
+  {
+    name: "LlamaIndex",
+    description:
+      "Data framework for connecting LLMs with external data sources like documents, APIs, and databases.",
+    website: "https://www.llamaindex.ai/",
+    pricing: "Freemium",
+    tags: ["rag", "data", "llm", "framework"],
+    featured: true,
+  },
+  {
+    name: "Haystack",
+    description:
+      "Open-source framework for building production-ready NLP applications such as RAG pipelines, search, and QA systems.",
+    website: "https://haystack.deepset.ai/",
+    pricing: "Free",
+    tags: ["nlp", "rag", "search", "open-source"],
+    featured: false,
+  },
+  {
+    name: "Langfuse",
+    description:
+      "Open-source LLM observability and analytics platform for tracing, debugging, and improving LLM applications.",
+    website: "https://langfuse.com/",
+    pricing: "Freemium",
+    tags: ["llmops", "observability", "analytics", "open-source"],
+    featured: true,
+  },
+  {
+    name: "Phoenix (Arize)",
+    description:
+      "ML observability tool for monitoring, debugging, and fine-tuning LLM, CV, and tabular models.",
+    website: "https://phoenix.arize.com/",
+    pricing: "Free",
+    tags: ["mlops", "observability", "llm", "open-source"],
+    featured: false,
+  },
+  {
+    name: "Portkey",
+    description:
+      "Full-stack LLMOps platform for managing prompts, monitoring usage, enforcing policies, and optimizing AI apps.",
+    website: "https://portkey.ai/",
+    pricing: "Paid",
+    tags: ["llmops", "gateway", "monitoring", "api"],
+    featured: true,
+  },
+  {
+    name: "gpt4all",
+    description:
+      "Open-source ecosystem for running chat-oriented LLMs locally with privacy-first inference.",
+    website: "https://github.com/nomic-ai/gpt4all",
+    pricing: "Free",
+    tags: ["open-source", "local", "chatbot", "llm"],
+    featured: false,
+  },
+  {
+    name: "LMQL",
+    description:
+      "Query language for LLMs that enables constrained decoding and programmatic control over generations.",
+    website: "https://lmql.ai/",
+    pricing: "Free",
+    tags: ["llm", "query-language", "research"],
+    featured: false,
+  },
+  {
+    name: "Keploy",
+    description:
+      "Open-source platform that converts real user traffic into automated test cases and mocks.",
+    website: "https://keploy.io/",
+    pricing: "Free",
+    tags: ["testing", "open-source", "devtools"],
+    featured: false,
+  },
+  {
+    name: "TensorZero",
+    description:
+      "Production-grade open-source framework unifying LLM gateways, observability, evaluations, and optimization.",
+    website: "https://www.tensorzero.com/",
+    pricing: "Free",
+    tags: ["llmops", "open-source", "production"],
+    featured: true,
+  },
+  {
+    name: "Agenta",
+    description:
+      "Open-source LLMOps platform for prompt management, evaluation, experimentation, and monitoring.",
+    website: "https://agenta.ai/",
+    pricing: "Free",
+    tags: ["llmops", "evaluation", "open-source"],
+    featured: false,
+  },
+]
+,
 
 
   academia: [
@@ -2441,6 +3630,106 @@ video: [
     tags: ["video", "avatar", "enterprise", "marketing", "education"],
     featured: true,
   },
+  {
+    name: "RunwayML",
+    description:
+      "Advanced AI video creation suite offering text-to-video, video-to-video, precision editing, and real-time collaboration for creators and studios.",
+    website: "https://runwayml.com/",
+    pricing: "Paid",
+    tags: ["video", "text-to-video", "editing", "creative", "studio"],
+    featured: true,
+  },
+  {
+    name: "Synthesia",
+    description:
+      "Create professional videos from plain text using AI avatars, widely adopted for training, onboarding, and corporate communication.",
+    website: "https://www.synthesia.io/",
+    pricing: "Paid",
+    tags: ["video", "avatars", "text-to-video", "enterprise"],
+    featured: true,
+  },
+  {
+    name: "Rephrase AI",
+    description:
+      "Enterprise-grade platform for creating hyper-personalized AI videos at scale, optimized for marketing and customer engagement.",
+    website: "https://www.rephrase.ai/",
+    pricing: "Paid",
+    tags: ["video", "personalization", "marketing", "enterprise"],
+    featured: false,
+  },
+  {
+    name: "Hour One",
+    description:
+      "Turn scripts into videos with lifelike virtual presenters, ideal for corporate content, learning, and product demos.",
+    website: "https://hourone.ai/",
+    pricing: "Paid",
+    tags: ["video", "avatars", "text-to-video", "corporate"],
+    featured: false,
+  },
+  {
+    name: "D-ID",
+    description:
+      "Create and interact with talking avatars using images and text, enabling conversational and interactive video experiences.",
+    website: "https://www.d-id.com/",
+    pricing: "Freemium",
+    tags: ["video", "avatars", "talking-heads", "interactive"],
+    featured: true,
+  },
+  {
+    name: "ShortVideoGen",
+    description:
+      "Generate short-form videos with audio using simple text prompts, optimized for social media platforms.",
+    website: "https://shortgen.video/",
+    pricing: "Free",
+    tags: ["video", "short-form", "social-media", "text-to-video"],
+    featured: false,
+  },
+  {
+    name: "Clipwing",
+    description:
+      "Automatically transforms long-form videos into multiple short, engaging clips for social media distribution.",
+    website: "https://clipwing.pro/",
+    pricing: "Freemium",
+    tags: ["video", "repurposing", "short-clips", "creators"],
+    featured: false,
+  },
+  {
+    name: "Recast Studio",
+    description:
+      "AI-powered podcast and video marketing assistant that converts long content into shareable highlights.",
+    website: "https://recast.studio",
+    pricing: "Paid",
+    tags: ["video", "podcast", "marketing", "repurposing"],
+    featured: false,
+  },
+  {
+    name: "Based AI",
+    description:
+      "Intuitive AI-driven interface for rapid video creation, focused on simplicity and creator productivity.",
+    website: "https://www.basedlabs.ai/",
+    pricing: "Freemium",
+    tags: ["video", "creative", "easy-to-use"],
+    featured: false,
+  },
+  {
+    name: "Kling AI",
+    description:
+      "AI creative studio offering high-quality image and video generation with cinematic motion capabilities.",
+    website: "https://app.klingai.com/global/",
+    pricing: "Freemium",
+    tags: ["video", "image", "generation", "cinematic"],
+    featured: true,
+  },
+  {
+    name: "Sisif",
+    description:
+      "Text-to-video generator designed to quickly create visually engaging videos in seconds.",
+    website: "https://sisif.ai/",
+    pricing: "Freemium",
+    tags: ["video", "text-to-video", "fast"],
+    featured: false,
+  },
+
 ]
 
 
