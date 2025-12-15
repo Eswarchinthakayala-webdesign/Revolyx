@@ -4030,8 +4030,8 @@ export default function AllAisPage() {
               </div>
             </div>
 
-            <ScrollArea style={{ height: 520 }} className="m-2 ">
-              <div className="space-y-2">
+            <ScrollArea style={{ height: 520 }} className="p-2 ">
+              <div className="space-y-2 overflow-hidden p-1 ">
                 {CATEGORIES.map((cat) => {
                   const IconComp = cat.Icon;
                   const count = (aisByCategory[cat.id] || []).length;
@@ -4040,7 +4040,7 @@ export default function AllAisPage() {
                       key={cat.id}
                       onClick={() => setSelectedCategory(cat.id)}
                       className={clsx(
-                        "w-full text-left p-3 rounded-md flex items-center gap-3 cursor-pointer transition",
+                        "w-auto text-left p-3   rounded-md flex items-center gap-3 cursor-pointer transition",
                         selectedCategory === cat.id ? "bg-primary/5 ring-1 ring-primary/20" : "hover:bg-zinc-100 dark:hover:bg-zinc-800/50"
                       )}
                     >
@@ -4048,8 +4048,8 @@ export default function AllAisPage() {
                         <IconComp />
                       </div>
 
-                      <div className=" min-w-0">
-                        <div className="font-medium w-40 truncate">{cat.label}</div>
+                      <div className=" w-40">
+                        <div className="font-medium  truncate">{cat.label}</div>
                         <div className="text-xs opacity-60">{count} AI Tools</div>
                       </div>
 
@@ -4070,7 +4070,7 @@ export default function AllAisPage() {
         {/* Center: Cards grid */}
         <section className={clsx("lg:col-span-6 space-y-4")}>
           <Card className={clsx("rounded-2xl overflow-hidden border", surface)}>
-            <CardHeader className={clsx("p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3", panelBg)}>
+            <CardHeader className={clsx("p-4 flex flex-wrap flex-row items-start sm:items-center justify-between gap-3", panelBg)}>
               <div className="flex-1 min-w-0">
                 <CardTitle className="text-lg flex items-center gap-2">
                   {(() => {
@@ -4166,11 +4166,7 @@ export default function AllAisPage() {
 
             <Separator className="my-3" />
 
-            <div>
-              <div className="text-sm font-semibold">Developer</div>
-              <div className="text-xs opacity-60 mt-1">This is a static demo page — in production fetch a curated AI index and dynamic icons/counts.</div>
-              <div className="mt-2 text-xs break-words">Example fetch: <code className="text-xs">/api/ai-tools?category=image-gen</code></div>
-            </div>
+       
           </div>
         </aside>
       </main>
@@ -4179,7 +4175,7 @@ export default function AllAisPage() {
       <Dialog open={dialogOpen} onOpenChange={(v) => setDialogOpen(v)}>
         <DialogContent
           className={clsx(
-            "max-w-3xl w-full p-0 rounded-2xl overflow-hidden backdrop-blur-xl border",
+            "max-w-3xl w-full  p-2 h-150 rounded-2xl overflow-hidden backdrop-blur-xl border",
             isDark
               ? "bg-black/60 border-zinc-800 shadow-[0_0_25px_rgba(255,255,255,0.05)]"
               : "bg-white border-zinc-200 shadow-xl"

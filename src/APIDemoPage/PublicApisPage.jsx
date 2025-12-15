@@ -2794,7 +2794,7 @@ export default function PublicApisPage() {
         {/* Center: Cards grid */}
         <section className={clsx("lg:col-span-6 space-y-4")}>
           <Card className={clsx("rounded-2xl overflow-hidden border", surface)}>
-            <CardHeader className={clsx("p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3", panelBg)}>
+            <CardHeader className={clsx("p-4 flex flex-wrap flex-row items-start sm:items-center justify-between gap-3", panelBg)}>
               <div className="flex-1 min-w-0">
                 <CardTitle className="text-lg flex items-center gap-2">
                   {(() => {

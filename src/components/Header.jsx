@@ -48,6 +48,8 @@ import {
 } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
 import { useTheme } from "@/components/theme-provider";
+import { ThemeTogglerButton } from "./animate-ui/components/buttons/theme-toggler";
+import { AnimatedThemeToggler } from "./ui/animated-theme-toggler";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -201,7 +203,7 @@ export default function Header() {
 
           {/* Right Controls */}
           <div className="flex items-center gap-3">
-            <ModeToggle />
+           <AnimatedThemeToggler/>
             <button
               onClick={() => setIsMenuOpen(true)}
               className="lg:hidden text-gray-700 dark:text-gray-200 hover:text-primary"
