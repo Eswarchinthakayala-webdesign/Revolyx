@@ -65,6 +65,7 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import AnimatedBadge from "../components/ui/animated-badge";
+import RevolyxLoader from "../components/ui/Logo";
 
 
 /**
@@ -266,32 +267,7 @@ export default function LandingPage() {
           transition={{ delay: 2.5, duration: 0.5 }} // Total duration is 3s (2.5s delay + 0.5s fade out)
           onAnimationComplete={() => setLoading(false)}
         >
-          <motion.h1
-            key="welcome-text"
-            className="text-4xl md:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 whitespace-nowrap"
-            initial={{ x: 0, y: 0, opacity: 0, scale: 0.9 }}
-            // Animation sequence: Fade In -> Hold -> Move Top-Left & Disappear
-            animate={{
-              opacity: [0, 1, 1, 0], // Fades in, holds, fades out
-              scale: [0.9, 1, 1, 0.5], // Scales up, holds, scales down
-              x: [0, 0, 0, -500], // Stays centered, then moves left (simulating top-left movement relative to viewport)
-              y: [0, 0, 0, -300], // Stays centered, then moves up
-            }}
-            transition={{
-              times: [0, 0.2, 0.7, 1], // Keyframes: Start, Fade-in complete, Start move, End
-              duration: 2.5,
-              ease: [
-                [0.42, 0, 0.58, 1], // Ease for fade in/scale
-                "linear", // Hold
-                [0.42, 0, 0.58, 1], // Ease for move/fade out
-              ],
-            }}
-          >
-            
-            <span className="bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
-              Revolyx
-            </span>
-          </motion.h1>
+         <RevolyxLoader/>
         </motion.div>
       )}
 

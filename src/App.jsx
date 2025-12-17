@@ -214,10 +214,6 @@ const router=createBrowserRouter([
         element:<QRGeneratorPage/>
       },
          {
-        path:"/resources",
-        element:<ResourcePage/>
-      },
-         {
         path:"/code-snippet",
         element:<CodeSnippetGenerator/>
       },
