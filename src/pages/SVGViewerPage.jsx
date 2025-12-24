@@ -279,8 +279,6 @@ const normalizeSVG = (svg) =>
 
   return (
     <div className="flex flex-col min-h-screen pb-10 sm:pb-0 overflow-hidden text-zinc-900 dark:text-zinc-100 ">
-      <Toaster richColors position="top-right" />
-
       {/* HEADER */}
 <header className="sticky top-0 z-40 w-full border-b border-zinc-200 dark:border-zinc-800 ">
   <div className="h-14 flex items-center justify-between px-4 sm:px-6">
@@ -501,29 +499,59 @@ const normalizeSVG = (svg) =>
         </aside>
 
         {/* CENTER: EDITOR */}
-        <section className="flex-1 h-200 flex flex-col min-w-0 ">
-          <div className="h-10 flex items-center justify-between px-4 border-b border-zinc-800 ">
-            <div className="flex items-center gap-2">
-               <FileCode className="w-3.5 h-3.5 text-zinc-500" />
-               <span className="text-[10px] font-bold uppercase text-zinc-500 tracking-widest">SVG Source</span>
-            </div>
-            <div className="flex gap-2">
-               <Button variant="outline" className="h-7 text-[10px] cursor-pointer" onClick={prettifySVG}>
-                 <AlignLeft className="w-3 h-3 mr-1" /> Prettify
-               </Button>
-               <Button variant="outline" className="h-7 text-[10px] cursor-pointer " onClick={optimizeSVG}>
-                 <Wand2 className="w-3 h-3 mr-1" /> Optimize
-               </Button>
-            </div>
-          </div>
-          <Editor
-            theme={isDark?"vs-dark":"vs"}
-            defaultLanguage="xml"
-            value={svgCode}
-            onChange={(v) => setSvgCode(v || "")}
-            options={{ minimap: { enabled: false }, fontSize: 13, wordWrap: "on" }}
-          />
-        </section>
+<section className="flex-1 flex flex-col min-w-0 min-h-0">
+
+  {/* TOP BAR */}
+  <div className="h-10 shrink-0 flex items-center justify-between px-3 sm:px-4 border-b border-zinc-800">
+    <div className="flex items-center gap-2">
+      <FileCode className="w-3.5 h-3.5 text-zinc-500" />
+      <span className="text-[10px] font-bold uppercase text-zinc-500 tracking-widest">
+        SVG Source
+      </span>
+    </div>
+
+    <div className="flex gap-1 sm:gap-2">
+      <Button
+        variant="outline"
+        className="h-7 px-2 text-[10px]"
+        onClick={prettifySVG}
+      >
+        <AlignLeft className="w-3 h-3 sm:mr-1" />
+        <span className="hidden sm:inline">Prettify</span>
+      </Button>
+
+      <Button
+        variant="outline"
+        className="h-7 px-2 text-[10px]"
+        onClick={optimizeSVG}
+      >
+        <Wand2 className="w-3 h-3 sm:mr-1" />
+        <span className="hidden sm:inline">Optimize</span>
+      </Button>
+    </div>
+  </div>
+
+  {/* EDITOR WRAPPER */}
+  <div className="flex-1 min-h-0">
+    <Editor
+      height="100%"
+      theme={isDark ? "vs-dark" : "vs"}
+      defaultLanguage="xml"
+      value={svgCode}
+      onChange={(v) => setSvgCode(v || "")}
+      options={{
+        minimap: { enabled: false },
+        fontSize: 12,
+        wordWrap: "on",
+        scrollBeyondLastLine: false,
+        automaticLayout: true,
+        padding: { top: 12, bottom: 12 },
+      }}
+    />
+  </div>
+
+</section>
+
 
         {/* RIGHT PANEL */}
         <aside className="sm:w-80 border-l border-zinc-200 dark:border-zinc-800 flex flex-col shrink-0 overflow-y-auto bg-zinc-50/30 dark:bg-zinc-950">
