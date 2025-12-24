@@ -43,6 +43,7 @@ import {
   BrickWallFire,
   BrickWallFireIcon,
   BrainCircuit,
+  DiamondMinus,
   
   
 } from "lucide-react";
@@ -98,7 +99,8 @@ export default function Header() {
      {name:"Calculators",icon: Calculator,path:"/calculators"},
      {name:"Prompts",icon: TextCursorIcon,path:"/leaked-prompts"},
      {name:"Public Apis",icon:BrickWallFireIcon,path:"/public-apis"},
-     {name:"ALL AIs",icon:BrainCircuit,path:"/all-ais"}
+     {name:"ALL AIs",icon:BrainCircuit,path:"/all-ais"},
+     {name:"Svg Viewer",icon:DiamondMinus,path:'/svg-viewer'}
     
 
 

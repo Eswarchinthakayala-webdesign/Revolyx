@@ -61,7 +61,8 @@ import {
   Calculator,
    TextCursorIcon,
    BrickWallFireIcon,
-   BrainCircuit
+   BrainCircuit,
+   DiamondMinus
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import AnimatedBadge from "../components/ui/animated-badge";
@@ -205,10 +206,11 @@ export default function LandingPage() {
     {name:"Binary Tools",icon:Binary,path:"/binary-tools", gradient: ""},
     {name:"Unit Measurements",icon:Scale,path:"/measurement-tools", gradient: ""},
     {name:"Misc Tools",icon:Command,path:"/misc-tools",gradient:""},
-     {name:"Calculators",icon: Calculator,path:"/calculators"},
-      {name:"Prompts",icon: TextCursorIcon,path:"/leaked-prompts"},
-         {name:"Public Apis",icon:BrickWallFireIcon,path:"/public-apis"},
-          {name:"ALL AIs",icon:BrainCircuit,path:"/all-ais"}
+    {name:"Calculators",icon: Calculator,path:"/calculators"},
+    {name:"Prompts",icon: TextCursorIcon,path:"/leaked-prompts"},
+    {name:"Public Apis",icon:BrickWallFireIcon,path:"/public-apis"},
+    {name:"ALL AIs",icon:BrainCircuit,path:"/all-ais"},
+    {name:"Svg Viewer",icon:DiamondMinus,path:'/svg-viewer'}
   ];
 
   // Build full features list: start with initialFeatures, then append all navItems (exclude Home duplication)
@@ -343,9 +345,9 @@ export default function LandingPage() {
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: "easeOut" }} className="relative z-10">
 
               <AnimatedBadge
-                text="New: AIs on Internet"
+                text="New: Svg Viewer"
                 color={isDark?"#fff":"#000"}
-                href="/all-ais"
+                href="/svg-viewer"
               />
 
 

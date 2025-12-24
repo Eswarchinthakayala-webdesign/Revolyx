@@ -85,7 +85,7 @@ const RevolyxLoader = ({ setLoading }) => {
           src="/logo.png"
           alt="Revolyx Logo"
           className={`h-14 md:h-20 ${
-            isDark ? 'invert brightness-150' : 'brightness-1000'
+            isDark ? 'invert brightness-150' : ''
           }`}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}

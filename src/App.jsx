@@ -154,6 +154,7 @@ import MiscToolsPage from './pages/MiscToolsPage'
 import CalculatorsPage from './pages/CalculatorsPage'
 import PromptsPage from './pages/PromptsPage'
 import AllAisPage from './components/AllAisPage'
+import SVGViewerPage from './pages/SVGViewerPage'
 
 const router=createBrowserRouter([
   {
@@ -224,6 +225,10 @@ const router=createBrowserRouter([
            {
         path:"/neumorphism",
         element:<NeumorphismDesignPage/>
+      },
+      {
+        path:"/svg-viewer",
+        element:<SVGViewerPage/>
       },
       {
         path:"/apis",
