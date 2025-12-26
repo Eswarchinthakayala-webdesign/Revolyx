@@ -499,7 +499,8 @@ const normalizeSVG = (svg) =>
         </aside>
 
         {/* CENTER: EDITOR */}
-<section className="flex-1 flex flex-col ">
+{/* CENTER: EDITOR */}
+<section className="flex-1 flex flex-col min-w-0 min-h-0">
 
   {/* TOP BAR */}
   <div className="h-10 shrink-0 flex items-center justify-between px-3 sm:px-4 border-b border-zinc-800">
@@ -531,8 +532,8 @@ const normalizeSVG = (svg) =>
     </div>
   </div>
 
-  {/* EDITOR WRAPPER */}
-  <div className="flex-1">
+  {/* EDITOR WRAPPER — FIX HERE */}
+  <div className="flex-1 min-h-0">
     <Editor
       height="100%"
       theme={isDark ? "vs-dark" : "vs"}
@@ -551,6 +552,7 @@ const normalizeSVG = (svg) =>
   </div>
 
 </section>
+
 
 
         {/* RIGHT PANEL */}
