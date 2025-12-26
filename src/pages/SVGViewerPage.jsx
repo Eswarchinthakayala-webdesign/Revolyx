@@ -350,7 +350,7 @@ const normalizeSVG = (svg) =>
 </header>
 
 
-      <main className="flex-1 flex flex-col sm:flex-row  overflow-hidden">
+      <main className="flex-1 flex flex-col sm:flex-row ">
         
         {/* LEFT PANEL */}
         <aside className="sm:w-72 border-r border-zinc-200 dark:border-zinc-800 flex flex-col ">
