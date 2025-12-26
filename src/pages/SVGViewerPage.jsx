@@ -533,9 +533,9 @@ const normalizeSVG = (svg) =>
   </div>
 
   {/* EDITOR WRAPPER — FIX HERE */}
-  <div className="flex-1 min-h-0">
+  <div className="flex-1 min-h-screen ">
     <Editor
-      height="100vh"
+      height="100%"
       theme={isDark ? "vs-dark" : "vs"}
       defaultLanguage="xml"
       value={svgCode}
@@ -556,7 +556,7 @@ const normalizeSVG = (svg) =>
 
 
         {/* RIGHT PANEL */}
-        {/* <aside className="sm:w-80 border-l border-zinc-200 dark:border-zinc-800 flex flex-col shrink-0 overflow-y-auto bg-zinc-50/30 dark:bg-zinc-950">
+        <aside className="sm:w-80 border-l border-zinc-200 dark:border-zinc-800 flex flex-col shrink-0 overflow-y-auto bg-zinc-50/30 dark:bg-zinc-950">
           <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Preview</span>
             
@@ -590,6 +590,7 @@ const normalizeSVG = (svg) =>
             </Dialog>
           </div>
 
+          {/* MAIN PREVIEW AREA */}
           <div className="p-4 space-y-6">
             <div 
               className="aspect-square rounded-xl border border-zinc-200 dark:border-zinc-800 relative overflow-hidden flex items-center justify-center group bg-white dark:bg-zinc-900 shadow-xl"
@@ -606,7 +607,7 @@ const normalizeSVG = (svg) =>
               />
             </div>
             
-         
+            {/* TRANSFORM TOOLS */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                  <span className="text-[10px] font-bold uppercase text-zinc-400">Transforms</span>
@@ -620,7 +621,7 @@ const normalizeSVG = (svg) =>
                  </div>
               </div>
             </div>
-           
+            {/* SIZE CONTROL SLIDER */}
             <div className="space-y-3 px-1">
                <div className="flex justify-between items-center">
                  <span className="text-[10px] font-bold text-zinc-500 uppercase">Zoom Scale</span>
@@ -689,7 +690,7 @@ const normalizeSVG = (svg) =>
               Copy SVG Code
             </Button>
           </div>
-        </aside> */}
+        </aside>
       </main>
     </div>
   );
