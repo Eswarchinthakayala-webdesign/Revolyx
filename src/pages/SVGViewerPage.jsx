@@ -532,7 +532,7 @@ const normalizeSVG = (svg) =>
   </div>
 
   {/* EDITOR WRAPPER */}
-  <div className="flex-1 min-h-0">
+  <div className="flex-1 h-screen">
     <Editor
       height="100%"
       theme={isDark ? "vs-dark" : "vs"}
