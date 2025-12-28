@@ -155,6 +155,7 @@ import CalculatorsPage from './pages/CalculatorsPage'
 import PromptsPage from './pages/PromptsPage'
 import AllAisPage from './components/AllAisPage'
 import SVGViewerPage from './pages/SVGViewerPage'
+import WebStudioIDE from './pages/CodePlayground'
 
 const router=createBrowserRouter([
   {
@@ -229,6 +230,10 @@ const router=createBrowserRouter([
       {
         path:"/svg-viewer",
         element:<SVGViewerPage/>
+      },
+      {
+        path:"/code-playground",
+        element:<WebStudioIDE/>
       },
       {
         path:"/apis",

@@ -68,6 +68,13 @@ import {
   Vortex,
   Watch,
 } from "react-loader-spinner";
+
+import * as ldrs from "ldrs";
+
+/* Register ALL LDRS loaders automatically */
+Object.values(ldrs).forEach((loader) => {
+  if (loader?.register) loader.register();
+});
 /* shadcn/ui components — adjust import paths to your project */
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -211,6 +218,15 @@ const ALL_SPINNERS = [
   { key: "triangle", title: "Triangle", comp: Triangle },
   { key: "vortex", title: "Vortex", comp: Vortex },
   { key: "watch", title: "Watch", comp: Watch },
+
+    /* 🔥 ALL LDRS LOADERS (AUTO) */
+  ...Object.keys(ldrs)
+    .filter((k) => ldrs[k]?.register)
+    .map((k) => ({
+      key: `ldrs-${k}`,
+      title: `LDRS ${k.replace(/([A-Z])/g, " $1")}`,
+      tag: `l-${k.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}`,
+    })),
 ];
 
 /* --- helper: returns category map (alphabetical) --- */
@@ -272,6 +288,7 @@ const reactLoaderSpinnerKeys = [
 
   if (reactSpinnersKeys.includes(spinnerKey)) return "react-spinners";
   if (reactLoaderSpinnerKeys.includes(spinnerKey)) return "react-loader-spinner";
+  if (spinnerKey.startsWith("ldrs-")) return "ldrs";
   return "custom";
 }
 
@@ -339,6 +356,17 @@ function Demo() {
 }
 
 export default Demo;`;
+  }
+  if (spinnerKey.startsWith("ldrs-")) {
+    const tag = `l-${spinnerKey.replace("ldrs-", "").replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}`;
+    return `import * as ldrs from "ldrs";
+Object.values(ldrs).forEach(l => l?.register?.());
+
+<${tag}
+  size="${size}"
+  speed="${speed}"
+  color="${color}"
+/>`;
   }
 
   /* ---- 3️⃣ React-Loader-Spinner ---- */
@@ -514,6 +542,13 @@ function renderSpinnerPreview(key) {
       </div>
     );
   }
+   if (key.startsWith("ldrs-")) {
+      return React.createElement(spinner.tag, {
+        size,
+        speed,
+        color: accent,
+      });
+    }
 
   if (key === "css-dots") {
     const dotSize = Math.max(6, Math.round(sizePx / 5));
@@ -623,6 +658,13 @@ function renderSpinnerPreview(key) {
           <style>{`@keyframes rotRev { to { transform: rotate(360deg); } }`}</style>
         </div>
       );
+    }
+     if (key.startsWith("ldrs-")) {
+      return React.createElement(spinner.tag, {
+        size,
+        speed,
+        color: accent,
+      });
     }
     if (key === "css-dots") {
       const dotSize = Math.max(6, Math.round(sizePx / 5));

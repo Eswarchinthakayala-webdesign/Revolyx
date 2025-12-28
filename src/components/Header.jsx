@@ -44,7 +44,7 @@ import {
   BrickWallFireIcon,
   BrainCircuit,
   DiamondMinus,
-  
+  Code
   
 } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
@@ -100,7 +100,8 @@ export default function Header() {
      {name:"Prompts",icon: TextCursorIcon,path:"/leaked-prompts"},
      {name:"Public Apis",icon:BrickWallFireIcon,path:"/public-apis"},
      {name:"ALL AIs",icon:BrainCircuit,path:"/all-ais"},
-     {name:"Svg Viewer",icon:DiamondMinus,path:'/svg-viewer'}
+     {name:"Svg Viewer",icon:DiamondMinus,path:'/svg-viewer'},
+     {name:"Web Studio",icon:Code,path:"/code-playground"},
     
 
 

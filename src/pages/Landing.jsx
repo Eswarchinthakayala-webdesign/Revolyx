@@ -62,7 +62,8 @@ import {
    TextCursorIcon,
    BrickWallFireIcon,
    BrainCircuit,
-   DiamondMinus
+   DiamondMinus,
+   Code
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import AnimatedBadge from "../components/ui/animated-badge";
@@ -210,7 +211,8 @@ export default function LandingPage() {
     {name:"Prompts",icon: TextCursorIcon,path:"/leaked-prompts"},
     {name:"Public Apis",icon:BrickWallFireIcon,path:"/public-apis"},
     {name:"ALL AIs",icon:BrainCircuit,path:"/all-ais"},
-    {name:"Svg Viewer",icon:DiamondMinus,path:'/svg-viewer'}
+    {name:"Svg Viewer",icon:DiamondMinus,path:'/svg-viewer'},
+       {name:"Web Studio",icon:Code,path:"/code-playground"},
   ];
 
   // Build full features list: start with initialFeatures, then append all navItems (exclude Home duplication)

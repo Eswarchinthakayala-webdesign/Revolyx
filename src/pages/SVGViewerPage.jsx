@@ -396,7 +396,7 @@ const normalizeSVG = (svg) =>
                 <SelectTrigger className="h-10 sm:w-40 cursor-pointer text-xs">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="h-100">
                   {filteredLibs.map(key => (
                     <SelectItem key={key} value={key} className="text-xs cursor-pointer">{libraries[key].label}</SelectItem>
                   ))}
