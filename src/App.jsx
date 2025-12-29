@@ -240,6 +240,10 @@ const router=createBrowserRouter([
         element:<APIPage/>
       },
       {
+          path:"/resources",
+          element:<ResourcePage/>
+      },
+      {
         path:"/apis/ipapi",
         element:<IpaApiPage/>
       },
