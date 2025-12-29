@@ -190,6 +190,7 @@ const [showLibSuggestions, setShowLibSuggestions] = useState(false);
   };
 
 const allLibraries = Object.keys(libraries);
+console.log(allLibraries)
 
 const filteredLibs = useMemo(() => {
   return allLibraries.filter(key =>

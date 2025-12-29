@@ -661,8 +661,8 @@ function renderSpinnerPreview(key) {
     }
      if (key.startsWith("ldrs-")) {
       return React.createElement(spinner.tag, {
-        size,
-        speed,
+        sizePx,
+        speedMultiplier,
         color: accent,
       });
     }
