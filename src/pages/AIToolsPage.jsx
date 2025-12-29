@@ -53,7 +53,7 @@ const TOOLS = {
 };
 
 // ----------------- API KEY from ENV -----------------
-const API_KEY = "AIzaSyBbqI8q_23KRxom-RsU83UOMBj2M6Z-8Lc";
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
 
 
 // ----------------- Helpers -----------------

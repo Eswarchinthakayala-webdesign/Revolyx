@@ -197,7 +197,7 @@ export default function ResourcesFinderPage() {
   const subColor = palette[subIdx % palette.length];
 
   const isDark = typeof window !== "undefined" && document.documentElement.classList.contains("dark");
-  const GEMINI_KEY = "AIzaSyBOUPRZxmhfO_HH6GCZK71UnIrrTeaEQ_g"
+  const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY
 
   /* sync ?q= in url (debounced-ish) */
   useEffect(() => {
