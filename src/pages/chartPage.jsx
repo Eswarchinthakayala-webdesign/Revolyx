@@ -4949,7 +4949,7 @@ case "pieChartWithNeedle":
               <SelectTrigger className="w-40 cursor-pointer">
                 <SelectValue placeholder="Palette" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="h-120">
                 {Object.keys(COLOR_THEMES).map(k => (
                   <SelectItem  key={k} value={k} className="flex cursor-pointer items-center gap-2">
                     <span className="w-6 h-4 rounded-sm flex-shrink-0" style={{ background: `linear-gradient(90deg, ${COLOR_THEMES[k].join(",")})` }} />

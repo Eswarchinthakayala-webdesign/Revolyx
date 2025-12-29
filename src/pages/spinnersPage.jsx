@@ -741,7 +741,7 @@ function renderSpinnerPreview(key) {
               <SelectTrigger className="w-44">
                 <SelectValue placeholder="Palette" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="h-120">
                 {Object.keys(COLOR_THEMES).map((k) => (
                   <SelectItem key={k} value={k}>
                     <div className="flex items-center gap-2">

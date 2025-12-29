@@ -582,7 +582,7 @@ const filteredFamilies = useMemo(() => {
                       <Label className="text-xs">Variant</Label>
                       <Select value={selectedVariant} onValueChange={(v) => setSelectedVariant(v)}>
                         <SelectTrigger className="w-full cursor-pointer"><SelectValue /></SelectTrigger>
-                        <SelectContent>
+                        <SelectContent >
                           {variants.map((v) => <SelectItem  className="cursor-pointer" key={v} value={v}>{variantLabel(v)}</SelectItem>)}
                         </SelectContent>
                       </Select>
@@ -610,9 +610,9 @@ const filteredFamilies = useMemo(() => {
                   <div className="flex items-center  gap-2">
                     <Select value={paletteKey} onValueChange={(v) => setPaletteKey(v)} >
                       <SelectTrigger className="w-35 cursor-pointer"><SelectValue /></SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="h-120">
                         {Object.keys(COLOR_THEMES).map((k) => (
-                          <SelectItem className="cursor-pointer" key={k} value={k}>
+                          <SelectItem className="cursor-pointer " key={k} value={k}>
                             <div className="flex items-center gap-2">
                               <div className="w-5 h-5 rounded-sm" style={{ background: `linear-gradient(90deg, ${COLOR_THEMES[k].join(",")})` }} />
                               <div className="text-sm">{k}</div>

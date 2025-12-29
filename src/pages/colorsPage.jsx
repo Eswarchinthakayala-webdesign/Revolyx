@@ -356,7 +356,7 @@ export default function ColorsPage() {
               <SelectTrigger className="w-44">
                 <SelectValue placeholder="All families" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="h-120">
                 <SelectItem value="all">All families</SelectItem>
                 {families.map((f) => (
                   <SelectItem key={f} value={f}>
@@ -390,7 +390,7 @@ export default function ColorsPage() {
               <SelectTrigger className="w-36">
                 <SelectValue placeholder="Copy as" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent >
                 <SelectItem value="hex">HEX</SelectItem>
                 <SelectItem value="rgb">RGB</SelectItem>
                 <SelectItem value="hsl">HSL</SelectItem>

@@ -393,7 +393,7 @@ export default function AllIconsPage() {
         </Button>
       </SheetTrigger>
 
-      <SheetContent side="left" className="w-[300px] p-0">
+      <SheetContent side="left" className="w-[300px] h-150 p-0">
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -415,7 +415,7 @@ export default function AllIconsPage() {
             />
           </div>
 
-          <ScrollArea className="h-[60vh] pr-2">
+          <ScrollArea className="h-150 pr-2">
             <div className="flex flex-col gap-2">
               {Object.keys(libraries)
                 .sort()
@@ -529,7 +529,7 @@ export default function AllIconsPage() {
             <SelectTrigger className="w-40 cursor-pointer">
               <SelectValue placeholder="Palette" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="h-120">
               {Object.keys(COLOR_THEMES).map((k) => (
                 <SelectItem className="cursor-pointer" key={k} value={k}>
                   <div className="flex items-center gap-2">

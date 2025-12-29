@@ -427,7 +427,7 @@ showToast("error","Invalid color",3000,"");
               <SelectTrigger className="w-44 cursor-pointer">
                 <SelectValue placeholder="Palette" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="h-120">
                 {Object.keys(COLOR_THEMES).map(k => (
                   <SelectItem  className="cursor-pointer" key={k} value={k}>
                     <div className="flex items-center gap-2">

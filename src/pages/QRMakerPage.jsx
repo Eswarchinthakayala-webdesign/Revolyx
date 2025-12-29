@@ -666,7 +666,7 @@ useEffect(() => {
                   <Label className="text-xs pb-2">Palette</Label>
                   <Select value={paletteKey} onValueChange={(v) => { setPaletteKey(v); setSubIdx(0); }}>
                     <SelectTrigger className="w-full cursor-pointer"><SelectValue /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="h-120">
                       {Object.keys(COLOR_THEMES).map((k) => (
                         <SelectItem className="cursor-pointer" key={k} value={k}>
                           <div className="flex items-center gap-2">
