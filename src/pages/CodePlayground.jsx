@@ -26,6 +26,9 @@ import {
   Code2,
   Tablet,
   ExternalLink,
+  FileText,
+  Code,
+  Braces
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -36,6 +39,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast, Toaster } from "sonner";
 import clsx from "clsx";
+import { useTheme } from "../components/theme-provider";
 
 /* ------------------------- INITIAL CONTENT ------------------------- */
 const INITIAL_FILES = {
@@ -46,13 +50,13 @@ const INITIAL_FILES = {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Revolyx Pro Studio</title>
+  <title>Revolyx  Studio</title>
 </head>
 <body>
   <div class="card">
     <div class="badge">Production Ready</div>
     <h1>Revolyx <span class="gradient-text">IDE</span></h1>
-    <p>Professional development in the browser.</p>
+    
     <button id="mainBtn">Execute Sequence</button>
   </div>
 </body>
@@ -127,6 +131,14 @@ button:hover {
 };
 
 export default function WebStudioIDE() {
+
+   
+     const { theme } = useTheme?.() ?? { theme: "system" };  
+     const isDark =
+       theme === "dark" ||
+       (theme === "system" &&
+         typeof window !== "undefined" &&
+         window.matchMedia("(prefers-color-scheme: dark)").matches); 
   const [files, setFiles] = useState(INITIAL_FILES);
   const [activeFile, setActiveFile] = useState("index.html");
   const [previewDoc, setPreviewDoc] = useState("");
@@ -167,95 +179,193 @@ export default function WebStudioIDE() {
     }));
   };
 
-  /* ---------------- COMPONENTS ---------------- */
-  const FileExplorer = () => (
-    <div className="flex flex-col h-full bg-[#09090b]">
-      <div className="p-4 flex items-center justify-between border-b border-white/5">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Workspace</span>
-        <Button variant="ghost" size="icon" className="h-6 w-6"><Settings className="w-3 h-3"/></Button>
+/* ---------------- FILE EXPLORER (PRO) ---------------- */
+/* ---------------- FILE EXPLORER (PRO + THEME AWARE) ---------------- */
+const FileExplorer = () => (
+  <div className="flex flex-col h-full 
+    bg-white text-zinc-800 
+    dark:bg-[#0b0b0d] dark:text-zinc-300
+  ">
+
+    {/* HEADER */}
+    <div className="
+      h-10 px-4 flex items-center justify-between 
+      border-b border-zinc-200 
+      dark:border-white/10
+      bg-zinc-50 dark:bg-[#0b0b0d]
+      sticky top-0 z-10
+    ">
+      <span className="text-[10px] font-semibold uppercase tracking-widest 
+        text-zinc-500 dark:text-zinc-400
+      ">
+        Explorer
+      </span>
+
+    </div>
+
+    {/* CONTENT */}
+    <ScrollArea className="flex-1 px-2 py-2">
+
+      {/* ROOT FOLDER */}
+      <div
+        onClick={() => setIsFolderOpen(!isFolderOpen)}
+        className="
+          flex items-center gap-2 px-2 py-1.5 
+          text-[11px] font-medium cursor-pointer rounded-md 
+          text-zinc-600 hover:bg-zinc-100
+          dark:text-zinc-400 dark:hover:bg-white/5
+          transition-colors
+        "
+      >
+        {isFolderOpen ? (
+          <ChevronDown className="w-3.5 h-3.5" />
+        ) : (
+          <ChevronRight className="w-3.5 h-3.5" />
+        )}
+        <FolderIcon className="w-4 h-4 text-zinc-500" />
+        <span className="tracking-wide">src</span>
       </div>
-      <ScrollArea className="flex-1 p-2">
-        <div 
-          className="flex items-center gap-2 px-2 py-1.5 text-xs font-semibold text-zinc-300 cursor-pointer"
-          onClick={() => setIsFolderOpen(!isFolderOpen)}
-        >
-          {isFolderOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-          <FolderIcon className="w-4 h-4 text-indigo-400" />
-          src
-        </div>
-        {isFolderOpen && (
-          <div className="ml-4 mt-1 border-l border-white/10 pl-2 space-y-0.5">
-            {Object.keys(files).map((f) => (
+
+      {/* FILE LIST */}
+      {isFolderOpen && (
+        <div className="
+          mt-1 ml-4 pl-2 space-y-[2px]
+          border-l border-zinc-200
+          dark:border-white/10
+        ">
+          {Object.keys(files).map((file) => {
+            const isActive = activeFile === file;
+            const isHTML = file.endsWith("html");
+            const isCSS = file.endsWith("css");
+            const isJS = file.endsWith("js");
+
+            return (
               <div
-                key={f}
-                onClick={() => setActiveFile(f)}
+                key={file}
+                onClick={() => setActiveFile(file)}
                 className={clsx(
-                  "flex items-center justify-between px-3 py-2 rounded-lg text-xs cursor-pointer transition-colors",
-                  activeFile === f ? "bg-indigo-500/10 text-indigo-400" : "text-zinc-500 hover:bg-white/5 hover:text-zinc-300"
+                  "group relative flex items-center justify-between px-3 py-1.5 rounded-md text-[11px] cursor-pointer transition-colors",
+                  isActive
+                    ? `
+                      bg-zinc-200 text-zinc-600
+                      dark:bg-zinc-500/10 dark:text-zinc-400
+                    `
+                    : `
+                      text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900
+                      dark:text-zinc-500 dark:hover:bg-white/5 dark:hover:text-zinc-300
+                    `
                 )}
               >
+                {/* ACTIVE INDICATOR */}
+                {isActive && (
+                  <span className="
+                    absolute left-0 top-1/2 -translate-y-1/2 
+                    w-[2px] h-4 rounded-r 
+                    bg-zinc-500
+                  " />
+                )}
+
                 <div className="flex items-center gap-2">
-                  <FileCode className={clsx("w-3.5 h-3.5", activeFile === f ? "text-indigo-400" : "text-zinc-600")} />
-                  {f}
+                  {isHTML && <FileText className="w-3.5 h-3.5 text-orange-500" />}
+                  {isCSS && <Code className="w-3.5 h-3.5 text-sky-500" />}
+                  {isJS && <Braces className="w-3.5 h-3.5 text-yellow-500" />}
+                  <span className="truncate">{file}</span>
                 </div>
-                {f !== "index.html" && <Trash2 className="w-3 h-3 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity" />}
+
               </div>
-            ))}
-          </div>
-        )}
-      </ScrollArea>
-    </div>
-  );
+            );
+          })}
+        </div>
+      )}
+    </ScrollArea>
+  </div>
+);
+
+
 
   return (
-    <div className="flex flex-col h-screen bg-[#020617] text-zinc-300 overflow-hidden font-sans">
+    <div className="flex flex-col h-screen  text-zinc-300 overflow-hidden font-sans">
       <Toaster richColors position="bottom-right" />
 
-      {/* TOP GLOBAL NAV */}
-      <header className="h-14 bg-[#09090b] border-b border-white/5 flex items-center justify-between px-4 z-50">
-        <div className="flex items-center gap-4">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden text-zinc-400">
-                <Menu className="w-5 h-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-72 bg-[#09090b] border-r border-white/10">
-              <FileExplorer />
-            </SheetContent>
-          </Sheet>
-          
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <Code2 className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <span className="text-sm font-bold tracking-tight text-white">REVOLYX <span className="text-indigo-500">STUDIO</span></span>
-              <p className="text-[10px] text-zinc-500 leading-none">v2.4.0 Stable</p>
-            </div>
-          </div>
-        </div>
+{/* ======================= TOP GLOBAL NAV (PRO) ======================= */}
+<header
+  className="
+    h-14 px-4 flex items-center justify-between
+    border-b border-zinc-200
+    dark:border-white/10
+    bg-white dark:bg-[#09090b]
+  "
+>
+  {/* LEFT */}
+  <div className="flex items-center gap-4 min-w-0">
+    {/* MOBILE MENU */}
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="
+            lg:hidden
+            text-zinc-500 hover:text-zinc-900
+            dark:text-zinc-400 dark:hover:text-white
+          "
+        >
+          <Menu className="w-5 h-5" />
+        </Button>
+      </SheetTrigger>
 
-         <div className="flex gap-2">
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500 hover:text-white" onClick={() => setFullscreenPreview(true)}><Maximize2 className="w-3.5 h-3.5"/></Button>
-            </div>
-      </header>
+      <SheetContent
+        side="left"
+        className="
+          p-0 w-72
+          bg-white dark:bg-[#09090b]
+          border-r border-zinc-200
+          dark:border-white/10
+        "
+      >
+        <FileExplorer />
+      </SheetContent>
+    </Sheet>
+
+    {/* BRAND */}
+    <div className="flex items-center gap-3 min-w-0">
+
+
+      <div className="leading-tight">
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg sm:text-xl lg:text-2xl text-black/80 dark:text-white/80 font-extrabold tracking-tight flex items-center gap-2 truncate">
+          Revolyx
+          <span className="text-zinc-500 font-medium">
+            Studio 
+          </span>
+        </h1>
+        </div>
+      
+      </div>
+    </div>
+  </div>
+
+  {/* RIGHT */}
+  <div className="flex items-center gap-1.5">
+    <Button
+     
+      variant="outline"
+      onClick={() => setFullscreenPreview(true)}
+      className="
+      
+        text-zinc-500 hover:text-zinc-900 cursor-pointer
+        dark:text-zinc-400 dark:hover:text-white
+      "
+    >
+      <Maximize2 className="w-3.5 h-3.5" />Preview
+    </Button>
+  </div>
+</header>
+
 
       {/* MAIN WORKSPACE */}
       <main className="flex-1 flex overflow-hidden">
-        {/* DESKTOP ACTIVITY BAR */}
-        <aside className="hidden lg:flex w-14 bg-[#09090b] border-r border-white/5 flex-col items-center py-4 gap-6">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="p-2 text-indigo-400 bg-indigo-500/10 rounded-xl cursor-pointer"><Files className="w-5 h-5" /></div>
-              </TooltipTrigger>
-              <TooltipContent side="right"><p>Explorer</p></TooltipContent>
-            </Tooltip>
-            <div className="p-2 text-zinc-600 hover:text-zinc-300 cursor-pointer transition-colors"><Search className="w-5 h-5" /></div>
-            <div className="p-2 text-zinc-600 hover:text-zinc-300 cursor-pointer transition-colors mt-auto"><Settings className="w-5 h-5" /></div>
-          </TooltipProvider>
-        </aside>
+
 
         {/* DESKTOP FILE EXPLORER */}
         <aside className="hidden lg:block w-64 border-r border-white/5">
@@ -263,100 +373,220 @@ export default function WebStudioIDE() {
         </aside>
 
         {/* EDITOR AREA */}
-        <section className="flex-1 flex flex-col min-w-0 bg-[#0c0c0e]">
-          {/* VS-CODE STYLE TABS */}
-          <div className="h-10 bg-[#09090b] flex items-center border-b border-white/5 overflow-x-auto no-scrollbar">
-            {Object.keys(files).map((f) => (
-              <div
-                key={f}
-                onClick={() => setActiveFile(f)}
-                className={clsx(
-                  "flex items-center gap-2 px-4 h-full text-[11px] cursor-pointer transition-all border-r border-white/5 min-w-[120px]",
-                  activeFile === f ? "bg-[#0c0c0e] text-indigo-400 border-t-2 border-t-indigo-500" : "text-zinc-500 hover:bg-white/5"
-                )}
-              >
-                <FileCode className={clsx("w-3.5 h-3.5", f.endsWith('html') && "text-orange-400", f.endsWith('css') && "text-blue-400", f.endsWith('js') && "text-yellow-400")} />
-                {f}
-              </div>
-            ))}
-          </div>
+{/* ======================= EDITOR SECTION ======================= */}
+<section className="flex-1 flex flex-col min-w-0  relative">
 
-          <div className="flex-1 relative">
-            <Editor
-              height="100vh"
-              theme="vs-dark"
-              language={files[activeFile].language}
-              value={files[activeFile].value}
-              onChange={handleEditorChange}
-              options={{
-                fontSize: 14,
-                fontFamily: "'JetBrains Mono', monospace",
-                minimap: { enabled: true },
-                padding: { top: 16 },
-                wordWrap: "on",
-                lineNumbers: "on",
-                automaticLayout: true,
-                glyphMargin: false,
-                folding: true,
-                scrollbar: { verticalScrollbarSize: 8 },
-              }}
-            />
-          </div>
-        </section>
+  {/* ======================= TAB BAR ======================= */}
+  <div className="relative h-10  border-b border-white/5 flex items-center overflow-x-auto no-scrollbar">
 
-        {/* PREVIEW PANEL */}
-        <section className="hidden md:flex flex-col border-l border-white/5 bg-[#050505] relative md:w-[40%] lg:w-[45%]">
-          <div className="h-10 bg-[#09090b] border-b border-white/5 flex items-center justify-between px-3">
-            <div className="flex gap-1.5 p-1 bg-white/5 rounded-lg">
-              <Button size="icon" variant="ghost" className={clsx("h-7 w-7", viewport === "desktop" && "bg-white/10 text-white")} onClick={() => setViewport("desktop")}><Monitor className="w-3.5 h-3.5"/></Button>
-              <Button size="icon" variant="ghost" className={clsx("h-7 w-7", viewport === "tablet" && "bg-white/10 text-white")} onClick={() => setViewport("tablet")}><Tablet className="w-3.5 h-3.5"/></Button>
-              <Button size="icon" variant="ghost" className={clsx("h-7 w-7", viewport === "mobile" && "bg-white/10 text-white")} onClick={() => setViewport("mobile")}><Smartphone className="w-3.5 h-3.5"/></Button>
-            </div>
-            <div className="flex gap-2">
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500 hover:text-white" onClick={() => setFullscreenPreview(true)}><Maximize2 className="w-3.5 h-3.5"/></Button>
+    {/* Left shadow mask (VS Code feel) */}
+    {/* <div className="pointer-events-none absolute left-0 top-0 h-full w-6 bg-gradient-to-r from-[#09090b] to-transparent z-10" />
+    <div className="pointer-events-none absolute right-0 top-0 h-full w-6 bg-gradient-to-l from-[#09090b] to-transparent z-10" /> */}
 
-            </div>
-          </div>
+    {Object.keys(files).map((file) => {
+      const isActive = activeFile === file;
+      const isHTML = file.endsWith("html");
+      const isCSS = file.endsWith("css");
+      const isJS = file.endsWith("js");
 
-          <div className="flex-1  overflow-y-auto flex items-center justify-center p-6  bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-repeat">
-            <div
-              className={clsx(
-                "bg-white  shadow-[0_0_100px_rgba(0,0,0,0.3)]  transition-all  duration-500 ease-in-out",
-                viewport === "desktop" ? "w-full h-full rounded-xl" : 
-                viewport === "tablet" ? "w-[600px] h-[800px] mt-50 rounded-3xl border-[12px] border-zinc-900" :
-                "w-[340px] h-[680px] mt-35 rounded-[48px] border-[14px] border-zinc-900"
-              )}
-            >
-              <iframe
-                srcDoc={previewDoc}
-                className="w-full h-full rounded-[inherit]"
-                sandbox="allow-scripts"
-                title="live-render"
-              />
-            </div>
-          </div>
-        </section>
+      return (
+        <div
+          key={file}
+          onClick={() => setActiveFile(file)}
+          className={clsx(
+            "group relative  flex items-center gap-2 px-4 h-full min-w-[140px] text-[11px] font-medium cursor-pointer transition-all select-none",
+            "border-r border-white/5",
+            isActive
+              ? "dark:bg-[#0c0c0e] bg-zinc-200 dark:text-zinc-400 text-black/70"
+              : "text-zinc-500  bg-white dark:bg-black hover:bg-white/90"
+          )}
+        >
+          {/* Active top indicator */}
+          {isActive && (
+            <span className="absolute top-0 left-0 w-full h-[2px] bg-zinc-500" />
+          )}
+
+          {/* File Icon */}
+          {isHTML && <FileText className="w-3.5 h-3.5 text-orange-400" />}
+          {isCSS && <Code className="w-3.5 h-3.5 text-sky-400" />}
+          {isJS && <Braces className="w-3.5 h-3.5 text-yellow-400" />}
+
+          <span className="truncate">{file}</span>
+
+        </div>
+      );
+    })}
+  </div>
+
+  {/* ======================= EDITOR CONTAINER ======================= */}
+  <div className="flex-1 relative ">
+    {/* Subtle inner border */}
+    <div className="absolute inset-0 pointer-events-none shadow-[inset_0_1px_0_0_rgba(255,255,255,0.03)]" />
+
+    <Editor
+      height="100%"
+      theme={isDark ? "vs-dark" : "vs"}
+      language={files[activeFile].language}
+      value={files[activeFile].value}
+      onChange={handleEditorChange}
+      options={{
+        fontSize: 14,
+        fontFamily: "'JetBrains Mono', monospace",
+        minimap: { enabled: true },
+        padding: { top: 16, bottom: 16 },
+        wordWrap: "on",
+        lineNumbers: "on",
+        cursorSmoothCaretAnimation: true,
+        cursorBlinking: "smooth",
+        renderLineHighlight: "all",
+        folding: true,
+        glyphMargin: false,
+        smoothScrolling: true,
+        automaticLayout: true,
+        scrollbar: {
+          verticalScrollbarSize: 8,
+          horizontalScrollbarSize: 8,
+          useShadows: false,
+        },
+      }}
+    />
+  </div>
+</section>
+
+
+{/* ======================= PREVIEW PANEL (PRO) ======================= */}
+<section
+  className="
+    hidden md:flex flex-col relative
+    md:w-[40%] lg:w-[45%]
+    border-l border-zinc-200
+    dark:border-white/10
+    bg-zinc-50 dark:bg-[#050505]
+  "
+>
+  {/* ======================= TOOLBAR ======================= */}
+  <div
+    className="
+      h-10 px-3 flex items-center justify-between
+      border-b border-zinc-200
+      dark:border-white/10
+      bg-white dark:bg-[#09090b]
+    "
+  >
+    {/* Viewport Switch */}
+    <div
+      className="
+        flex items-center gap-1 p-1 rounded-lg
+        bg-zinc-100 dark:bg-white/5
+      "
+    >
+      <Button
+        size="icon"
+        variant="ghost"
+        onClick={() => setViewport("desktop")}
+        className={clsx(
+          "h-7 w-7 cursor-pointer rounded-md",
+          viewport === "desktop"
+            ? "bg-white shadow text-zinc-900 dark:bg-white/10 dark:text-white"
+            : "text-zinc-500 dark:text-zinc-400"
+        )}
+      >
+        <Monitor className="w-3.5 h-3.5" />
+      </Button>
+
+      <Button
+        size="icon"
+        variant="ghost"
+        onClick={() => setViewport("tablet")}
+        className={clsx(
+          "h-7 w-7 cursor-pointer rounded-md",
+          viewport === "tablet"
+            ? "bg-white shadow text-zinc-900 dark:bg-white/10 dark:text-white"
+            : "text-zinc-500 dark:text-zinc-400"
+        )}
+      >
+        <Tablet className="w-3.5 h-3.5" />
+      </Button>
+
+      <Button
+        size="icon"
+        variant="ghost"
+        onClick={() => setViewport("mobile")}
+        className={clsx(
+          "h-7 w-7 cursor-pointer rounded-md",
+          viewport === "mobile"
+            ? "bg-white shadow text-zinc-900 dark:bg-white/10 dark:text-white"
+            : "text-zinc-500 dark:text-zinc-400"
+        )}
+      >
+        <Smartphone className="w-3.5 h-3.5" />
+      </Button>
+    </div>
+
+    {/* Actions */}
+    <Button
+      size="icon"
+      variant="ghost"
+      onClick={() => setFullscreenPreview(true)}
+      className="
+        h-8 w-8
+        cursor-pointer
+        text-zinc-500 hover:text-zinc-900
+        dark:text-zinc-400 dark:hover:text-white
+      "
+    >
+      <Maximize2 className="w-3.5 h-3.5" />
+    </Button>
+  </div>
+
+  {/* ======================= PREVIEW CANVAS ======================= */}
+  <div
+    className="
+      flex-1 flex items-center justify-center p-6
+      bg-zinc-100 dark:bg-[#0b0b0d] overflow-y-auto
+      dark:bg-[url('https://grainy-gradients.vercel.app/noise.svg')]
+      dark:bg-repeat
+    "
+  >
+    <div
+      className={clsx(
+        "relative  transition-all duration-500 ease-out",
+        "bg-white shadow-xl dark:shadow-[0_0_80px_rgba(0,0,0,0.45)]",
+        viewport === "desktop" &&
+          "w-full h-full rounded-2xl",
+        viewport === "tablet" &&
+          "w-[768px] h-[724px] rounded-2xl  mt-45 border border-zinc-200 dark:border-zinc-800",
+        viewport === "mobile" &&
+          "w-[375px] h-[720px] rounded-2xl mt-45 border border-zinc-200 dark:border-zinc-800"
+      )}
+    >
+      {/* Browser chrome hint */}
+      <div className="absolute top-0 left-0 right-0 h-6 rounded-t-2xl bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 flex items-center px-2 gap-1">
+        <span className="w-2 h-2 rounded-full bg-red-400" />
+        <span className="w-2 h-2 rounded-full bg-yellow-400" />
+        <span className="w-2 h-2 rounded-full bg-green-400" />
+      </div>
+
+      <iframe
+        srcDoc={previewDoc}
+        title="live-render"
+        sandbox="allow-scripts"
+        className="w-full h-full pt-6 rounded-[inherit]"
+      />
+    </div>
+  </div>
+</section>
+
       </main>
 
-      {/* FOOTER BAR */}
-      <footer className="h-7 bg-[#09090b] border-t border-white/5 flex items-center justify-between px-3 text-[10px] font-medium tracking-wide uppercase text-zinc-500 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 text-emerald-500"><div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse"/> Live Connection</div>
-          <div className="flex items-center gap-1.5"><Terminal className="w-3 h-3"/> UTF-8</div>
-        </div>
-        <div className="flex items-center gap-3">
-          <span>{activeFile.split('.').pop()} Layout</span>
-          <Separator orientation="vertical" className="h-3 bg-white/10" />
-          <span className="text-zinc-400">Prettier: Active</span>
-        </div>
-      </footer>
+
 
       {/* FULLSCREEN PREVIEW OVERLAY */}
       {fullscreenPreview && (
         <div className="fixed inset-0 bg-[#020617] z-[100] flex flex-col animate-in fade-in zoom-in-95 duration-200">
            <header className="h-14 bg-[#09090b] border-b border-white/5 flex items-center justify-between px-6">
             <span className="text-xs font-bold text-zinc-400">Full Screen Staging</span>
-            <Button size="icon" variant="secondary" className="h-9 w-9" onClick={() => setFullscreenPreview(false)}><Minimize2 className="w-4 h-4"/></Button>
+            <Button  size="icon" variant="secondary" className="h-9 w-9 cursor-pointer" onClick={() => setFullscreenPreview(false)}><Minimize2 className="w-4 h-4"/></Button>
            </header>
            <div className="flex-1">
              <iframe srcDoc={previewDoc} className="w-full h-full" sandbox="allow-scripts" />
