@@ -453,6 +453,7 @@ export default function ColorPalettePage() {
 
   const copyToClipboard = useCallback((hex) => {
     navigator.clipboard.writeText(hex);
+    window.scrollTo({ top: 0, behavior: "smooth" });
     setCopyStatus(hex);
     setCustomHex(hex);
     setTimeout(() => setCopyStatus(null), 2000);
@@ -471,92 +472,281 @@ export default function ColorPalettePage() {
   }, [activeFilter, activeSort, favorites]);
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] text-slate-900 font-sans pb-40">
+    <div className="min-h-screen  text-slate-900 font-sans pb-40">
       {/* Dynamic Background Glow */}
       <div 
         className="fixed inset-0 pointer-events-none opacity-5 transition-colors duration-1000"
         style={{ backgroundColor: customHex }}
       />
 
-      <header className="max-w-[1600px] mx-auto p-6 md:p-12 flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-black rounded-2xl text-white shadow-xl">
-              <Palette size={28} />
-            </div>
-            <h1 className="text-5xl font-black tracking-tighter text-black italic">
-              HEX<span className="text-slate-400">FLOW</span>
-            </h1>
-          </div>
-          <p className="text-slate-500 text-lg font-medium max-w-md">
-            A continuous mathematical mapping of the visual spectrum.
-          </p>
-        </div>
+<header className="
+  relative
+  max-w-8xl mx-auto
+  px-6 py-8 md:px-12 md:py-14
+  flex flex-col md:flex-row
+  md:items-center md:justify-between
+  gap-10
+">
+  {/* ================= Left / Branding ================= */}
+  <div>
+    <div className="flex items-center gap-4 mb-3">
+      <div className="
+        p-3 rounded-2xl
+        bg-black dark:bg-white
+        text-white dark:text-black
+        shadow-xl
+      ">
+        <Palette size={26} />
+      </div>
 
-        <div className="group bg-white p-4 rounded-[2.5rem] shadow-2xl shadow-slate-200 border border-slate-100 flex items-center gap-6 pr-8 transition-all hover:scale-[1.02]">
-          <div 
-            className="w-16 h-16 rounded-[1.5rem] shadow-inner transition-all duration-500 rotate-3 group-hover:rotate-0" 
-            style={{ backgroundColor: customHex, boxShadow: `0 20px 40px ${customHex}33` }}
-          />
-          <div className="flex flex-col">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Current Focus</span>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-2xl font-black text-slate-800 tracking-tighter uppercase">{customHex}</span>
-            </div>
-          </div>
-          <button 
-            onClick={() => copyToClipboard(customHex)}
-            className="ml-4 w-12 h-12 flex items-center justify-center bg-slate-900 text-white rounded-full hover:bg-black transition-all active:scale-95"
-          >
-            <Copy size={20} />
-          </button>
-        </div>
-      </header>
+      <h1 className="
+        text-4xl md:text-5xl
+        font-black tracking-tighter italic
+        text-black dark:text-white
+      ">
+        HEX
+        <span className="text-slate-400 dark:text-zinc-500">FLOW</span>
+      </h1>
+    </div>
+
+    <p className="
+      max-w-md
+      text-base md:text-lg
+      font-medium
+      text-slate-500 dark:text-zinc-400
+      leading-relaxed
+    ">
+      A continuous mathematical mapping of the visual spectrum.
+    </p>
+  </div>
+
+  {/* ================= Active Color Card ================= */}
+  <div className="
+    group
+    relative
+    flex items-center gap-6
+    p-4 pr-6
+    rounded-[2.5rem]
+    border border-slate-200 dark:border-white/10
+    bg-white dark:bg-zinc-900
+    shadow-2xl shadow-slate-200/70 dark:shadow-black/40
+    transition-all duration-300
+    hover:scale-[1.02]
+  ">
+    {/* Color Preview */}
+    <div
+      className="
+        w-16 h-16
+        rounded-[1.5rem]
+        shadow-inner
+        transition-all duration-500
+        rotate-3 group-hover:rotate-0
+      "
+      style={{
+        backgroundColor: customHex,
+        boxShadow: `0 20px 40px ${customHex}33`,
+      }}
+    />
+
+    {/* Color Info */}
+    <div className="flex flex-col">
+      <span className="
+        text-[10px]
+        font-extrabold
+        uppercase tracking-[0.25em]
+        text-slate-400 dark:text-zinc-500
+        mb-1
+      ">
+        Current Focus
+      </span>
+
+      <span className="
+        font-mono
+        text-2xl
+        font-black
+        tracking-tight
+        uppercase
+        text-slate-800 dark:text-zinc-100
+      ">
+        {customHex}
+      </span>
+    </div>
+
+    {/* Copy Button */}
+    <button
+      onClick={() => copyToClipboard(customHex)}
+      className="
+        ml-4
+        w-12 h-12
+        flex items-center justify-center
+        rounded-full
+        bg-slate-900 dark:bg-white
+        text-white dark:text-black
+        transition-all
+        hover:scale-105
+        active:scale-95
+        focus:outline-none
+        focus-visible:ring-2
+        focus-visible:ring-indigo-500
+      "
+    >
+      <Copy size={18} />
+    </button>
+  </div>
+</header>
+
 
       <main className="max-w-[1600px] mx-auto px-6 md:px-12 space-y-24 relative z-10">
         
         {/* Navigation */}
-        <div className="sticky top-6 z-50 flex flex-col md:flex-row gap-4 items-center justify-center">
-          <nav className="bg-white/70 backdrop-blur-2xl p-2 rounded-[2rem] border border-white/50 shadow-2xl flex flex-wrap justify-center gap-1">
-            {COLORS_FILTER.map((color) => (
-              <button
-                key={color}
-                onClick={() => setActiveFilter(color)}
-                className={cn(
-                  "px-5 py-2.5 rounded-full text-[11px] font-black transition-all uppercase tracking-widest",
-                  activeFilter === color 
-                    ? "bg-black text-white shadow-xl scale-105" 
-                    : "text-slate-500 hover:text-black hover:bg-slate-100"
-                )}
-              >
-                {color}
-              </button>
-            ))}
-          </nav>
-        </div>
+<div className="w-full flex flex-col lg:flex-row gap-4 lg:gap-6 items-center justify-between">
+  
+  {/* ================= Filters ================= */}
+  <nav
+    className="
+      w-full lg:w-auto
+      flex flex-wrap items-center justify-center gap-1
+      rounded-2xl p-2
+      border border-black/5 dark:border-white/10
+      bg-white/80 dark:bg-zinc-900/70
+      backdrop-blur-xl
+      shadow-lg
+    "
+  >
+    {COLORS_FILTER.map((color) => (
+      <button
+        key={color}
+        onClick={() => setActiveFilter(color)}
+        className={cn(
+          `
+            px-4 sm:px-5 py-2 sm:py-2.5
+            rounded-full
+            text-[10px] sm:text-[11px]
+            font-extrabold uppercase tracking-widest
+            transition-all duration-200
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500
+          `,
+          activeFilter === color
+            ? `
+              bg-zinc-900 text-white
+              dark:bg-white dark:text-zinc-900
+              shadow-md scale-[1.04]
+            `
+            : `
+              text-zinc-500 dark:text-zinc-400
+              hover:text-zinc-900 dark:hover:text-white
+              hover:bg-zinc-100 dark:hover:bg-white/10
+            `
+        )}
+      >
+        {color}
+      </button>
+    ))}
+  </nav>
 
-        {/* Curated Section */}
-        <section>
-          <div className="flex items-center gap-4 mb-10">
-            <div className="h-px flex-1 bg-slate-200" />
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.4em] px-4">Curated Samples</h2>
-            <div className="h-px flex-1 bg-slate-200" />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-            <AnimatePresence mode="popLayout">
-              {filteredPalettes.map((p) => (
-                <PaletteCard 
-                  key={p.id} 
-                  palette={p} 
-                  onCopy={copyToClipboard} 
-                  isLiked={favorites.includes(p.id)} 
-                  onToggleLike={() => toggleFavorite(p.id)} 
-                />
-              ))}
-            </AnimatePresence>
-          </div>
-        </section>
+  {/* ================= Sort Controls ================= */}
+  <div className="flex items-center gap-4">
+    
+    {/* Divider (Desktop only) */}
+    <div className="hidden lg:block h-8 w-px bg-zinc-200 dark:bg-white/10" />
+
+    <div
+      className="
+        flex items-center gap-1
+        rounded-xl p-1
+        bg-zinc-100 dark:bg-zinc-800
+        border border-black/5 dark:border-white/10
+        shadow-sm
+      "
+    >
+      {[ 
+        { n: "Default", i: LayoutGrid },
+        { n: "Random", i: Shuffle },
+        { n: "A-Z", i: SortAsc }
+      ].map((s) => (
+        <button
+          key={s.n}
+          onClick={() => setActiveSort(s.n)}
+          className={cn(
+            `
+              flex items-center gap-2
+              px-3 py-2
+              cursor-pointer
+              rounded-lg
+              text-[10px] font-extrabold uppercase tracking-wide
+              transition-all duration-200
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500
+            `,
+            activeSort === s.n
+              ? `
+                bg-white dark:bg-zinc-900
+                text-zinc-600 dark:text-zinc-400
+                shadow
+              `
+              : `
+                text-zinc-400 dark:text-zinc-500
+                hover:text-zinc-700 dark:hover:text-zinc-300
+              `
+          )}
+        >
+          <s.i size={16} />
+          <span className="hidden sm:inline">{s.n}</span>
+        </button>
+      ))}
+    </div>
+  </div>
+</div>
+
+
+{/* ================= Curated Section ================= */}
+<section className="relative">
+  
+  {/* Section Header */}
+  <div className="flex items-center gap-4 mb-10">
+    <div className="h-px flex-1 bg-zinc-200 dark:bg-white/10" />
+    
+    <h2
+      className="
+        px-4
+        text-[10px] sm:text-xs
+        font-extrabold
+        uppercase tracking-[0.35em]
+        text-zinc-400 dark:text-zinc-500
+        whitespace-nowrap
+      "
+    >
+      Curated Samples
+    </h2>
+
+    <div className="h-px flex-1 bg-zinc-200 dark:bg-white/10" />
+  </div>
+
+  {/* Grid */}
+  <div
+    className="
+      grid gap-5 sm:gap-6
+      grid-cols-1
+      sm:grid-cols-2
+      lg:grid-cols-3
+      xl:grid-cols-4
+      2xl:grid-cols-5
+    "
+  >
+    <AnimatePresence mode="popLayout">
+      {filteredPalettes.map((p) => (
+        <PaletteCard
+          key={p.id}
+          palette={p}
+          onCopy={copyToClipboard}
+          isLiked={favorites.includes(p.id)}
+          onToggleLike={() => toggleFavorite(p.id)}
+        />
+      ))}
+    </AnimatePresence>
+  </div>
+
+</section>
+
 
         {/* The Infinite Flow Section */}
         <section className="space-y-12">
@@ -570,11 +760,11 @@ export default function ColorPalettePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 xl:grid-cols-12 gap-1">
+          <div className="grid h-100 sm:h-150 overflow-y-auto grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1">
             {TRUE_SPECTRUM_DATA.map((set) => (
               <div 
                 key={set.id}
-                className="group relative h-40 flex flex-col overflow-hidden first:rounded-l-3xl last:rounded-r-3xl"
+                className="group relative h-40 flex flex-col border-2 border-black/10 dark:border-white/70  overflow-hidden rounded-2xl"
               >
                 {set.colors.map((color, i) => (
                   <motion.div
@@ -599,64 +789,157 @@ export default function ColorPalettePage() {
         </section>
       </main>
 
-      {/* Modern Toast */}
-      <AnimatePresence>
-        {copyStatus && (
-          <motion.div
-            initial={{ y: 100, x: "-50%", opacity: 0 }} 
-            animate={{ y: 0, x: "-50%", opacity: 1 }} 
-            exit={{ y: 100, x: "-50%", opacity: 0 }}
-            className="fixed bottom-12 left-1/2 bg-black text-white pl-2 pr-8 py-2 rounded-full shadow-[0_30px_60px_rgba(0,0,0,0.3)] flex items-center gap-4 z-[100]"
-          >
-            <div 
-              className="w-10 h-10 rounded-full border-2 border-white/20"
-              style={{ backgroundColor: copyStatus }}
-            />
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Captured</span>
-              <span className="font-mono text-sm font-black tracking-tighter uppercase">{copyStatus}</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+ {/* Modern Toast */}
+<AnimatePresence>
+  {copyStatus && (
+    <motion.div
+      initial={{ y: 80, x: "-50%", opacity: 0, scale: 0.95 }}
+      animate={{ y: 0, x: "-50%", opacity: 1, scale: 1 }}
+      exit={{ y: 80, x: "-50%", opacity: 0, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 260, damping: 22 }}
+      className="
+        fixed bottom-6 left-1/2 z-[100]
+        flex items-center gap-4
+        px-4 py-3 pr-6
+        rounded-full
+        backdrop-blur-2xl
+        border
+        shadow-2xl
+        bg-white/80 text-black
+        border-black/10
+        dark:bg-black/70 dark:text-white
+        dark:border-white/10
+      "
+    >
+      {/* Color Preview */}
+      <div
+        className="
+          w-10 h-10 rounded-full
+          ring-2 ring-black/10 dark:ring-white/20
+          shadow-inner
+        "
+        style={{ backgroundColor: copyStatus }}
+      />
+
+      {/* Text */}
+      <div className="flex flex-col leading-tight">
+        <span className="text-[9px] font-extrabold uppercase tracking-[0.25em] text-black/50 dark:text-white/40">
+          Copied
+        </span>
+        <span className="font-mono text-sm font-black tracking-tight">
+          {copyStatus}
+        </span>
+      </div>
+
+      {/* Accent Glow */}
+      <div className="absolute inset-0 rounded-full pointer-events-none ring-1 ring-black/5 dark:ring-white/5" />
+    </motion.div>
+  )}
+</AnimatePresence>
+
     </div>
   );
 }
 
 function PaletteCard({ palette, onCopy, isLiked, onToggleLike }) {
   return (
-    <motion.div 
-      layout 
-      className="bg-white rounded-[2rem] overflow-hidden border border-slate-100 group hover:shadow-2xl hover:shadow-slate-200 transition-all duration-700"
+    <motion.div
+      layout
+      className="
+        group
+        relative
+        overflow-hidden
+        rounded-3xl
+        border border-zinc-200 dark:border-white/10
+        bg-white dark:bg-zinc-900
+        transition-all duration-500
+        hover:shadow-2xl hover:shadow-zinc-200/60 dark:hover:shadow-black/40
+      "
     >
+      {/* ================= Color Strip ================= */}
       <div className="flex h-32 w-full cursor-pointer p-1.5">
-        <div className="flex w-full rounded-[1.5rem] overflow-hidden">
+        <div className="flex w-full overflow-hidden rounded-2xl">
           {palette.colors.map((color, idx) => (
-            <div 
-              key={idx} 
-              onClick={() => onCopy(color)} 
-              style={{ backgroundColor: color }} 
-              className="group/swatch relative flex-1 transition-all hover:flex-[3] flex items-center justify-center"
-            />
+            <div
+              key={idx}
+              onClick={() => onCopy(color)}
+              style={{ backgroundColor: color }}
+              className="
+                group/swatch
+                relative
+                flex-1
+                flex items-center justify-center
+                transition-all duration-300 ease-out
+                hover:flex-[3]
+              "
+            >
+              {/* Hover tooltip */}
+              <span
+                className="
+                  pointer-events-none
+                  absolute bottom-2
+                  opacity-0 group-hover/swatch:opacity-100
+                  transition-all duration-200
+                  text-[9px] font-extrabold tracking-widest
+                  px-2 py-1 rounded-full
+                  bg-black/60 text-white
+                  backdrop-blur
+                "
+              >
+                {color}
+              </span>
+            </div>
           ))}
         </div>
       </div>
-      <div className="p-5 pt-2 flex justify-between items-center">
-        <div>
-          <h4 className="font-black text-slate-800 text-sm tracking-tight uppercase">{palette.name}</h4>
-          <div className="flex gap-1 mt-1.5">
-            {palette.tags.slice(0, 1).map(t => (
-              <span key={t} className="text-[8px] bg-slate-50 text-slate-400 px-2 py-0.5 rounded-full font-black uppercase tracking-widest">
+
+      {/* ================= Content ================= */}
+      <div className="flex items-center justify-between px-5 pb-5 pt-2">
+        <div className="min-w-0">
+          <h4
+            className="
+              text-sm
+              font-extrabold uppercase tracking-tight
+              text-zinc-800 dark:text-zinc-100
+              truncate
+            "
+          >
+            {palette.name}
+          </h4>
+
+          {/* Tags */}
+          <div className="mt-1.5 flex gap-1">
+            {palette.tags.slice(0, 1).map((t) => (
+              <span
+                key={t}
+                className="
+                  text-[9px]
+                  font-extrabold uppercase tracking-widest
+                  px-2 py-0.5 rounded-full
+                  bg-zinc-100 dark:bg-white/10
+                  text-zinc-500 dark:text-zinc-400
+                "
+              >
                 {t}
               </span>
             ))}
           </div>
         </div>
-        <button 
-          onClick={onToggleLike} 
+
+        {/* Like Button */}
+        <button
+          onClick={onToggleLike}
           className={cn(
-            "w-10 h-10 rounded-full transition-all flex items-center justify-center", 
-            isLiked ? "bg-red-50 text-red-500" : "text-slate-200 hover:text-red-400"
+            `
+              w-10 h-10
+              rounded-full
+              flex items-center justify-center
+              transition-all duration-200
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400
+            `,
+            isLiked
+              ? "bg-red-100 dark:bg-red-500/20 text-red-500"
+              : "text-zinc-300 dark:text-zinc-600 hover:text-red-400"
           )}
         >
           <Heart size={16} fill={isLiked ? "currentColor" : "none"} />
