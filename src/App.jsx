@@ -156,6 +156,7 @@ import PromptsPage from './pages/PromptsPage'
 import AllAisPage from './components/AllAisPage'
 import SVGViewerPage from './pages/SVGViewerPage'
 import WebStudioIDE from './pages/CodePlayground'
+import ColorPalettePage from './pages/ColorPalette'
 
 const router=createBrowserRouter([
   {
@@ -242,6 +243,10 @@ const router=createBrowserRouter([
       {
           path:"/resources",
           element:<ResourcePage/>
+      },
+      {
+        path:"/color-palette",
+        element:<ColorPalettePage/>
       },
       {
         path:"/apis/ipapi",

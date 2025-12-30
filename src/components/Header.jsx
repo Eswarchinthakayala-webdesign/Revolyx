@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -45,7 +45,6 @@ import {
   BrainCircuit,
   DiamondMinus,
   Code
-  
 } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
 import { useTheme } from "@/components/theme-provider";
@@ -56,6 +55,11 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  
+  // New State for Bottom Bar Visibility
+  const [showBottomNav, setShowBottomNav] = useState(true);
+  const lastScrollY = useRef(0);
+
   const { theme } = useTheme();
   const location = useLocation();
 
@@ -102,9 +106,7 @@ export default function Header() {
      {name:"ALL AIs",icon:BrainCircuit,path:"/all-ais"},
      {name:"Svg Viewer",icon:DiamondMinus,path:'/svg-viewer'},
      {name:"Web Studio",icon:Code,path:"/code-playground"},
-    
-
-
+     {name:"Color Palette",icon:Palette,path:"/color-palette"}
   ];
 
   // Desktop shows FIRST 5 → rest inside "More"
@@ -116,7 +118,25 @@ export default function Header() {
   const mobileMore = navItems.slice(3);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Logic for Top Header Transparency
+      setIsScrolled(currentScrollY > 10);
+
+      // Logic for Mobile Bottom Nav Visibility
+      // If scrolling down AND moved more than 20px
+      if (currentScrollY > lastScrollY.current && currentScrollY > 20) {
+        setShowBottomNav(false);
+        setIsMoreOpen(false); // Automatically close "More" menu if scrolling down
+      } else {
+        // Scrolling UP or Stopped (Technically 'up' covers stopped in relative terms)
+        setShowBottomNav(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -257,9 +277,10 @@ export default function Header() {
       {/* ================= Mobile Bottom Bar ================= */}
       <motion.nav
         initial={{ opacity: 0, y: 25 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="fixed bottom-0 left-0 right-0 z-400   border-t border-border backdrop-blur-xl bg-white/80 dark:bg-black/80 flex justify-around items-center py-3 lg:hidden"
+        // Toggle visibility: 0 is visible, 100 slides it down out of view
+        animate={{ opacity: 1, y: showBottomNav ? 0 : 100 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="fixed bottom-0 left-0 right-0 z-400 border-t border-border backdrop-blur-xl bg-white/80 dark:bg-black/80 flex justify-around items-center py-3 lg:hidden"
       >
       
         {mobileMain.map(({ name, icon: Icon, path }) => (
@@ -287,7 +308,7 @@ export default function Header() {
 
         {/* Floating More Panel */}
         <AnimatePresence>
-          {isMoreOpen && (
+          {isMoreOpen && showBottomNav && (
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
