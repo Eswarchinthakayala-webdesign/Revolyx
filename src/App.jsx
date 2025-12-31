@@ -157,6 +157,7 @@ import AllAisPage from './components/AllAisPage'
 import SVGViewerPage from './pages/SVGViewerPage'
 import WebStudioIDE from './pages/CodePlayground'
 import ColorPalettePage from './pages/ColorPalette'
+import DigitalSignatureApp from './pages/DigitalSignature'
 
 const router=createBrowserRouter([
   {
@@ -247,6 +248,10 @@ const router=createBrowserRouter([
       {
         path:"/color-palette",
         element:<ColorPalettePage/>
+      },
+      {
+           path:"/digital-signature",
+           element:<DigitalSignatureApp/>
       },
       {
         path:"/apis/ipapi",

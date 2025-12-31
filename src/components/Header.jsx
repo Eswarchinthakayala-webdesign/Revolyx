@@ -44,7 +44,8 @@ import {
   BrickWallFireIcon,
   BrainCircuit,
   DiamondMinus,
-  Code
+  Code,
+  PencilLine
 } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
 import { useTheme } from "@/components/theme-provider";
@@ -106,7 +107,9 @@ export default function Header() {
      {name:"ALL AIs",icon:BrainCircuit,path:"/all-ais"},
      {name:"Svg Viewer",icon:DiamondMinus,path:'/svg-viewer'},
      {name:"Web Studio",icon:Code,path:"/code-playground"},
-     {name:"Color Palette",icon:Palette,path:"/color-palette"}
+     {name:"Color Palette",icon:Palette,path:"/color-palette"},
+     {name:"Digital Signature",icon:PencilLine,path:"/digital-signature"},
+
   ];
 
   // Desktop shows FIRST 5 → rest inside "More"

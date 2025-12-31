@@ -524,7 +524,7 @@ export default function ColorPalettePage() {
   <div className="
     group
     relative
-    flex items-center gap-6
+    flex items-center justify-between gap-6
     p-4 pr-6
     rounded-[2.5rem]
     border border-slate-200 dark:border-white/10
@@ -587,7 +587,8 @@ export default function ColorPalettePage() {
         active:scale-95
         focus:outline-none
         focus-visible:ring-2
-        focus-visible:ring-indigo-500
+        cursor-pointer
+        focus-visible:ring-zinc-500
       "
     >
       <Copy size={18} />
@@ -707,7 +708,7 @@ export default function ColorPalettePage() {
     
     <h2
       className="
-        px-4
+        
         text-[10px] sm:text-xs
         font-extrabold
         uppercase tracking-[0.35em]
@@ -726,10 +727,10 @@ export default function ColorPalettePage() {
     className="
       grid gap-5 sm:gap-6
       grid-cols-1
-      sm:grid-cols-2
-      lg:grid-cols-3
-      xl:grid-cols-4
-      2xl:grid-cols-5
+      sm:grid-cols-4
+      md:grid-cols-5
+      lg:grid-cols-6
+     
     "
   >
     <AnimatePresence mode="popLayout">
