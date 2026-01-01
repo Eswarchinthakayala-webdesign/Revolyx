@@ -45,7 +45,8 @@ import {
   BrainCircuit,
   DiamondMinus,
   Code,
-  PencilLine
+  PencilLine,
+  Cannabis
 } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
 import { useTheme } from "@/components/theme-provider";
@@ -109,6 +110,8 @@ export default function Header() {
      {name:"Web Studio",icon:Code,path:"/code-playground"},
      {name:"Color Palette",icon:Palette,path:"/color-palette"},
      {name:"Digital Signature",icon:PencilLine,path:"/digital-signature"},
+      {name:"Icon Engine",icon:Cannabis,path:"/icon-engine"},
+     
 
   ];
 

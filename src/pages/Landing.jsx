@@ -64,7 +64,8 @@ import {
    BrainCircuit,
    DiamondMinus,
    Code,
-   PencilLine
+   PencilLine,
+   Cannabis
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import AnimatedBadge from "../components/ui/animated-badge";
@@ -216,6 +217,7 @@ export default function LandingPage() {
        {name:"Web Studio",icon:Code,path:"/code-playground"},
        {name:"Color Palette",icon:Palette,path:"/color-palette"},
        {name:"Digital Signature",icon:PencilLine,path:"/digital-signature"},
+       {name:"Icon Engine",icon:Cannabis,path:"/icon-engine"},
   ];
 
   // Build full features list: start with initialFeatures, then append all navItems (exclude Home duplication)
@@ -350,9 +352,9 @@ export default function LandingPage() {
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: "easeOut" }} className="relative z-10">
 
               <AnimatedBadge
-                text="New: Digital Signature"
+                text="New: Icon Engine"
                 color={isDark?"#fff":"#000"}
-                href="/digital-signature"
+                href="/icon-engine"
               />
 
 

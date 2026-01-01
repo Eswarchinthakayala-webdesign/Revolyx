@@ -158,6 +158,7 @@ import SVGViewerPage from './pages/SVGViewerPage'
 import WebStudioIDE from './pages/CodePlayground'
 import ColorPalettePage from './pages/ColorPalette'
 import DigitalSignatureApp from './pages/DigitalSignature'
+import ProfessionalIconsPage from './pages/IconEngine'
 
 const router=createBrowserRouter([
   {
@@ -238,6 +239,10 @@ const router=createBrowserRouter([
         element:<WebStudioIDE/>
       },
       {
+        path:"/icon-engine",
+        element:<ProfessionalIconsPage/>
+      },
+      {
         path:"/apis",
         element:<APIPage/>
       },
@@ -301,6 +306,7 @@ const router=createBrowserRouter([
         path:"/apis/news",
         element:<NewsApiPage/>
       },
+
       {
         path:"/apis/crypto",
         element:<CryptoPricesPage/>
