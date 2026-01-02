@@ -1,11 +1,24 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Youtube, Copy, FileText, Play, Loader2, AlertCircle } from "lucide-react";
+import { 
+  Youtube, 
+  Copy, 
+  FileText, 
+  Play, 
+  Loader2, 
+  AlertCircle, 
+  Download,
+  ExternalLink,
+  Search
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { toast, Toaster } from "sonner";
 
 export default function YoutubeTranscriptPage() {
@@ -23,7 +36,7 @@ export default function YoutubeTranscriptPage() {
   const fetchTranscript = async () => {
     const videoId = extractVideoId(url);
     if (!videoId) {
-      setError("Invalid YouTube URL");
+      setError("Please enter a valid YouTube URL");
       return;
     }
 
@@ -39,14 +52,15 @@ export default function YoutubeTranscriptPage() {
         setData({
           videoId,
           thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-          transcript: transcriptData,
+          transcript: transcriptData, // Array of { start, dur, text }
           fullText: transcriptData.map(t => t.text).join(" ")
         });
+        toast.success("Transcript generated!");
       } else {
-        setError(transcriptData.error);
+        setError(transcriptData.error || "Failed to fetch transcript");
       }
     } catch (err) {
-      setError("Failed to connect to the server.");
+      setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -55,98 +69,168 @@ export default function YoutubeTranscriptPage() {
   const copyToClipboard = () => {
     if (!data) return;
     navigator.clipboard.writeText(data.fullText);
-    toast.success("Transcript copied to clipboard!");
+    toast.success("Full transcript copied!");
+  };
+
+  // Helper to format seconds to MM:SS
+  const formatTime = (seconds) => {
+    const s = Math.floor(parseFloat(seconds));
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-6 md:p-12 font-sans">
+    <div className="min-h-screen max-w-7xl mx-auto py-8 px-4 md:px-8">
       <Toaster richColors />
       
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header */}
-        <header className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-600/10 mb-4">
-            <Youtube className="w-10 h-10 text-red-600" />
-          </div>
-          <h1 className="text-4xl font-black tracking-tighter sm:text-5xl">
-            Video <span className="text-red-600">Transcript</span>
+      {/* HEADER */}
+      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-extrabold flex items-center gap-3">
+            <Youtube className="text-red-600 w-9 h-9" />
+            Revolyx Transcript
           </h1>
-          <p className="text-zinc-400 text-lg">Extract text from any YouTube video in seconds.</p>
-        </header>
-
-        {/* Input Area */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Input 
-            placeholder="Paste YouTube URL (e.g., https://www.youtube.com/watch?v=...)" 
-            className="bg-zinc-900 border-zinc-800 h-12 text-zinc-200"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-          />
-          <Button 
-            onClick={fetchTranscript} 
-            disabled={loading || !url}
-            className="h-12 px-8 bg-red-600 hover:bg-red-700 font-bold"
-          >
-            {loading ? <Loader2 className="animate-spin" /> : "Generate"}
-          </Button>
+          <p className="text-sm opacity-70 mt-1">Convert YouTube speech to text instantly</p>
         </div>
+      </header>
 
-        {error && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500">
-            <AlertCircle className="w-5 h-5" />
-            <p className="text-sm font-medium">{error}</p>
-          </motion.div>
-        )}
-
-        <AnimatePresence>
-          {data && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }} 
-              animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-6"
-            >
-              {/* Sidebar: Thumbnail */}
-              <div className="md:col-span-1 space-y-4">
-                <Card className="bg-zinc-900 border-zinc-800 overflow-hidden">
-                  <img src={data.thumbnail} alt="Thumbnail" className="w-full object-cover" />
-                  <div className="p-4">
-                    <Button variant="outline" className="w-full border-zinc-700 text-zinc-300" onClick={() => window.open(url, '_blank')}>
-                      <Play className="w-4 h-4 mr-2" /> Watch Video
-                    </Button>
-                  </div>
-                </Card>
-                <Button onClick={copyToClipboard} className="w-full bg-white text-black hover:bg-zinc-200 font-bold">
-                  <Copy className="w-4 h-4 mr-2" /> Copy Full Text
-                </Button>
+      <main className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        {/* LEFT PANEL: INPUT & INFO */}
+        <aside className="lg:col-span-1 space-y-4">
+          <Card className="bg-white/60 dark:bg-black/60 backdrop-blur-md sticky top-4">
+            <CardHeader><CardTitle className="text-lg">Input</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-medium opacity-70">YouTube Video URL</label>
+                <div className="relative">
+                  <Input 
+                    placeholder="https://youtube.com/watch?v=..." 
+                    className="bg-background pr-10"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                  />
+                  <Search className="absolute right-3 top-2.5 w-4 h-4 opacity-40" />
+                </div>
               </div>
 
-              {/* Main: Transcript Body */}
-              <Card className="md:col-span-2 bg-zinc-900 border-zinc-800 h-[600px] flex flex-col">
-                <div className="p-4 border-b border-zinc-800 flex justify-between items-center">
-                  <div className="flex items-center gap-2 font-bold text-zinc-300">
-                    <FileText className="w-5 h-5" /> Transcript
-                  </div>
-                  <Badge variant="secondary" className="bg-zinc-800 text-zinc-400">Auto-generated</Badge>
+              <Button 
+                onClick={fetchTranscript} 
+                disabled={loading || !url}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold transition-all"
+              >
+                {loading ? (
+                  <><Loader2 className="animate-spin mr-2 w-4 h-4" /> Extracting...</>
+                ) : (
+                  "Generate Transcript"
+                )}
+              </Button>
+
+              {error && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <p>{error}</p>
                 </div>
-                <ScrollArea className="flex-1 p-6">
-                  <div className="space-y-6">
-                    {data.transcript.map((item, index) => (
-                      <div key={index} className="group flex gap-4">
-                        <span className="text-xs font-mono text-red-500 opacity-50 pt-1">
-                          {Math.floor(item.offset / 1000)}s
-                        </span>
-                        <p className="text-zinc-300 leading-relaxed group-hover:text-white transition-colors">
-                          {item.text}
-                        </p>
+              )}
+
+              {data && (
+                <div className="pt-4 space-y-4">
+                  <Separator />
+                  <div className="rounded-lg overflow-hidden border">
+                    <img src={data.thumbnail} alt="Video Preview" className="w-full h-auto" />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button variant="outline" size="sm" onClick={copyToClipboard} className="w-full">
+                      <Copy className="w-4 h-4 mr-2" /> Copy All Text
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full" asChild>
+                      <a href={`https://youtube.com/watch?v=${data.videoId}`} target="_blank" rel="noreferrer">
+                        <ExternalLink className="w-4 h-4 mr-2" /> Open on YouTube
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </aside>
+
+        {/* RIGHT PANEL: TRANSCRIPT DISPLAY */}
+        <section className="lg:col-span-3">
+          <Card className="bg-white/60 dark:bg-black/60 backdrop-blur-md h-full min-h-[600px] flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/20">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                <CardTitle>Transcript Result</CardTitle>
+              </div>
+              {data && (
+                <Badge variant="secondary" className="font-mono">
+                  {data.transcript.length} Segments
+                </Badge>
+              )}
+            </CardHeader>
+
+            <CardContent className="flex-1 p-0 overflow-hidden">
+              <ScrollArea className="h-[calc(100vh-250px)] p-6">
+                {!data && !loading && (
+                  <div className="h-full flex flex-col items-center justify-center text-center opacity-30 mt-20">
+                    <Youtube className="w-20 h-20 mb-4" />
+                    <p className="text-xl font-medium">Ready to extract</p>
+                    <p className="text-sm">Enter a URL to see the magic happen</p>
+                  </div>
+                )}
+
+                {loading && (
+                  <div className="space-y-4">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="animate-pulse flex gap-4">
+                        <div className="h-4 w-12 bg-muted rounded mt-1"></div>
+                        <div className="h-4 flex-1 bg-muted rounded mt-1"></div>
                       </div>
                     ))}
                   </div>
-                </ScrollArea>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+                )}
+
+                <AnimatePresence>
+                  {data && (
+                    <motion.div 
+                      initial={{ opacity: 0 }} 
+                      animate={{ opacity: 1 }}
+                      className="space-y-6"
+                    >
+                      {data.transcript.map((item, index) => (
+                        <div key={index} className="group flex gap-6 hover:bg-muted/30 p-2 rounded-md transition-colors">
+                          <span className="text-xs font-mono font-bold text-red-600 bg-red-600/10 h-fit px-2 py-1 rounded">
+                            {formatTime(item.start)}
+                          </span>
+                          <p className="text-foreground/90 leading-relaxed text-sm md:text-base">
+                            {item.text}
+                          </p>
+                        </div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </ScrollArea>
+            </CardContent>
+            
+            {data && (
+              <div className="p-4 border-t bg-muted/10 flex justify-end">
+                <Button size="sm" variant="outline" className="text-xs" onClick={() => {
+                  const blob = new Blob([data.fullText], { type: 'text/plain' });
+                  const link = document.createElement('a');
+                  link.href = URL.createObjectURL(blob);
+                  link.download = `transcript-${data.videoId}.txt`;
+                  link.click();
+                }}>
+                  <Download className="w-3 h-3 mr-2" /> Download .txt
+                </Button>
+              </div>
+            )}
+          </Card>
+        </section>
+      </main>
     </div>
   );
 }

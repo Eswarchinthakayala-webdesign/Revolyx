@@ -159,6 +159,7 @@
     "three": "^0.180.0",
     "twemoji": "^14.0.2",
     "vaul": "^1.1.2",
+    "youtube-caption-extractor": "^1.9.1",
     "youtube-transcript": "^1.2.1",
     "zondicons": "^1.2.0",
     "zustand": "^5.0.9"
