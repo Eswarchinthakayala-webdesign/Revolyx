@@ -159,6 +159,10 @@ import WebStudioIDE from './pages/CodePlayground'
 import ColorPalettePage from './pages/ColorPalette'
 import DigitalSignatureApp from './pages/DigitalSignature'
 import ProfessionalIconsPage from './pages/IconEngine'
+import DummyDataGenerator from './pages/DummyDataGenerator'
+import { Barcode } from 'lucide-react'
+import BarCodeGenerator from './pages/BarCodeGenerator'
+import TranscriptGenerator from './pages/TranscriptGenerator'
 
 const router=createBrowserRouter([
   {
@@ -262,6 +266,19 @@ const router=createBrowserRouter([
         path:"/apis/ipapi",
         element:<IpaApiPage/>
       },
+      {
+         path:"/dummy-data-generator",
+         element:<DummyDataGenerator/>
+      },
+      {
+        path:"/transcript-generator",
+        element:<TranscriptGenerator/>
+      },
+      {
+         path:"/bar-code-generator",
+         element:<BarCodeGenerator/>
+      },
+
       {
         path:"/apis/randomuser",
         element:<RandomUserPage/>

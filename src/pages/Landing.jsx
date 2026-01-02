@@ -65,7 +65,10 @@ import {
    DiamondMinus,
    Code,
    PencilLine,
-   Cannabis
+   Cannabis,
+   Handshake,
+   Barcode,
+   Youtube
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import AnimatedBadge from "../components/ui/animated-badge";
@@ -218,6 +221,9 @@ export default function LandingPage() {
        {name:"Color Palette",icon:Palette,path:"/color-palette"},
        {name:"Digital Signature",icon:PencilLine,path:"/digital-signature"},
        {name:"Icon Engine",icon:Cannabis,path:"/icon-engine"},
+           {name:"Dummy Data",icon:Handshake,path:"/dummy-data-generator"},
+            {name:"Bar Code",icon:Barcode,path:"/bar-code-generator"},
+             {name:"Transcript",icon:Youtube,path:"/transcript-generator"}
   ];
 
   // Build full features list: start with initialFeatures, then append all navItems (exclude Home duplication)

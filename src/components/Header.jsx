@@ -46,7 +46,10 @@ import {
   DiamondMinus,
   Code,
   PencilLine,
-  Cannabis
+  Cannabis,
+  Handshake,
+  Barcode,
+  Youtube
 } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
 import { useTheme } from "@/components/theme-provider";
@@ -111,6 +114,9 @@ export default function Header() {
      {name:"Color Palette",icon:Palette,path:"/color-palette"},
      {name:"Digital Signature",icon:PencilLine,path:"/digital-signature"},
       {name:"Icon Engine",icon:Cannabis,path:"/icon-engine"},
+      {name:"Dummy Data",icon:Handshake,path:"/dummy-data-generator"},
+      {name:"Bar Code",icon:Barcode,path:"/bar-code-generator"},
+      {name:"Transcript",icon:Youtube,path:"/transcript-generator"}
      
 
   ];
