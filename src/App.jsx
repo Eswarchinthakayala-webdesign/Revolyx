@@ -271,10 +271,6 @@ const router=createBrowserRouter([
          element:<DummyDataGenerator/>
       },
       {
-        path:"/transcript-generator",
-        element:<TranscriptGenerator/>
-      },
-      {
          path:"/bar-code-generator",
          element:<BarCodeGenerator/>
       },

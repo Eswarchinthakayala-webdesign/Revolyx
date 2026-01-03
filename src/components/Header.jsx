@@ -116,7 +116,7 @@ export default function Header() {
       {name:"Icon Engine",icon:Cannabis,path:"/icon-engine"},
       {name:"Dummy Data",icon:Handshake,path:"/dummy-data-generator"},
       {name:"Bar Code",icon:Barcode,path:"/bar-code-generator"},
-      {name:"Transcript",icon:Youtube,path:"/transcript-generator"}
+     
      
 
   ];
